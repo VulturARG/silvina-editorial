@@ -1,0 +1,17 @@
+project: silvina-editorial
+persistence: openspec
+strict_tdd: false
+
+testing:
+  capabilities:
+    test_runner: null
+    coverage_tool: null
+    linter: null
+    type_checker: null
+    formatter: null
+    test_command: null
+    coverage_command: null
+    lint_command: null
+    type_check_command: null
+    format_command: null
+  notes: "No test runner, linter, type checker, or formatter is configured. The project is a Spanish academic manuscript review assistant built in Python 3.12, using python-docx, win32com, and Gradio."

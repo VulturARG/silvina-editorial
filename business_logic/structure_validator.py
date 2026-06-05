@@ -87,6 +87,9 @@ class StructureValidator:
         section_map = {
             'resumen': ['resumen', 'abstract'],
             'introducción': ['introducción', 'introduccion', 'introduction'],
+            'metodología': ['metodología', 'metodologia', 'methodology', 'método', 'metodo', 'materiales y métodos'],
+            'resultados': ['resultados', 'resultados y análisis', 'results'],
+            'discusión': ['discusión', 'discusion', 'discussion'],
             'desarrollo': ['desarrollo', 'development'],
             'conclusiones': ['conclusiones', 'conclusión', 'conclusion'],
             'referencias': ['referencias', 'bibliografía', 'fuentes bibliográficas']
