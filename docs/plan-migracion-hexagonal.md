@@ -237,7 +237,7 @@ Ninguna sobrevive como función de módulo.
 
 | Origen | Puerto (en `domain/<entity>/`) | Adapter (en `infrastructure/adapters/<entity>/`) | Backend |
 |---|---|---|---|
-| `word_reader.py` | `DocumentTextPort` | `PythonDocxTextAdapter` | python-docx |
+| `word_reader.py` | `DocumentTextPort` | `DocxTextAdapter` | python-docx |
 | `content_extractor.py` | `ContentExtractionPort` | `ParagraphContentAdapter` | python-docx (heurísticas) |
 | `citation_parser.py` | `CitationExtractionPort` | `DocxCitationAdapter` | python-docx XML |
 | `reference_parser.py` | `ReferenceExtractionPort` | `DocxReferenceAdapter` | python-docx XML |
@@ -284,7 +284,7 @@ implementados en `infrastructure/adapters/<entity>/`.
 |---|---|---|---|
 | `LanguageModelPort` | `generate(prompt) -> str` | `OllamaAdapter` | `FakeLanguageModelAdapter` (respuesta fija) |
 | `GrammarCheckPort` | `check(paragraphs) -> issues` | `LanguageToolAdapter` | `InMemoryGrammarAdapter` |
-| `DocumentTextPort` | `read_paragraphs(path) -> list[str]` | `PythonDocxTextAdapter` | `InMemoryDocumentAdapter` |
+| `DocumentTextPort` | `read_paragraphs(path) -> list[str]` | `DocxTextAdapter` | `InMemoryDocumentAdapter` |
 | `ContentExtractionPort` | `extract(paragraphs, path) -> DocumentContent` | `ParagraphContentAdapter` | doble en memoria |
 | `CitationExtractionPort` | `extract_citations(path) -> list[Citation]` | `DocxCitationAdapter` | doble en memoria |
 | `ReferenceExtractionPort` | `extract_references(path) -> (list[Reference], str)` | `DocxReferenceAdapter` | doble en memoria |
