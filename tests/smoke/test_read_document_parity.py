@@ -1,4 +1,3 @@
-# ruff: noqa: E402
 """
 Smoke test: parity between legacy WordReader and new ReadDocumentUseCase.
 
@@ -11,17 +10,13 @@ New path:
 Run with: python -m pytest tests/smoke/ -v
 """
 
-import sys
 from pathlib import Path
 from unittest import TestCase
-
-ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(ROOT))
 
 from data_access.word_reader import WordReader
 from src.infrastructure.wirings.read_document_use_case_wiring import ReadDocumentUseCaseWiring
 
-DOCS = ROOT / "docs" / "sample-documents"
+DOCS = Path(__file__).parent.parent.parent / "docs" / "sample-documents"
 
 _DOCUMENTS = [
     "1. test_Científico.docx",
