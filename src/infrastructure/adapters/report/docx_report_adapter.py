@@ -375,7 +375,7 @@ class DocxReportAdapter(ReportExportPort):
         for violation in violations:
             by_type[violation.error_type].append(violation)
 
-        for _error_type, errors in by_type.items():
+        for _, errors in by_type.items():
             doc.add_paragraph(f"CITACIÓN INCORRECTA ({len(errors)}):", style="Heading 3")
 
             for index, err in enumerate(errors[:5], 1):
