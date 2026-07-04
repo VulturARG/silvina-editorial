@@ -5,8 +5,8 @@ from src.domain.enums.article_type import ArticleType
 
 class TestArticleType(TestCase):
     def test_members_and_values(self):
-        self.assertEqual(ArticleType.CIENTIFICO.value, "científico")
-        self.assertEqual(ArticleType.DIVULGACION.value, "divulgación")
+        self.assertEqual(ArticleType.SCIENTIFIC.value, "científico")
+        self.assertEqual(ArticleType.POPULAR_SCIENCE.value, "divulgación")
         self.assertEqual(ArticleType.OPINION.value, "opinión")
         self.assertEqual(ArticleType.UNKNOWN.value, "unknown")
 

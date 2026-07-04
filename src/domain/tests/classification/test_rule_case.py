@@ -13,20 +13,20 @@ class TestRuleCase(TestCase):
         specification = HasMethodologicalVocabularySpecification()
         rule_case = RuleCase(
             specification=specification,
-            article_type=ArticleType.CIENTIFICO,
+            article_type=ArticleType.SCIENTIFIC,
             confidence=ClassificationConfidence.FULL_SIGNAL_MATCH,
             reasoning_template="Texto de ejemplo. ",
         )
 
         self.assertIs(rule_case.specification, specification)
-        self.assertEqual(rule_case.article_type, ArticleType.CIENTIFICO)
+        self.assertEqual(rule_case.article_type, ArticleType.SCIENTIFIC)
         self.assertEqual(rule_case.confidence, ClassificationConfidence.FULL_SIGNAL_MATCH)
         self.assertEqual(rule_case.reasoning_template, "Texto de ejemplo. ")
 
     def test_confidence_accepts_none(self) -> None:
         rule_case = RuleCase(
             specification=HasMethodologicalVocabularySpecification(),
-            article_type=ArticleType.DIVULGACION,
+            article_type=ArticleType.POPULAR_SCIENCE,
             confidence=None,
             reasoning_template="Texto de ejemplo. ",
         )

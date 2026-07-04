@@ -6,8 +6,8 @@ from src.domain.structure.required_sections_provider import RequiredSectionsProv
 
 
 class TestRequiredSectionsProvider(TestCase):
-    def test_cientifico_returns_7_sections(self):
-        result = RequiredSectionsProvider.get(ArticleType.CIENTIFICO)
+    def test_scientific_returns_7_sections(self):
+        result = RequiredSectionsProvider.get(ArticleType.SCIENTIFIC)
         expected = [
             SectionName.SUMMARY,
             SectionName.INTRODUCTION,
@@ -19,8 +19,8 @@ class TestRequiredSectionsProvider(TestCase):
         ]
         self.assertEqual(result, expected)
 
-    def test_divulgacion_returns_5_sections(self):
-        result = RequiredSectionsProvider.get(ArticleType.DIVULGACION)
+    def test_popular_science_returns_5_sections(self):
+        result = RequiredSectionsProvider.get(ArticleType.POPULAR_SCIENCE)
         expected = [
             SectionName.SUMMARY,
             SectionName.INTRODUCTION,
@@ -43,8 +43,8 @@ class TestRequiredSectionsProvider(TestCase):
         result = RequiredSectionsProvider.get(ArticleType.UNKNOWN)
         self.assertEqual(result, [])
 
-    def test_desarrollo_not_in_cientifico(self):
-        result = RequiredSectionsProvider.get(ArticleType.CIENTIFICO)
+    def test_desarrollo_not_in_scientific(self):
+        result = RequiredSectionsProvider.get(ArticleType.SCIENTIFIC)
         self.assertNotIn(SectionName.DEVELOPMENT, result)
 
     def test_desarrollo_not_in_opinion(self):

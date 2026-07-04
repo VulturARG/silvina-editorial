@@ -30,8 +30,8 @@ from src.infrastructure.wirings.validate_structure_wiring import ValidateStructu
 DOCS = ROOT / "docs" / "sample-documents"
 
 _DOCUMENTS = [
-    ("1. test_Científico.docx", ArticleType.CIENTIFICO, LegacyArticleType.CIENTIFICO),
-    ("2. test_divulgacion_v2.docx", ArticleType.DIVULGACION, LegacyArticleType.DIVULGACION),
+    ("1. test_Científico.docx", ArticleType.SCIENTIFIC, LegacyArticleType.CIENTIFICO),
+    ("2. test_divulgacion_v2.docx", ArticleType.POPULAR_SCIENCE, LegacyArticleType.DIVULGACION),
     ("3. test_opinion_v2.docx", ArticleType.OPINION, LegacyArticleType.OPINION),
 ]
 

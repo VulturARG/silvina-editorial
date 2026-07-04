@@ -2,7 +2,7 @@ from enum import Enum
 
 
 class ClassificationConfidence(float, Enum):
-    """Confidence levels assigned by ArticleClassifier's CIENTIFICO rule-table branches."""
+    """Confidence levels assigned by ArticleClassifier's SCIENTIFIC rule-table branches."""
 
     IMRYD_OVERRIDE = 0.95
     FULL_SIGNAL_MATCH = 0.90

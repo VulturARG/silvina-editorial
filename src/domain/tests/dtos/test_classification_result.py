@@ -13,19 +13,19 @@ class TestClassificationResultDTO(TestCase):
 
     def test_classification_result_instantiation_with_correct_fields(self):
         result = ClassificationResultDTO(
-            article_type=ArticleType.CIENTIFICO,
+            article_type=ArticleType.SCIENTIFIC,
             article_size=ArticleSize.LONG,
             confidence=0.9,
             reasoning="Well structured article",
         )
-        self.assertEqual(result.article_type, ArticleType.CIENTIFICO)
+        self.assertEqual(result.article_type, ArticleType.SCIENTIFIC)
         self.assertEqual(result.article_size, ArticleSize.LONG)
         self.assertAlmostEqual(result.confidence, 0.9)
         self.assertEqual(result.reasoning, "Well structured article")
 
     def test_classification_result_is_immutable(self):
         result = ClassificationResultDTO(
-            article_type=ArticleType.CIENTIFICO,
+            article_type=ArticleType.SCIENTIFIC,
             article_size=ArticleSize.LONG,
             confidence=0.8,
             reasoning="Test",
@@ -55,7 +55,7 @@ class TestClassificationResultDTO(TestCase):
 
     def test_create_factory_result_is_frozen(self):
         result = ClassificationResultDTO.create(
-            article_type=ArticleType.CIENTIFICO,
+            article_type=ArticleType.SCIENTIFIC,
             article_size=ArticleSize.LONG,
             confidence=0.9,
             reasoning="Test",
@@ -65,30 +65,30 @@ class TestClassificationResultDTO(TestCase):
 
     def test_effective_structure_type_scientific_with_imryd(self):
         result = ClassificationResultDTO(
-            article_type=ArticleType.CIENTIFICO,
+            article_type=ArticleType.SCIENTIFIC,
             article_size=ArticleSize.LONG,
             confidence=0.9,
             reasoning="El documento sigue la estructura IMRyD.",
         )
-        self.assertEqual(result.effective_structure_type, ArticleType.CIENTIFICO)
+        self.assertEqual(result.effective_structure_type, ArticleType.SCIENTIFIC)
 
     def test_effective_structure_type_scientific_without_imryd(self):
         result = ClassificationResultDTO(
-            article_type=ArticleType.CIENTIFICO,
+            article_type=ArticleType.SCIENTIFIC,
             article_size=ArticleSize.LONG,
             confidence=0.9,
             reasoning="Ensayo de opinión libre",
         )
-        self.assertEqual(result.effective_structure_type, ArticleType.DIVULGACION)
+        self.assertEqual(result.effective_structure_type, ArticleType.POPULAR_SCIENCE)
 
     def test_effective_structure_type_non_scientific_returned_as_is(self):
         result = ClassificationResultDTO(
-            article_type=ArticleType.DIVULGACION,
+            article_type=ArticleType.POPULAR_SCIENCE,
             article_size=ArticleSize.LONG,
             confidence=0.8,
             reasoning="",
         )
-        self.assertEqual(result.effective_structure_type, ArticleType.DIVULGACION)
+        self.assertEqual(result.effective_structure_type, ArticleType.POPULAR_SCIENCE)
 
     def test_effective_structure_type_opinion_returned_as_is(self):
         result = ClassificationResultDTO(
@@ -101,16 +101,16 @@ class TestClassificationResultDTO(TestCase):
 
     def test_effective_structure_type_scientific_none_reasoning(self):
         result = ClassificationResultDTO(
-            article_type=ArticleType.CIENTIFICO,
+            article_type=ArticleType.SCIENTIFIC,
             article_size=ArticleSize.LONG,
             confidence=0.9,
             reasoning=None,
         )
-        self.assertEqual(result.effective_structure_type, ArticleType.DIVULGACION)
+        self.assertEqual(result.effective_structure_type, ArticleType.POPULAR_SCIENCE)
 
     def test_str_contains_enum_values_and_confidence_percentage(self):
         result = ClassificationResultDTO(
-            article_type=ArticleType.CIENTIFICO,
+            article_type=ArticleType.SCIENTIFIC,
             article_size=ArticleSize.LONG,
             confidence=0.9,
             reasoning="Test",

@@ -17,7 +17,7 @@ class TestAnalysisResultDTO(TestCase):
     def _make_analysis_result(self) -> AnalysisResultDTO:
         document_content = DocumentContentDTO(word_count=500, char_count=3000)
         classification = ClassificationResultDTO(
-            article_type=ArticleType.CIENTIFICO,
+            article_type=ArticleType.SCIENTIFIC,
             article_size=ArticleSize.LONG,
             confidence=0.9,
             reasoning="Scientific article",
@@ -63,7 +63,7 @@ class TestAnalysisResultDTO(TestCase):
             set(classification_dict.keys()),
             {"category", "confidence", "reasoning"},
         )
-        self.assertEqual(classification_dict["category"], ArticleType.CIENTIFICO.value)
+        self.assertEqual(classification_dict["category"], ArticleType.SCIENTIFIC.value)
 
     def test_to_dict_timestamp_is_iso8601_string(self):
         result = self._make_analysis_result()

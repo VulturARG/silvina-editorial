@@ -7,7 +7,7 @@ class RequiredSectionsProvider:
 
     @staticmethod
     def get(article_type: ArticleType) -> list[SectionName]:
-        if article_type == ArticleType.CIENTIFICO:
+        if article_type == ArticleType.SCIENTIFIC:
             return [
                 SectionName.SUMMARY,
                 SectionName.INTRODUCTION,
@@ -17,7 +17,7 @@ class RequiredSectionsProvider:
                 SectionName.CONCLUSIONS,
                 SectionName.REFERENCES,
             ]
-        if article_type == ArticleType.DIVULGACION:
+        if article_type == ArticleType.POPULAR_SCIENCE:
             return [
                 SectionName.SUMMARY,
                 SectionName.INTRODUCTION,

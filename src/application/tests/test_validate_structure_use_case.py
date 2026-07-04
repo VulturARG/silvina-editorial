@@ -21,7 +21,7 @@ class TestValidateStructureUseCase(TestCase):
     def test_empty_paragraphs_raises_document_empty(self):
         doc = _make_document([])
         with self.assertRaises(DocumentEmpty):
-            self.use_case.execute(document_content=doc, article_type=ArticleType.CIENTIFICO)
+            self.use_case.execute(document_content=doc, article_type=ArticleType.SCIENTIFIC)
         self.mock_validator.validate.assert_not_called()
 
     def test_missing_referencias_preserved_when_has_references_false(self):
@@ -43,7 +43,7 @@ class TestValidateStructureUseCase(TestCase):
             [SectionName.REFERENCES],
         )
         result = self.use_case.execute(
-            document_content=doc, article_type=ArticleType.CIENTIFICO, has_references=True
+            document_content=doc, article_type=ArticleType.SCIENTIFIC, has_references=True
         )
         self.assertNotIn(SectionName.REFERENCES, result.missing_sections)
         self.assertTrue(result.is_valid)
@@ -54,7 +54,9 @@ class TestValidateStructureUseCase(TestCase):
             [SectionName.INTRODUCTION, SectionName.CONCLUSIONS],
             [SectionName.DEVELOPMENT],
         )
-        result = self.use_case.execute(document_content=doc, article_type=ArticleType.DIVULGACION)
+        result = self.use_case.execute(
+            document_content=doc, article_type=ArticleType.POPULAR_SCIENCE
+        )
         self.assertNotIn(SectionName.DEVELOPMENT, result.missing_sections)
         self.assertTrue(result.is_valid)
 
@@ -65,7 +67,7 @@ class TestValidateStructureUseCase(TestCase):
             [SectionName.REFERENCES, SectionName.DEVELOPMENT],
         )
         result = self.use_case.execute(
-            document_content=doc, article_type=ArticleType.DIVULGACION, has_references=True
+            document_content=doc, article_type=ArticleType.POPULAR_SCIENCE, has_references=True
         )
         self.assertEqual(result.missing_sections, [])
         self.assertTrue(result.is_valid)
@@ -86,6 +88,6 @@ class TestValidateStructureUseCase(TestCase):
             [SectionName.SUMMARY],
             [SectionName.INTRODUCTION, SectionName.REFERENCES],
         )
-        result = self.use_case.execute(document_content=doc, article_type=ArticleType.CIENTIFICO)
+        result = self.use_case.execute(document_content=doc, article_type=ArticleType.SCIENTIFIC)
         self.assertIn(SectionName.REFERENCES, result.missing_sections)
         self.assertIn(SectionName.INTRODUCTION, result.missing_sections)

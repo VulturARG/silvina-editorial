@@ -5,7 +5,7 @@ from src.domain.dtos.classification_signals_dto import ClassificationSignalsDTO
 from src.domain.enums.article_type import ArticleType
 
 
-class TestClassificationRuleTableDivulgacionStandard(TestCase):
+class TestClassificationRuleTablePopularScienceStandard(TestCase):
     def setUp(self) -> None:
         self._rule_table = ClassificationRuleTable()
 
@@ -21,7 +21,7 @@ class TestClassificationRuleTableDivulgacionStandard(TestCase):
 
         matched_rule = self._rule_table.evaluate(signals)
 
-        self.assertEqual(matched_rule.article_type, ArticleType.DIVULGACION)
+        self.assertEqual(matched_rule.article_type, ArticleType.POPULAR_SCIENCE)
         self.assertIsNone(matched_rule.confidence)
         self.assertIn(
             "No se detectó contribución basada en evidencia (S5 ausente)",
@@ -40,7 +40,7 @@ class TestClassificationRuleTableDivulgacionStandard(TestCase):
 
         matched_rule = self._rule_table.evaluate(signals)
 
-        self.assertEqual(matched_rule.article_type, ArticleType.DIVULGACION)
+        self.assertEqual(matched_rule.article_type, ArticleType.POPULAR_SCIENCE)
         self.assertIsNone(matched_rule.confidence)
         self.assertIn(
             "No se detectó intención investigativa explícita (S4 ausente)",
@@ -59,7 +59,7 @@ class TestClassificationRuleTableDivulgacionStandard(TestCase):
 
         matched_rule = self._rule_table.evaluate(signals)
 
-        self.assertEqual(matched_rule.article_type, ArticleType.DIVULGACION)
+        self.assertEqual(matched_rule.article_type, ArticleType.POPULAR_SCIENCE)
         self.assertIsNone(matched_rule.confidence)
         self.assertIn("respaldo bibliográfico completo (S2a, S2b)", matched_rule.reasoning_template)
 
@@ -75,7 +75,7 @@ class TestClassificationRuleTableDivulgacionStandard(TestCase):
 
         matched_rule = self._rule_table.evaluate(signals)
 
-        self.assertEqual(matched_rule.article_type, ArticleType.DIVULGACION)
+        self.assertEqual(matched_rule.article_type, ArticleType.POPULAR_SCIENCE)
         self.assertIsNone(matched_rule.confidence)
         self.assertIn("cantidad de referencias suficiente (S2a)", matched_rule.reasoning_template)
 
@@ -91,7 +91,7 @@ class TestClassificationRuleTableDivulgacionStandard(TestCase):
 
         matched_rule = self._rule_table.evaluate(signals)
 
-        self.assertEqual(matched_rule.article_type, ArticleType.DIVULGACION)
+        self.assertEqual(matched_rule.article_type, ArticleType.POPULAR_SCIENCE)
         self.assertIsNone(matched_rule.confidence)
         self.assertIn("bibliografía reciente (S2b)", matched_rule.reasoning_template)
 
@@ -107,11 +107,11 @@ class TestClassificationRuleTableDivulgacionStandard(TestCase):
 
         matched_rule = self._rule_table.evaluate(signals)
 
-        self.assertEqual(matched_rule.article_type, ArticleType.DIVULGACION)
+        self.assertEqual(matched_rule.article_type, ArticleType.POPULAR_SCIENCE)
         self.assertIsNone(matched_rule.confidence)
         self.assertIn("Vocabulario metodológico presente (S3)", matched_rule.reasoning_template)
 
-    def test_case_16_s4_and_s5_without_s3_yields_divulgacion_not_cientifico(self) -> None:
+    def test_case_16_s4_and_s5_without_s3_yields_popular_science_not_scientific(self) -> None:
         signals = self._build_signals(
             has_sufficient_reference_count=False,
             has_recent_references=False,
@@ -123,7 +123,7 @@ class TestClassificationRuleTableDivulgacionStandard(TestCase):
 
         matched_rule = self._rule_table.evaluate(signals)
 
-        self.assertEqual(matched_rule.article_type, ArticleType.DIVULGACION)
+        self.assertEqual(matched_rule.article_type, ArticleType.POPULAR_SCIENCE)
         self.assertIsNone(matched_rule.confidence)
         self.assertIn(
             "sin vocabulario metodológico formal (S3 ausente)", matched_rule.reasoning_template
@@ -141,7 +141,7 @@ class TestClassificationRuleTableDivulgacionStandard(TestCase):
 
         matched_rule = self._rule_table.evaluate(signals)
 
-        self.assertEqual(matched_rule.article_type, ArticleType.DIVULGACION)
+        self.assertEqual(matched_rule.article_type, ArticleType.POPULAR_SCIENCE)
         self.assertIsNone(matched_rule.confidence)
         self.assertIn("Intención investigativa detectada (S4)", matched_rule.reasoning_template)
 
@@ -157,7 +157,7 @@ class TestClassificationRuleTableDivulgacionStandard(TestCase):
 
         matched_rule = self._rule_table.evaluate(signals)
 
-        self.assertEqual(matched_rule.article_type, ArticleType.DIVULGACION)
+        self.assertEqual(matched_rule.article_type, ArticleType.POPULAR_SCIENCE)
         self.assertIsNone(matched_rule.confidence)
         self.assertIn(
             "Contribución basada en evidencia detectada (S5)", matched_rule.reasoning_template

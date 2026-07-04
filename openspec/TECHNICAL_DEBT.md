@@ -33,9 +33,11 @@ The `ArticleSize` enum (Spanish members) and the magic-number thresholds in `Art
 - `DocxReportAdapter` — `250` words/page divisor, `5` list slice size, `150` truncation size, `3` replacements limit, `6`x`2` table dimensions, `80` separator repeat count.
 - **Source**: Engram #630; `openspec/changes/archive/2026-07-04-resolve-spanish-and-magic-debt/exploration.md`.
 
-### 5. Spanish domain-vocabulary enums pending final rename pass
-Enums like `QualityDimension`, `ArticleType`, `SectionType` keep Spanish `.value`s (they match literal text from the LLM/documents) by deliberate decision — renaming is deferred to a dedicated final pass at the end of the whole migration, together with their parsing logic, not per-slice.
-- **Source**: Engram #613.
+### 5. Spanish domain-vocabulary enums pending final rename pass (partially resolved)
+`ArticleType`'s Spanish member KEYS were renamed to English — see "Resolved" section below. The following remain deliberately untouched:
+- `QualityDimension` — keys already English; `.value`s stay Spanish (match literal LLM/document text), rename of values still deferred to the final pass together with parsing logic.
+- `SectionType` — keys and values both stay Spanish/bilingual on purpose: members like `RESUMEN`/`ABSTRACT`, `INTRODUCCION`/`INTRODUCTION` are intentional parallel-language pairs, not translation debt.
+- **Source**: Engram #613; `openspec/changes/archive/2026-07-04-resolve-domain-vocabulary-enums-debt/`.
 
 ### 6. Accumulated dead-code registry (by design — not to be cleaned per-slice)
 Per convention (Engram #605), dead code found while migrating a legacy module is documented, not removed, and batched for a future dedicated cleanup pass instead of being fixed slice-by-slice:
@@ -44,6 +46,7 @@ Per convention (Engram #605), dead code found while migrating a legacy module is
 - **Source**: Engram #605 (topic `migration/dead-code-registry`).
 
 ### 7. Legacy modules (`domain/`, `data_access/`, `business_logic/`, `presentation/`) not yet deleted
+*Note: This item is not actually unplanned technical debt, but is formally scheduled as part of the migration process under Slice 16 (final cleanup and removal of legacy root packages).*
 Slice 16 (final cleanup: delete legacy top-level packages) was explicitly postponed until the full hexagonal migration (Slices 0-15) is confirmed working in real use.
 - This is why item 1 (the `domain` package collision) still exists — both the legacy and the new `src/domain` package coexist on purpose for now.
 - **Source**: Engram #735.
@@ -81,6 +84,11 @@ Running `pytest -q` from the repo root threw `ModuleNotFoundError: No module nam
 `ArticleSize` enum members were in Spanish (`LARGO`, `CORTO`, `NO_DEFINIDO`, `FUERA_RANGO`); `ArticleSizeClassifier`, `QualityLevelResolver`, and `PublicationVerdictEvaluator` had hardcoded magic-number thresholds.
 - **Verified fixed**: 2026-07-04, openspec change `resolve-spanish-and-magic-debt` — enum members renamed to `LONG`/`SHORT`/`UNDEFINED`/`OUT_OF_RANGE` (Spanish `.value`s preserved for report/downstream compatibility); the three classes now accept keyword-only injected thresholds (defaults unchanged), loaded from `.env` via their wirings/config. No behavioral changes. `.venv/Scripts/pytest.exe -q` → 641 passed, 3 skipped (up from 635 baseline). Verified independently by `sdd-verify` (0 CRITICAL).
 - **Source**: Engram #630, #777-#783 (proposal, spec, design, tasks, apply-progress, verify-report, archive-report); `openspec/changes/archive/2026-07-04-resolve-spanish-and-magic-debt/`.
+
+### `ArticleType` enum Spanish member keys
+`ArticleType` used Spanish identifiers (`CIENTIFICO`, `DIVULGACION`) for its enum members.
+- **Verified fixed**: 2026-07-04, openspec change `resolve-domain-vocabulary-enums-debt` — keys renamed to `SCIENTIFIC`/`POPULAR_SCIENCE` (Spanish `.value`s preserved for report/downstream compatibility). Scope restricted to `src/`: the legacy `domain/enums.py` mirror and `business_logic/*` keep their original Spanish keys (independent enum, not imported by `src/`). `SectionType` was explicitly left out of scope — its Spanish members are intentional bilingual pairs, not debt. No behavioral changes. `.venv/Scripts/pytest.exe -q` → 641 passed, 3 skipped. Verified independently by `sdd-verify` (0 CRITICAL).
+- **Source**: Engram #613, #786-#793 (proposal, spec, design, tasks, verify-report, archive-report); `openspec/changes/archive/2026-07-04-resolve-domain-vocabulary-enums-debt/`.
 
 ## Notes on scope
 

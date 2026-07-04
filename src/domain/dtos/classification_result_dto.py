@@ -35,11 +35,11 @@ class ClassificationResultDTO(BaseDTO):
     @property
     def effective_structure_type(self) -> ArticleType:
         """Get the effective article type for structure validation based on IMRyD reasoning."""
-        if self.article_type != ArticleType.CIENTIFICO:
+        if self.article_type != ArticleType.SCIENTIFIC:
             return self.article_type
         if "IMRyD" in (self.reasoning or ""):
-            return ArticleType.CIENTIFICO
-        return ArticleType.DIVULGACION
+            return ArticleType.SCIENTIFIC
+        return ArticleType.POPULAR_SCIENCE
 
     def __str__(self) -> str:
         """Return human-readable classification summary."""

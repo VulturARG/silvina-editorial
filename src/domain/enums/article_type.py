@@ -4,7 +4,7 @@ from enum import Enum
 class ArticleType(Enum):
     """Article type classification."""
 
-    CIENTIFICO = "científico"
-    DIVULGACION = "divulgación"
+    SCIENTIFIC = "científico"
+    POPULAR_SCIENCE = "divulgación"
     OPINION = "opinión"
     UNKNOWN = "unknown"

@@ -114,7 +114,7 @@ def _build_report_input_dto():
         authors="Ana Perez",
     )
     classification = ClassificationResultDTO.create(
-        article_type=ArticleType.CIENTIFICO,
+        article_type=ArticleType.SCIENTIFIC,
         article_size=ArticleSize.SHORT,
         confidence=0.9,
         reasoning="Contiene metodología IMRyD",

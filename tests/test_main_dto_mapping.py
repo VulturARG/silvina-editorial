@@ -40,7 +40,7 @@ def _build_report_input(
         authors="Autor Uno",
     )
     classification = ClassificationResultDTO.create(
-        article_type=ArticleType.CIENTIFICO,
+        article_type=ArticleType.SCIENTIFIC,
         article_size=ArticleSize.SHORT,
         confidence=0.85,
         reasoning="Contiene metodología IMRyD",

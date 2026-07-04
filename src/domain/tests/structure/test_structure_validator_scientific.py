@@ -10,7 +10,7 @@ def _make_document(paragraphs: list[str]) -> DocumentContentDTO:
     return DocumentContentDTO(word_count=0, char_count=0, paragraphs=paragraphs)
 
 
-_CIENTIFICO_ALL_SECTIONS = [
+_SCIENTIFIC_ALL_SECTIONS = [
     s.value
     for s in [
         SectionName.SUMMARY,
@@ -24,13 +24,13 @@ _CIENTIFICO_ALL_SECTIONS = [
 ]
 
 
-class TestStructureValidatorCientifico(TestCase):
+class TestStructureValidatorScientific(TestCase):
     def setUp(self):
         self.validator = StructureValidator()
 
     def test_all_7_sections_present_is_valid(self):
-        doc = _make_document(_CIENTIFICO_ALL_SECTIONS)
-        present, missing = self.validator.validate(doc, ArticleType.CIENTIFICO)
+        doc = _make_document(_SCIENTIFIC_ALL_SECTIONS)
+        present, missing = self.validator.validate(doc, ArticleType.SCIENTIFIC)
         self.assertEqual(missing, [])
 
     def test_inline_colon_format_headers_detected(self):
@@ -44,7 +44,7 @@ class TestStructureValidatorCientifico(TestCase):
             "referencias: Autor, A. (2020). Título. Revista, 1(1), 1-10.",
         ]
         doc = _make_document(paragraphs)
-        present, missing = self.validator.validate(doc, ArticleType.CIENTIFICO)
+        present, missing = self.validator.validate(doc, ArticleType.SCIENTIFIC)
         self.assertEqual(missing, [])
 
     def test_missing_resumen_is_invalid(self):
@@ -60,12 +60,12 @@ class TestStructureValidatorCientifico(TestCase):
             ]
         ]
         doc = _make_document(paragraphs)
-        present, missing = self.validator.validate(doc, ArticleType.CIENTIFICO)
+        present, missing = self.validator.validate(doc, ArticleType.SCIENTIFIC)
         self.assertIn(SectionName.SUMMARY, missing)
 
     def test_returns_tuple_of_two_lists(self):
-        doc = _make_document(_CIENTIFICO_ALL_SECTIONS)
-        result = self.validator.validate(doc, ArticleType.CIENTIFICO)
+        doc = _make_document(_SCIENTIFIC_ALL_SECTIONS)
+        result = self.validator.validate(doc, ArticleType.SCIENTIFIC)
         self.assertIsInstance(result, tuple)
         self.assertEqual(len(result), 2)
         present, missing = result
@@ -82,7 +82,7 @@ class TestStructureValidatorCientifico(TestCase):
             ]
         ]
         doc = _make_document(paragraphs)
-        present, missing = self.validator.validate(doc, ArticleType.CIENTIFICO)
+        present, missing = self.validator.validate(doc, ArticleType.SCIENTIFIC)
         self.assertIn(SectionName.SUMMARY, missing)
         self.assertIn(SectionName.DISCUSSION, missing)
         self.assertIn(SectionName.CONCLUSIONS, missing)

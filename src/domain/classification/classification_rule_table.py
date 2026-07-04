@@ -43,7 +43,7 @@ class ClassificationRuleTable:
                 HasRecentReferencesSpecification(),
                 HasTheoreticalJustificationSpecification(),
             ),
-            article_type=ArticleType.CIENTIFICO,
+            article_type=ArticleType.SCIENTIFIC,
             confidence=ClassificationConfidence.FULL_SIGNAL_MATCH,
             reasoning_template=(
                 "El artículo reúne la totalidad de los indicadores científicos: "
@@ -60,7 +60,7 @@ class ClassificationRuleTable:
                 HasRecentReferencesSpecification(),
                 HasTheoreticalJustificationSpecification(),
             ),
-            article_type=ArticleType.CIENTIFICO,
+            article_type=ArticleType.SCIENTIFIC,
             confidence=ClassificationConfidence.RECENT_BIBLIOGRAPHY_SUPPORT,
             reasoning_template=(
                 "Vocabulario metodológico (S3), intención investigativa (S4), "
@@ -75,7 +75,7 @@ class ClassificationRuleTable:
                 HasSufficientReferenceCountSpecification(),
                 HasRecentReferencesSpecification(),
             ),
-            article_type=ArticleType.CIENTIFICO,
+            article_type=ArticleType.SCIENTIFIC,
             confidence=ClassificationConfidence.COMPLETE_BIBLIOGRAPHY_SUPPORT,
             reasoning_template=(
                 "Vocabulario metodológico (S3), intención investigativa (S4), "
@@ -92,7 +92,7 @@ class ClassificationRuleTable:
                 HasSufficientReferenceCountSpecification(),
                 HasTheoreticalJustificationSpecification(),
             ),
-            article_type=ArticleType.CIENTIFICO,
+            article_type=ArticleType.SCIENTIFIC,
             confidence=ClassificationConfidence.SUFFICIENT_REFERENCE_COUNT,
             reasoning_template=(
                 "Vocabulario metodológico (S3), intención investigativa (S4), "
@@ -107,7 +107,7 @@ class ClassificationRuleTable:
             specification=AllOfSpecification(
                 _FULL_CORE_SPECIFICATION, HasTheoreticalJustificationSpecification()
             ),
-            article_type=ArticleType.DIVULGACION,
+            article_type=ArticleType.POPULAR_SCIENCE,
             confidence=None,
             reasoning_template=(
                 "El artículo muestra indicadores cualitativos sólidos (S3, S4, S5, S6), "
@@ -122,7 +122,7 @@ class ClassificationRuleTable:
             specification=AllOfSpecification(
                 _FULL_CORE_SPECIFICATION, HasRecentReferencesSpecification()
             ),
-            article_type=ArticleType.DIVULGACION,
+            article_type=ArticleType.POPULAR_SCIENCE,
             confidence=None,
             reasoning_template=(
                 "Vocabulario metodológico, intención investigativa y contribución "
@@ -138,7 +138,7 @@ class ClassificationRuleTable:
             specification=AllOfSpecification(
                 _FULL_CORE_SPECIFICATION, HasSufficientReferenceCountSpecification()
             ),
-            article_type=ArticleType.DIVULGACION,
+            article_type=ArticleType.POPULAR_SCIENCE,
             confidence=None,
             reasoning_template=(
                 "Vocabulario metodológico, intención investigativa y contribución "
@@ -152,7 +152,7 @@ class ClassificationRuleTable:
         ),
         RuleCase(
             specification=_FULL_CORE_SPECIFICATION,
-            article_type=ArticleType.DIVULGACION,
+            article_type=ArticleType.POPULAR_SCIENCE,
             confidence=None,
             reasoning_template=(
                 "Vocabulario metodológico, intención investigativa y contribución "
@@ -170,7 +170,7 @@ class ClassificationRuleTable:
             specification=AllOfSpecification(
                 HasMethodologicalVocabularySpecification(), HasResearchIntentSpecification()
             ),
-            article_type=ArticleType.DIVULGACION,
+            article_type=ArticleType.POPULAR_SCIENCE,
             confidence=None,
             reasoning_template=(
                 "Vocabulario metodológico (S3) e intención investigativa (S4) presentes. "
@@ -184,7 +184,7 @@ class ClassificationRuleTable:
                 HasMethodologicalVocabularySpecification(),
                 HasEvidenceBasedContributionSpecification(),
             ),
-            article_type=ArticleType.DIVULGACION,
+            article_type=ArticleType.POPULAR_SCIENCE,
             confidence=None,
             reasoning_template=(
                 "Vocabulario metodológico (S3) y contribución basada en evidencia (S5) "
@@ -199,7 +199,7 @@ class ClassificationRuleTable:
                 HasSufficientReferenceCountSpecification(),
                 HasRecentReferencesSpecification(),
             ),
-            article_type=ArticleType.DIVULGACION,
+            article_type=ArticleType.POPULAR_SCIENCE,
             confidence=None,
             reasoning_template=(
                 "Vocabulario metodológico (S3) y respaldo bibliográfico completo (S2a, S2b) "
@@ -213,7 +213,7 @@ class ClassificationRuleTable:
                 HasMethodologicalVocabularySpecification(),
                 HasSufficientReferenceCountSpecification(),
             ),
-            article_type=ArticleType.DIVULGACION,
+            article_type=ArticleType.POPULAR_SCIENCE,
             confidence=None,
             reasoning_template=(
                 "Vocabulario metodológico (S3) y cantidad de referencias suficiente (S2a). "
@@ -226,7 +226,7 @@ class ClassificationRuleTable:
             specification=AllOfSpecification(
                 HasMethodologicalVocabularySpecification(), HasRecentReferencesSpecification()
             ),
-            article_type=ArticleType.DIVULGACION,
+            article_type=ArticleType.POPULAR_SCIENCE,
             confidence=None,
             reasoning_template=(
                 "Vocabulario metodológico (S3) y bibliografía reciente (S2b). Sin intención "
@@ -236,7 +236,7 @@ class ClassificationRuleTable:
         ),
         RuleCase(
             specification=HasMethodologicalVocabularySpecification(),
-            article_type=ArticleType.DIVULGACION,
+            article_type=ArticleType.POPULAR_SCIENCE,
             confidence=None,
             reasoning_template=(
                 "Vocabulario metodológico presente (S3). Sin intención investigativa (S4), "
@@ -249,7 +249,7 @@ class ClassificationRuleTable:
             specification=AllOfSpecification(
                 HasResearchIntentSpecification(), HasEvidenceBasedContributionSpecification()
             ),
-            article_type=ArticleType.DIVULGACION,
+            article_type=ArticleType.POPULAR_SCIENCE,
             confidence=None,
             reasoning_template=(
                 "Intención investigativa (S4) y contribución evidenciada (S5) detectadas, "
@@ -260,7 +260,7 @@ class ClassificationRuleTable:
         ),
         RuleCase(
             specification=HasResearchIntentSpecification(),
-            article_type=ArticleType.DIVULGACION,
+            article_type=ArticleType.POPULAR_SCIENCE,
             confidence=None,
             reasoning_template=(
                 "Intención investigativa detectada (S4), pero sin vocabulario metodológico "
@@ -271,7 +271,7 @@ class ClassificationRuleTable:
         ),
         RuleCase(
             specification=HasEvidenceBasedContributionSpecification(),
-            article_type=ArticleType.DIVULGACION,
+            article_type=ArticleType.POPULAR_SCIENCE,
             confidence=None,
             reasoning_template=(
                 "Contribución basada en evidencia detectada (S5), pero sin vocabulario "

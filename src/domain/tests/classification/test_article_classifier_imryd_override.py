@@ -32,7 +32,7 @@ class TestArticleClassifierImrydOverride(TestCase):
 
         result = classifier.classify(document_content)
 
-        self.assertEqual(result.article_type, ArticleType.CIENTIFICO)
+        self.assertEqual(result.article_type, ArticleType.SCIENTIFIC)
         self.assertEqual(result.confidence, ClassificationConfidence.IMRYD_OVERRIDE)
         self.assertEqual(self._fake_llm_generator.call_count, 0)
 

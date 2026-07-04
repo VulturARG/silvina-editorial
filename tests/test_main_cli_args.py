@@ -119,7 +119,7 @@ def _build_legacy_results(total_citations: int) -> dict:
             "estimated_pages": 4,
         },
         "classification": {
-            "category": ArticleType.CIENTIFICO,
+            "category": ArticleType.SCIENTIFIC,
             "article_size": ArticleSize.SHORT,
             "confidence": 0.85,
             "reasoning": "Contiene metodología IMRyD",

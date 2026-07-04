@@ -62,7 +62,7 @@ class ArticleClassifier:
         imryd_signals = self._signal_detector.detect(document_content=document_content)
         if imryd_signals["imryd_complete"] and article_size != ArticleSize.OUT_OF_RANGE:
             return ClassificationResultDTO.create(
-                article_type=ArticleType.CIENTIFICO,
+                article_type=ArticleType.SCIENTIFIC,
                 article_size=article_size,
                 confidence=ClassificationConfidence.IMRYD_OVERRIDE,
                 reasoning="Estructura IMRyD completa detectada (override determinístico).",

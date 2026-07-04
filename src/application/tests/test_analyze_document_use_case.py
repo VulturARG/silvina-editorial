@@ -13,7 +13,7 @@ def _make_citation(text="(Smith, 2020)", citation_type=CitationType.AUTHOR_YEAR,
     return CitationDTO(text=text, citation_type=citation_type, location=location)
 
 
-def _make_classification(article_type=ArticleType.DIVULGACION, reasoning="Test"):
+def _make_classification(article_type=ArticleType.POPULAR_SCIENCE, reasoning="Test"):
     m = MagicMock()
     m.article_type = article_type
     m.effective_structure_type = article_type
@@ -143,9 +143,9 @@ class TestAnalyzeDocumentUseCase(TestCase):
 
     def test_structure_validated_with_effective_structure_type(self):
         classification = _make_classification(
-            article_type=ArticleType.CIENTIFICO,
+            article_type=ArticleType.SCIENTIFIC,
         )
-        classification.effective_structure_type = ArticleType.DIVULGACION
+        classification.effective_structure_type = ArticleType.POPULAR_SCIENCE
 
         classify_article = MagicMock()
         classify_article.execute.return_value = classification
@@ -155,7 +155,7 @@ class TestAnalyzeDocumentUseCase(TestCase):
 
         validate_structure_call = mocks["validate_structure_use_case"].execute.call_args
         passed_type = validate_structure_call.kwargs["article_type"]
-        self.assertEqual(passed_type, ArticleType.DIVULGACION)
+        self.assertEqual(passed_type, ArticleType.POPULAR_SCIENCE)
 
     def test_eumic_violations_included_in_report_input_dto(self):
         violation = MagicMock(spec=EumicViolationDTO)

@@ -5,7 +5,7 @@ from src.domain.dtos.classification_signals_dto import ClassificationSignalsDTO
 from src.domain.enums.article_type import ArticleType
 
 
-class TestClassificationRuleTableCientifico(TestCase):
+class TestClassificationRuleTableScientific(TestCase):
     def setUp(self) -> None:
         self._rule_table = ClassificationRuleTable()
 
@@ -21,7 +21,7 @@ class TestClassificationRuleTableCientifico(TestCase):
 
         matched_rule = self._rule_table.evaluate(signals)
 
-        self.assertEqual(matched_rule.article_type, ArticleType.CIENTIFICO)
+        self.assertEqual(matched_rule.article_type, ArticleType.SCIENTIFIC)
         self.assertEqual(matched_rule.confidence, 0.90)
         self.assertIn(
             "Artículo científico con muy elevada confianza.",
@@ -40,7 +40,7 @@ class TestClassificationRuleTableCientifico(TestCase):
 
         matched_rule = self._rule_table.evaluate(signals)
 
-        self.assertEqual(matched_rule.article_type, ArticleType.CIENTIFICO)
+        self.assertEqual(matched_rule.article_type, ArticleType.SCIENTIFIC)
         self.assertEqual(matched_rule.confidence, 0.86)
         self.assertIn(
             "Artículo científico con confianza elevada.",
@@ -59,7 +59,7 @@ class TestClassificationRuleTableCientifico(TestCase):
 
         matched_rule = self._rule_table.evaluate(signals)
 
-        self.assertEqual(matched_rule.article_type, ArticleType.CIENTIFICO)
+        self.assertEqual(matched_rule.article_type, ArticleType.SCIENTIFIC)
         self.assertEqual(matched_rule.confidence, 0.85)
         self.assertIn(
             "calificación de confianza media por ausencia de S6.",
@@ -78,7 +78,7 @@ class TestClassificationRuleTableCientifico(TestCase):
 
         matched_rule = self._rule_table.evaluate(signals)
 
-        self.assertEqual(matched_rule.article_type, ArticleType.CIENTIFICO)
+        self.assertEqual(matched_rule.article_type, ArticleType.SCIENTIFIC)
         self.assertEqual(matched_rule.confidence, 0.83)
         self.assertIn(
             "calificación de confianza media por ausencia de S2b.",

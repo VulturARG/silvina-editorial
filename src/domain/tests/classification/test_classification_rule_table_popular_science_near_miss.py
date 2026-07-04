@@ -5,7 +5,7 @@ from src.domain.dtos.classification_signals_dto import ClassificationSignalsDTO
 from src.domain.enums.article_type import ArticleType
 
 
-class TestClassificationRuleTableDivulgacionNearMiss(TestCase):
+class TestClassificationRuleTablePopularScienceNearMiss(TestCase):
     def setUp(self) -> None:
         self._rule_table = ClassificationRuleTable()
 
@@ -21,7 +21,7 @@ class TestClassificationRuleTableDivulgacionNearMiss(TestCase):
 
         matched_rule = self._rule_table.evaluate(signals)
 
-        self.assertEqual(matched_rule.article_type, ArticleType.DIVULGACION)
+        self.assertEqual(matched_rule.article_type, ArticleType.POPULAR_SCIENCE)
         self.assertIsNone(matched_rule.confidence)
         self.assertIn(
             "carece del respaldo bibliográfico mínimo requerido",
@@ -40,7 +40,7 @@ class TestClassificationRuleTableDivulgacionNearMiss(TestCase):
 
         matched_rule = self._rule_table.evaluate(signals)
 
-        self.assertEqual(matched_rule.article_type, ArticleType.DIVULGACION)
+        self.assertEqual(matched_rule.article_type, ArticleType.POPULAR_SCIENCE)
         self.assertIsNone(matched_rule.confidence)
         self.assertIn("con bibliografía reciente (S2b)", matched_rule.reasoning_template)
 
@@ -56,13 +56,13 @@ class TestClassificationRuleTableDivulgacionNearMiss(TestCase):
 
         matched_rule = self._rule_table.evaluate(signals)
 
-        self.assertEqual(matched_rule.article_type, ArticleType.DIVULGACION)
+        self.assertEqual(matched_rule.article_type, ArticleType.POPULAR_SCIENCE)
         self.assertIsNone(matched_rule.confidence)
         self.assertIn(
             "con cantidad de referencias suficiente (S2a)", matched_rule.reasoning_template
         )
 
-    def test_case_9_near_miss_with_zero_structural_support_yields_divulgacion(self) -> None:
+    def test_case_9_near_miss_with_zero_structural_support_yields_popular_science(self) -> None:
         signals = self._build_signals(
             has_sufficient_reference_count=False,
             has_recent_references=False,
@@ -74,7 +74,7 @@ class TestClassificationRuleTableDivulgacionNearMiss(TestCase):
 
         matched_rule = self._rule_table.evaluate(signals)
 
-        self.assertEqual(matched_rule.article_type, ArticleType.DIVULGACION)
+        self.assertEqual(matched_rule.article_type, ArticleType.POPULAR_SCIENCE)
         self.assertIsNone(matched_rule.confidence)
         self.assertIn(
             "Las señales cualitativas sin soporte estructural son insuficientes",
