@@ -48,20 +48,20 @@ Chain strategy: pending
 
 ## Phase 4: Wiring (RED → GREEN)
 
-- [ ] 4.1 [RED] Extend `test_export_report_wiring.py`: `create_json_use_case()` returns `ExportReportUseCase` (exact class) whose `_report_export_port` is `JsonReportAdapter`.
-- [ ] 4.2 [GREEN] Add `create_json_use_case()` to `export_report_wiring.py`.
+- [x] 4.1 [RED] Extend `test_export_report_wiring.py`: `create_json_use_case()` returns `ExportReportUseCase` (exact class) whose `_report_export_port` is `JsonReportAdapter`.
+- [x] 4.2 [GREEN] Add `create_json_use_case()` to `export_report_wiring.py`.
 
 ## Phase 5: `main.py` Integration (Approval Testing, RED → GREEN)
 
-- [ ] 5.1 Safety net: run existing tests touching `main.py` — baseline.
-- [ ] 5.2 [RED] `test_main_save_json_report.py`: `save_json_report` invokes JSON-wired `ExportReportUseCase.execute(report_input=self._last_report_input, path=output_path)`; `_prepare_for_json` attribute no longer exists on `SilvinaEditorialAssistant`.
-- [ ] 5.3 [GREEN] Wire `self._export_json_report_use_case` in `__init__`; rewrite `save_json_report`; delete `_prepare_for_json` and now-unused `dump`/`Enum`/`Any` imports if unused elsewhere in `main.py`.
+- [x] 5.1 Safety net: run existing tests touching `main.py` — baseline.
+- [x] 5.2 [RED] `test_main_save_json_report.py`: `save_json_report` invokes JSON-wired `ExportReportUseCase.execute(report_input=self._last_report_input, path=output_path)`; `_prepare_for_json` attribute no longer exists on `SilvinaEditorialAssistant`.
+- [x] 5.3 [GREEN] Wire `self._export_json_report_use_case` in `__init__`; rewrite `save_json_report`; delete `_prepare_for_json` and now-unused `dump`/`Enum`/`Any` imports if unused elsewhere in `main.py`.
 
 ## Phase 6: Verification
 
-- [ ] 6.1 Run `.venv\Scripts\python -m pytest src/ -q` — full scoped suite green, no regressions.
-- [ ] 6.2 Confirm `gradio_app.py`'s own `_prepare_for_json`/`json.dump` path is untouched (explicitly out of scope).
-- [ ] 6.3 Confirm no `src/domain/` import from `src/application/` or `src/infrastructure/`.
+- [x] 6.1 Run `.venv\Scripts\python -m pytest src/ -q` — full scoped suite green, no regressions.
+- [x] 6.2 Confirm `gradio_app.py`'s own `_prepare_for_json`/`json.dump` path is untouched (explicitly out of scope).
+- [x] 6.3 Confirm no `src/domain/` import from `src/application/` or `src/infrastructure/`.
 
 ## Key Learnings
 

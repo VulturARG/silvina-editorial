@@ -57,11 +57,11 @@ the only way to satisfy the hard byte-for-byte-parity requirement without crashi
 | File | Action | Description |
 |------|--------|--------------|
 | `src/infrastructure/adapters/report/json_report_adapter.py` | Create | `JsonReportAdapter(ReportExportPort)`: `_to_legacy_shape`, `_prepare_for_json`, `export` |
-| `src/infrastructure/wirings/export_report_wiring.py` | Modify | Add `create_json_use_case()` returning `ExportReportUseCase(JsonReportAdapter())` |
-| `main.py` | Modify | `save_json_report` uses `self._export_json_use_case`; delete `_prepare_for_json`, the `dump`/`Enum`/`Any` imports it needed if now unused |
+| `src/infrastructure/wirings/json_report_wiring.py` | Create | **CORRECTED (2026-08-07)**: originally planned as a second `create_json_use_case()` method on `ExportReportWiring` — the user caught that this violates `.agent/skills/clean-architecture/SKILL.md` §8 ("One public method that returns the fully assembled use case"). Split into its own `JsonReportWiring` class with a single `create_use_case()`, matching every other wiring in the codebase. `export_report_wiring.py` reverted to its original single-method form. |
+| `main.py` | Modify | `save_json_report` uses `self._export_json_report_use_case` (built via `JsonReportWiring().create_use_case()`); delete `_prepare_for_json`, the `dump`/`Enum`/`Any` imports it needed if now unused |
 | `src/infrastructure/tests/adapters/report/fixtures.py` or new `json_fixtures.py` | Create/Modify | Real (non-`MagicMock`) `ReportInputDTO` builder — JSON serialization needs real dataclass instances, not mocks |
 | `src/infrastructure/tests/adapters/report/test_json_report_adapter_*.py` | Create | init / export-success / export-failure / golden-parity, one class per file |
-| `src/infrastructure/tests/test_export_report_wiring.py` | Modify | Tests for `create_json_use_case()` |
+| `src/infrastructure/tests/test_json_report_wiring.py` | Create | Tests for `JsonReportWiring.create_use_case()` (moved out of `test_export_report_wiring.py`) |
 | `src/infrastructure/tests/test_main_save_json_report.py` (or similar) | Create | First coverage of `save_json_report` call site |
 
 ## Interfaces / Contracts
@@ -97,3 +97,4 @@ No migration. Pure code swap; `_map_report_to_legacy_dict` and `FakeReportExport
 2. Today's on-disk JSON is produced from `_map_report_to_legacy_dict`'s curated/renamed shape, not from `ReportInputDTO.as_dict()` directly — the two are structurally different documents (different top-level keys, computed fields, sliced arrays).
 3. Existing `ReportFixtures.make_report_input_dto()` builds nested fields as `MagicMock`, which is unsuitable for a JSON golden test — a new fixture with real DTO instances is required.
 4. `_map_report_to_legacy_dict` must stay duplicated (not extracted/shared) in the new adapter to respect the proposal's explicit "don't touch `_map_report_to_legacy_dict`" scope boundary and avoid infra importing from the main.py composition root.
+5. CORRECTION (2026-08-07, PR 2 review): a second public method on `ExportReportWiring` (`create_json_use_case()`) violates `.agent/skills/clean-architecture/SKILL.md` §8 — every wiring in this codebase has exactly one public method returning one fully assembled use case. Fixed by giving JSON export its own `JsonReportWiring` class.
