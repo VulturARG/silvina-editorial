@@ -20,7 +20,7 @@
 
 #### Scenario: Nested Enum fields are converted to their .value
 
-- GIVEN a `ReportInputDTO` fixture whose `verdict`, `recommendations[].priority`, and `apa_validation.violations[].error_type` are Enum members
+- GIVEN a `ReportInputDTO` fixture whose `recommendations[].priority` and `apa_validation.violations[].error_type` are Enum members (`verdict` is dropped by `_to_legacy_shape`'s field mapping, matching today's real output — not applicable here)
 - WHEN `JsonReportAdapter.export(report_input, path)` is called
 - THEN the written JSON contains the Enum's `.value` (a string) at every one of those fields, never a Python Enum repr
 
@@ -32,16 +32,18 @@
 
 ---
 
-### Requirement: ExportReportWiring JSON Factory
+### Requirement: JsonReportWiring Factory
 
-`ExportReportWiring.create_json_use_case()` MUST instantiate `JsonReportAdapter()` with no settings and return an `ExportReportUseCase` wired with it. It MUST reuse the existing `ExportReportUseCase` class unchanged — no new use-case class is introduced for JSON.
+**CORRECTED (2026-08-07)**: originally specified as a second `ExportReportWiring.create_json_use_case()` method — rejected in code review for violating `.agent/skills/clean-architecture/SKILL.md` §8 ("one public method per wiring"). `ExportReportWiring` stays single-method (Docx only, unchanged). JSON export gets its own `JsonReportWiring` class.
+
+`JsonReportWiring.create_use_case()` MUST instantiate `JsonReportAdapter()` with no settings and return an `ExportReportUseCase` wired with it. It MUST reuse the existing `ExportReportUseCase` class unchanged — no new use-case class is introduced for JSON.
 
 #### Scenario: Wiring returns a fully wired JSON use case
 
-- GIVEN `ExportReportWiring()`
-- WHEN `create_json_use_case()` is called
+- GIVEN `JsonReportWiring()`
+- WHEN `create_use_case()` is called
 - THEN it returns an `ExportReportUseCase` instance whose port is a `JsonReportAdapter`
-- AND the returned object's class is exactly `ExportReportUseCase`, the same class `create_use_case()` returns
+- AND the returned object's class is exactly `ExportReportUseCase`, the same class `ExportReportWiring().create_use_case()` returns
 
 ---
 
@@ -53,7 +55,7 @@
 
 - GIVEN an initialized `SilvinaEditorialAssistant` with `self._last_report_input` set after `analyze_document()`
 - WHEN `save_json_report(analysis_results, output_path)` is called
-- THEN the JSON-wired `ExportReportUseCase.execute` is invoked with `report_input=self._last_report_input` and `path=output_path`
+- THEN the JSON-wired `ExportReportUseCase.execute` is invoked with `report_input=self._last_report_input` and `output_path=output_path`
 
 #### Scenario: _prepare_for_json no longer exists
 
