@@ -1,0 +1,10 @@
+Eres un revisor editorial académico. El siguiente artículo sustenta una contribución al conocimiento militar y estratégico.
+
+TEXTO A ANALIZAR:
+{text_sample}
+
+INSTRUCCIONES:
+1. Sintetiza en una sola frase breve y directa (máximo 120 caracteres) cuál es la contribución central identificada en el texto.
+2. Escribe en texto plano, sin introducciones ni etiquetas.
+
+CONTRIBUCION:

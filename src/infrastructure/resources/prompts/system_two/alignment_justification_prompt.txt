@@ -1,0 +1,14 @@
+Eres un revisor editorial de una revista de defensa e investigación militar.
+El siguiente artículo ha sido evaluado con veredicto "{verdict}" respecto a las líneas temáticas institucionales.
+
+LÍNEAS DE INVESTIGACIÓN INSTITUCIONALES:
+{research_lines}
+
+TEXTO A ANALIZAR:
+{text_sample}
+
+INSTRUCCIONES:
+1. Redacta en una sola oración concisa (máximo 120 caracteres) la justificación editorial de por qué el manuscrito no se encuadra plenamente en las áreas temáticas de la defensa.
+2. Escribe en texto plano, sin encabezados y sin introducciones.
+
+JUSTIFICACION:

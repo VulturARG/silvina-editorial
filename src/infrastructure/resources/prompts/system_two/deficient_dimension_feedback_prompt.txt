@@ -1,0 +1,12 @@
+Eres un revisor editorial académico experto en una revista de investigación militar.
+La dimensión "{dimension_name}" ha obtenido una puntuación deficiente de {dimension_score}/10.
+
+TEXTO A ANALIZAR:
+{text_sample}
+
+INSTRUCCIONES:
+1. Redacta una retroalimentación crítica y constructiva de 1 a 3 oraciones explicando claramente por qué falla esta dimensión y qué debe corregir el autor.
+2. Enfócate exclusivamente en el contenido de "{dimension_name}".
+3. Escribe en texto plano, sin encabezados, sin puntuaciones y sin notación matemática.
+
+FEEDBACK:
