@@ -1,0 +1,1 @@
+"""FastAPI infrastructure package."""

@@ -1,0 +1,1 @@
+"""FastAPI utility package."""

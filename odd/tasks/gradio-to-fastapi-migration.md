@@ -6,7 +6,7 @@
 - **TDD Runner**: `.venv\Scripts\python -m pytest`
 - **Delivery Strategy**: `ask-on-risk`
 - **Forecast Changed Lines**: ~650 lines (excluding templates/CSS assets)
-- **Running Authored Lines**: 7
+- **Running Authored Lines**: 244
 
 ---
 
@@ -48,10 +48,10 @@ Today, `launch_silvina.bat` runs `gradio_app.py`, which is constrained by Gradio
   - **Scope**: Add `upload_max_size_bytes: int = int(getenv("UPLOAD_MAX_SIZE_BYTES", "26214400"))` (25MB) to `src/infrastructure/env_config.py`.
   - **Verification**: Unit tests in `src/infrastructure/tests/test_env_config.py` (RED -> GREEN).
 
-- [ ] **TASK-02: Upload validator component**
+- [x] **TASK-02: Upload validator component**
   - **Route**: delegated direct
   - **Scope**: Create `src/infrastructure/fastapi/src/utils/upload_validator.py` with `validate_and_persist(upload: UploadFile, max_size_bytes: int) -> Path`. Validates size, extension (`.docx` allowed, `.doc` raises `DocumentUnreadable`, other extensions rejected). Writes temp file.
-  - **Verification**: Unit tests in `src/infrastructure/fastapi/tests/test_upload_validator.py`.
+  - **Verification**: Unit tests in `src/infrastructure/fastapi/tests/test_upload_validator.py` and domain exception tests in `src/domain/tests/exceptions/` (RED -> GREEN).
 
 - [ ] **TASK-03: Dependency injection & Wiring**
   - **Route**: direct inline
@@ -98,8 +98,8 @@ Today, `launch_silvina.bat` runs `gradio_app.py`, which is constrained by Gradio
 
 ## 4. Progress & Verification Log
 
-- **Current Status**: In Progress (TASK-01 complete)
-- **Next Step**: TASK-02 (Upload validator component)
+- **Current Status**: In Progress (TASK-01, TASK-02 complete)
+- **Next Step**: TASK-03 (Dependency injection & Wiring)
 
 ### Verification History
 - **TASK-01**: Complete.
@@ -108,3 +108,9 @@ Today, `launch_silvina.bat` runs `gradio_app.py`, which is constrained by Gradio
   - REFACTOR: Full test suite green (639 passed, 6 subtests).
   - Commit: `5f3d161` (`feat(config): add upload_max_size_bytes to EnvConfig`).
   - RDD: unavailable (runtime `antigravity` is not an eligible immutable review runtime; RDD assessment returned `unassessable`).
+
+- **TASK-02**: Complete (Delegated direct).
+  - RED: Verified test collection failures for `DocumentInvalidType`, `DocumentTooLarge`, and `upload_validator.py`.
+  - GREEN: Added `DocumentInvalidType` and `DocumentTooLarge` to `src/domain/exceptions/document_errors.py`. Implemented `validate_and_persist` in `src/infrastructure/fastapi/src/utils/upload_validator.py`. All 13 new unit tests passed (5 in validator with 11 subtests, 8 in domain exceptions).
+  - REFACTOR: Full test suite green (652 passed, 17 subtests).
+  - Commit: Pending (work-unit commit).
