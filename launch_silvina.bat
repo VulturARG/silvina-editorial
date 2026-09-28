@@ -9,7 +9,7 @@ echo   SILVINA EDITORIAL ASSISTANT
 echo =====================================
 echo.
 echo Iniciando Silvina... Por favor espere.
-echo Gradio levantara un servidor web local en breve.
+echo El servidor web local se levantara en breve.
 echo.
 echo NO CIERRE ESTA VENTANA mientras usa Silvina.
 echo Para cerrar Silvina: presione Ctrl+C aqui.
@@ -19,6 +19,6 @@ echo.
 call .venv\Scripts\activate.bat
 
 :: Arranca la aplicacion
-python gradio_app.py
+python web_main.py
 
 pause

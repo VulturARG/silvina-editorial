@@ -6,7 +6,7 @@
 - **TDD Runner**: `.venv\Scripts\python -m pytest`
 - **Delivery Strategy**: `ask-on-risk`
 - **Forecast Changed Lines**: ~650 lines (excluding templates/CSS assets)
-- **Running Authored Lines**: 1111
+- **Running Authored Lines**: 1169
 
 ---
 
@@ -81,7 +81,7 @@ Today, `launch_silvina.bat` runs `gradio_app.py`, which is constrained by Gradio
     - `src/infrastructure/fastapi/src/routes/report_endpoint.py`: `GET /reports/{filename}` -> secure `FileResponse` restricted to reports directory, path traversal protected.
   - **Verification**: Integration tests with `TestClient` in `src/infrastructure/fastapi/tests/test_routes.py`.
 
-- [ ] **TASK-07: Root launcher `web_main.py` and `launch_silvina.bat`**
+- [x] **TASK-07: Root launcher `web_main.py` and `launch_silvina.bat`**
   - **Route**: direct inline
   - **Scope**: Create `web_main.py` calling `uvicorn.run(app, host="127.0.0.1", port=7861)` under `__main__`. Update `launch_silvina.bat` to run `python web_main.py`.
   - **Verification**: Test imports and launcher structure in `tests/test_web_main.py`.
@@ -98,8 +98,8 @@ Today, `launch_silvina.bat` runs `gradio_app.py`, which is constrained by Gradio
 
 ## 4. Progress & Verification Log
 
-- **Current Status**: In Progress (TASK-01 through TASK-06 complete)
-- **Next Step**: TASK-07 (Root launcher `web_main.py` and `launch_silvina.bat`)
+- **Current Status**: In Progress (TASK-01 through TASK-07 complete)
+- **Next Step**: TASK-08 (E2E Verification & Gradio deprecation)
 
 ### Verification History
 - **TASK-01**: Complete.
@@ -142,4 +142,11 @@ Today, `launch_silvina.bat` runs `gradio_app.py`, which is constrained by Gradio
   - GREEN: Implemented `page_router` (`GET /`), `analyze_router` (`POST /analyze` with validation, pipeline execution, reports export, cleanup, and results rendering), and `report_router` (`GET /reports/{filename:path}` with path traversal protection using `is_relative_to`), wired into `dependencies.py` and `fastapi_app.py`. All 13 tests in `src/infrastructure/fastapi/tests/test_routes.py` passed.
   - REFACTOR: Full test suite green (732 passed, 3 skipped).
   - Commit: `57ae1c8` (`feat(fastapi): implement page, analyze, and report routes with path traversal guards`).
+  - RDD: unavailable (runtime `antigravity` is not an eligible immutable review runtime; RDD assessment returned `unassessable`).
+
+- **TASK-07**: Complete (Delegated direct).
+  - RED: Collection failure on `tests/test_web_main.py` (`ModuleNotFoundError: No module named 'web_main'`).
+  - GREEN: Created `web_main.py` calling `uvicorn.run(app, host="127.0.0.1", port=7861)` under `if __name__ == "__main__"`, and updated `launch_silvina.bat` to launch `python web_main.py` with updated startup banner text. All 4 tests in `tests/test_web_main.py` passed.
+  - REFACTOR: Full test suite green (736 passed, 3 skipped).
+  - Commit: `0dcbc39` (`feat(fastapi): add web_main root launcher and update launch_silvina.bat`).
   - RDD: unavailable (runtime `antigravity` is not an eligible immutable review runtime; RDD assessment returned `unassessable`).
