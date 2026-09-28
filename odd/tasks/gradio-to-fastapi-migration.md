@@ -6,7 +6,7 @@
 - **TDD Runner**: `.venv\Scripts\python -m pytest`
 - **Delivery Strategy**: `ask-on-risk`
 - **Forecast Changed Lines**: ~650 lines (excluding templates/CSS assets)
-- **Running Authored Lines**: 391
+- **Running Authored Lines**: 537
 
 ---
 
@@ -58,7 +58,7 @@ Today, `launch_silvina.bat` runs `gradio_app.py`, which is constrained by Gradio
   - **Scope**: Create `src/infrastructure/fastapi/src/config/dependencies.py` providing module singletons for `AnalyzeDocumentUseCase` and `ExportReportUseCase`.
   - **Verification**: Unit tests in `src/infrastructure/fastapi/tests/test_dependencies.py`.
 
-- [ ] **TASK-04: Jinja2 Templates & Static Assets**
+- [x] **TASK-04: Jinja2 Templates & Static Assets**
   - **Route**: delegated direct
   - **Scope**: Port `gradio_app.py` UI into:
     - `src/infrastructure/fastapi/templates/base.html` (HTMX script, metadata, layout)
@@ -98,8 +98,8 @@ Today, `launch_silvina.bat` runs `gradio_app.py`, which is constrained by Gradio
 
 ## 4. Progress & Verification Log
 
-- **Current Status**: In Progress (TASK-01, TASK-02, TASK-03 complete)
-- **Next Step**: TASK-04 (Jinja2 Templates & Static Assets)
+- **Current Status**: In Progress (TASK-01, TASK-02, TASK-03, TASK-04 complete)
+- **Next Step**: TASK-05 (FastAPI App & Exception Handlers)
 
 ### Verification History
 - **TASK-01**: Complete.
@@ -121,4 +121,11 @@ Today, `launch_silvina.bat` runs `gradio_app.py`, which is constrained by Gradio
   - GREEN: Implemented `src/infrastructure/fastapi/src/config/dependencies.py` with singleton use cases (`AnalyzeDocumentUseCase`, `ExportReportUseCase` for Docx and JSON, `EnvConfig`), factory getters, `reset_dependencies()`, and `Annotated[..., Depends(...)]` type aliases. All 6 tests in `test_dependencies.py` passed.
   - REFACTOR: Full test suite green (705 passed, 3 skipped).
   - Commit: `5896fed` (`feat(fastapi): implement dependency injection wiring for use cases and config`).
+  - RDD: unavailable (runtime `antigravity` is not an eligible immutable review runtime; RDD assessment returned `unassessable`).
+
+- **TASK-04**: Complete (Delegated direct).
+  - RED: 7 `TemplateNotFound` failures running `pytest src/infrastructure/fastapi/tests/test_templates.py`.
+  - GREEN: Implemented `base.html`, `index.html`, `partials/_results.html`, `partials/_error.html`, `silvina.css`, and static assets (`silvina_logo.png`, `logo.ico`). All 7 tests in `test_templates.py` passed.
+  - REFACTOR: Full test suite green (712 passed, 3 skipped).
+  - Commit: `425e640` (`feat(fastapi): implement Jinja2 templates and static assets matching Gradio layout`).
   - RDD: unavailable (runtime `antigravity` is not an eligible immutable review runtime; RDD assessment returned `unassessable`).
