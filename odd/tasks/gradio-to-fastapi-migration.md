@@ -6,7 +6,7 @@
 - **TDD Runner**: `.venv\Scripts\python -m pytest`
 - **Delivery Strategy**: `ask-on-risk`
 - **Forecast Changed Lines**: ~650 lines (excluding templates/CSS assets)
-- **Running Authored Lines**: 244
+- **Running Authored Lines**: 391
 
 ---
 
@@ -53,7 +53,7 @@ Today, `launch_silvina.bat` runs `gradio_app.py`, which is constrained by Gradio
   - **Scope**: Create `src/infrastructure/fastapi/src/utils/upload_validator.py` with `validate_and_persist(upload: UploadFile, max_size_bytes: int) -> Path`. Validates size, extension (`.docx` allowed, `.doc` raises `DocumentUnreadable`, other extensions rejected). Writes temp file.
   - **Verification**: Unit tests in `src/infrastructure/fastapi/tests/test_upload_validator.py` and domain exception tests in `src/domain/tests/exceptions/` (RED -> GREEN).
 
-- [ ] **TASK-03: Dependency injection & Wiring**
+- [x] **TASK-03: Dependency injection & Wiring**
   - **Route**: direct inline
   - **Scope**: Create `src/infrastructure/fastapi/src/config/dependencies.py` providing module singletons for `AnalyzeDocumentUseCase` and `ExportReportUseCase`.
   - **Verification**: Unit tests in `src/infrastructure/fastapi/tests/test_dependencies.py`.
@@ -98,8 +98,8 @@ Today, `launch_silvina.bat` runs `gradio_app.py`, which is constrained by Gradio
 
 ## 4. Progress & Verification Log
 
-- **Current Status**: In Progress (TASK-01, TASK-02 complete)
-- **Next Step**: TASK-03 (Dependency injection & Wiring)
+- **Current Status**: In Progress (TASK-01, TASK-02, TASK-03 complete)
+- **Next Step**: TASK-04 (Jinja2 Templates & Static Assets)
 
 ### Verification History
 - **TASK-01**: Complete.
@@ -114,4 +114,11 @@ Today, `launch_silvina.bat` runs `gradio_app.py`, which is constrained by Gradio
   - GREEN: Added `DocumentInvalidType` and `DocumentTooLarge` to `src/domain/exceptions/document_errors.py`. Implemented `validate_and_persist` in `src/infrastructure/fastapi/src/utils/upload_validator.py`. All 13 new unit tests passed (5 in validator with 11 subtests, 8 in domain exceptions).
   - REFACTOR: Full test suite green (652 passed, 17 subtests).
   - Commit: `48e7d8c` (`feat(fastapi): implement upload_validator with size and extension validation`).
+  - RDD: unavailable (runtime `antigravity` is not an eligible immutable review runtime; RDD assessment returned `unassessable`).
+
+- **TASK-03**: Complete (Delegated direct).
+  - RED: `ModuleNotFoundError: No module named 'src.infrastructure.fastapi.src.config'` during pytest collection of `test_dependencies.py`.
+  - GREEN: Implemented `src/infrastructure/fastapi/src/config/dependencies.py` with singleton use cases (`AnalyzeDocumentUseCase`, `ExportReportUseCase` for Docx and JSON, `EnvConfig`), factory getters, `reset_dependencies()`, and `Annotated[..., Depends(...)]` type aliases. All 6 tests in `test_dependencies.py` passed.
+  - REFACTOR: Full test suite green (705 passed, 3 skipped).
+  - Commit: `5896fed` (`feat(fastapi): implement dependency injection wiring for use cases and config`).
   - RDD: unavailable (runtime `antigravity` is not an eligible immutable review runtime; RDD assessment returned `unassessable`).
