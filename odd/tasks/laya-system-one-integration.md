@@ -39,7 +39,7 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
   - **Scope**: Create `src/domain/classification/research_intent_detector_port.py` with abstract method `detect(text_sample: str, title: str | None) -> tuple[bool, bool, bool]`. Follow PEP 604 union types, no abbreviations, proper docstrings.
   - **Verification**: Unit tests in `src/domain/tests/classification/test_research_intent_detector_port.py`.
 
-- [ ] **TASK-02: Implement `OllamaResearchIntentAdapter`**
+- [x] **TASK-02: Implement `OllamaResearchIntentAdapter`**
   - **Route**: direct inline
   - **Scope**: Create `src/infrastructure/adapters/classification/ollama_research_intent_adapter.py` implementing `ResearchIntentDetectorPort` by delegating to `LlmGeneratorPort`, prompt template rendering, and `ArticleClassificationResponseParser`.
   - **Verification**: Unit tests in `src/infrastructure/tests/adapters/classification/test_ollama_research_intent_adapter.py`.
@@ -63,11 +63,16 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
 
 ## 4. Progress & Verification Log
 
-- **Current Status**: In Progress (TASK-01 complete; ready for TASK-02)
-- **Next Step**: Awaiting user approval to proceed with TASK-02 (Implement `OllamaResearchIntentAdapter`)
+- **Current Status**: In Progress (TASK-02 complete; ready for TASK-03)
+- **Next Step**: Awaiting user approval to proceed with TASK-03 (Refactor `ArticleClassifier` to depend on `ResearchIntentDetectorPort`)
 
 ### Verification History
 - **TASK-01**: Complete.
   - RED: pytest collection failed with `ModuleNotFoundError: No module named 'src.domain.classification.research_intent_detector_port'`.
   - GREEN: Implemented `ResearchIntentDetectorPort` and `FakeResearchIntentDetectorPort`. 5 tests passed in `test_research_intent_detector_port.py`. Full suite: 690 passed.
+  - Commit: `7bb93fa` (`feat(classification): define ResearchIntentDetectorPort and test double`).
+
+- **TASK-02**: Complete.
+  - RED: pytest collection failed with `ModuleNotFoundError: No module named 'src.infrastructure.adapters.classification.ollama_research_intent_adapter'`.
+  - GREEN: Implemented `OllamaResearchIntentAdapter` fulfilling `ResearchIntentDetectorPort`. 5 tests passed in `test_ollama_research_intent_adapter.py`. Full suite: 695 passed.
   - Commit: Pending user instruction (held).
