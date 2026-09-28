@@ -49,7 +49,7 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
   - **Scope**: Update `src/domain/classification/article_classifier.py` constructor to receive `research_intent_detector: ResearchIntentDetectorPort` instead of `llm_generator`, `signal_prompt_template`, `temperature`, `num_predict`, and `response_parser`.
   - **Verification**: Update `src/domain/tests/classification/test_article_classifier.py` with a fake test double implementing `ResearchIntentDetectorPort`.
 
-- [ ] **TASK-04: Update `AnalyzeDocumentUseCaseWiring`**
+- [x] **TASK-04: Update `AnalyzeDocumentUseCaseWiring`**
   - **Route**: direct inline
   - **Scope**: Update `src/infrastructure/wirings/analyze_document_use_case_wiring.py` method `_get_article_classifier()` to instantiate `OllamaResearchIntentAdapter` and inject it.
   - **Verification**: Test wiring and integration in `src/infrastructure/tests/wirings/test_analyze_document_use_case_wiring.py` or existing wiring tests.
@@ -63,8 +63,8 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
 
 ## 4. Progress & Verification Log
 
-- **Current Status**: In Progress (TASK-03 complete; ready for TASK-04)
-- **Next Step**: Awaiting user approval to proceed with TASK-04 (Update `AnalyzeDocumentUseCaseWiring`)
+- **Current Status**: In Progress (TASK-04 complete; ready for TASK-05)
+- **Next Step**: Awaiting user approval to proceed with TASK-05 (Regression Verification & Work-Unit Commit)
 
 ### Verification History
 - **TASK-01**: Complete.
@@ -80,4 +80,9 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
 - **TASK-03**: Complete.
   - RED: Constructor mismatch and type error when attempting to instantiate with `research_intent_detector`.
   - GREEN: Refactored `ArticleClassifier` constructor and `classify` method. Removed direct dependencies on `LlmGeneratorPort`, prompt templates, and response parsers. 5 tests passed in `test_article_classifier_imryd_override.py`.
+  - Commit: `803a7c1` (`feat(classification): refactor ArticleClassifier to depend on ResearchIntentDetectorPort`).
+
+- **TASK-04**: Complete.
+  - RED: Verified existing wiring tests failed due to attribute mismatch on `_article_classifier._llm_generator`.
+  - GREEN: Added `_get_research_intent_detector(self) -> ResearchIntentDetectorPort` instantiating `OllamaResearchIntentAdapter`, updated `_get_article_classifier`, and updated wiring tests. All 15 tests in `test_analyze_document_use_case_wiring.py` passed. Full suite: 695 passed.
   - Commit: Pending user instruction (held).

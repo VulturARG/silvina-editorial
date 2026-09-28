@@ -1,8 +1,12 @@
+# pyright: reportAttributeAccessIssue=none
 from os import environ
 from unittest import TestCase
 from unittest.mock import patch
 
 from src.application.analyze_document_use_case import AnalyzeDocumentUseCase
+from src.domain.classification.research_intent_detector_port import (
+    ResearchIntentDetectorPort,
+)
 from src.domain.dtos.recommendation_settings_dto import RecommendationSettingsDTO
 from src.infrastructure.wirings.analyze_document_use_case_wiring import AnalyzeDocumentUseCaseWiring
 
@@ -29,8 +33,16 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         wiring = AnalyzeDocumentUseCaseWiring()
         use_case = wiring.create_use_case()
         self.assertIs(
-            use_case._article_classifier._llm_generator,
+            use_case._article_classifier._research_intent_detector._llm_generator,
             use_case._quality_analyzer._llm_generator,
+        )
+
+    def test_article_classifier_wires_research_intent_detector_port(self):
+        wiring = AnalyzeDocumentUseCaseWiring()
+        use_case = wiring.create_use_case()
+        self.assertIsInstance(
+            use_case._article_classifier._research_intent_detector,
+            ResearchIntentDetectorPort,
         )
 
     RECOMMENDATION_ENV_VARS = {

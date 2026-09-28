@@ -20,6 +20,9 @@ from src.domain.classification.methodological_vocabulary_detector import (
     MethodologicalVocabularyDetector,
 )
 from src.domain.classification.reference_signal_detector import ReferenceSignalDetector
+from src.domain.classification.research_intent_detector_port import (
+    ResearchIntentDetectorPort,
+)
 from src.domain.document.character_count_port import CharacterCountPort
 from src.domain.document.citation_extraction_port import CitationExtractionPort
 from src.domain.document.content_extraction_port import ContentExtractionPort
@@ -39,6 +42,9 @@ from src.domain.quality.quality_response_parser import QualityResponseParser
 from src.domain.quality.quality_text_sampler import QualityTextSampler
 from src.domain.recommendation.recommendation_builder import RecommendationBuilder
 from src.domain.structure.structure_validator import StructureValidator
+from src.infrastructure.adapters.classification.ollama_research_intent_adapter import (
+    OllamaResearchIntentAdapter,
+)
 from src.infrastructure.adapters.document.docx_citation_adapter import DocxCitationAdapter
 from src.infrastructure.adapters.document.docx_eumic_adapter import DocxEumicAdapter
 from src.infrastructure.adapters.document.docx_reference_adapter import DocxReferenceAdapter
@@ -148,19 +154,24 @@ class AnalyzeDocumentUseCaseWiring:
     def _get_recommendation_builder(self) -> RecommendationBuilder:
         return RecommendationBuilder(settings=self._get_env_config().get_recommendation_settings())
 
-    def _get_article_classifier(self) -> ArticleClassifier:
+    def _get_research_intent_detector(self) -> ResearchIntentDetectorPort:
         env_config = self._get_env_config()
-        return ArticleClassifier(
+        return OllamaResearchIntentAdapter(
             llm_generator=self._get_llm_generator(),
-            signal_detector=ImrydSignalDetector(),
-            article_size_classifier=self._get_article_size_classifier(),
-            text_sampler=ArticleClassificationTextSampler(),
             response_parser=ArticleClassificationResponseParser(),
             signal_prompt_template=read_text_resource(
                 directory=CLASSIFICATION_PROMPTS_DIR, filename="s4_s5_s6_signal_prompt.txt"
             ),
             temperature=env_config.article_classifier_temperature,
             num_predict=env_config.article_classifier_num_predict,
+        )
+
+    def _get_article_classifier(self) -> ArticleClassifier:
+        return ArticleClassifier(
+            research_intent_detector=self._get_research_intent_detector(),
+            signal_detector=ImrydSignalDetector(),
+            article_size_classifier=self._get_article_size_classifier(),
+            text_sampler=ArticleClassificationTextSampler(),
             methodological_vocabulary_detector=MethodologicalVocabularyDetector(),
             reference_signal_detector=ReferenceSignalDetector(),
             rule_table=ClassificationRuleTable(),
