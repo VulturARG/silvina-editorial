@@ -6,7 +6,7 @@
 - **TDD Runner**: `.venv\Scripts\python -m pytest`
 - **Delivery Strategy**: `ask-on-risk`
 - **Forecast Changed Lines**: ~650 lines (excluding templates/CSS assets)
-- **Running Authored Lines**: 1169
+- **Running Authored Lines**: 1358
 
 ---
 
@@ -86,7 +86,7 @@ Today, `launch_silvina.bat` runs `gradio_app.py`, which is constrained by Gradio
   - **Scope**: Create `web_main.py` calling `uvicorn.run(app, host="127.0.0.1", port=7861)` under `__main__`. Update `launch_silvina.bat` to run `python web_main.py`.
   - **Verification**: Test imports and launcher structure in `tests/test_web_main.py`.
 
-- [ ] **TASK-08: E2E Verification & Gradio deprecation**
+- [x] **TASK-08: E2E Verification & Gradio deprecation**
   - **Route**: delegated direct
   - **Scope**:
     - E2E test verifying full flow: `GET /` -> `POST /analyze` -> `GET /reports/{filename}`.
@@ -98,8 +98,8 @@ Today, `launch_silvina.bat` runs `gradio_app.py`, which is constrained by Gradio
 
 ## 4. Progress & Verification Log
 
-- **Current Status**: In Progress (TASK-01 through TASK-07 complete)
-- **Next Step**: TASK-08 (E2E Verification & Gradio deprecation)
+- **Current Status**: Complete (TASK-01 through TASK-08 complete)
+- **Next Step**: None (Feature complete, ready for review/merge)
 
 ### Verification History
 - **TASK-01**: Complete.
@@ -148,5 +148,12 @@ Today, `launch_silvina.bat` runs `gradio_app.py`, which is constrained by Gradio
   - RED: Collection failure on `tests/test_web_main.py` (`ModuleNotFoundError: No module named 'web_main'`).
   - GREEN: Created `web_main.py` calling `uvicorn.run(app, host="127.0.0.1", port=7861)` under `if __name__ == "__main__"`, and updated `launch_silvina.bat` to launch `python web_main.py` with updated startup banner text. All 4 tests in `tests/test_web_main.py` passed.
   - REFACTOR: Full test suite green (736 passed, 3 skipped).
-  - Commit: `0dcbc39` (`feat(fastapi): add web_main root launcher and update launch_silvina.bat`).
+  - Commit: `94b0193` (`feat(fastapi): add web_main root launcher and update launch_silvina.bat`).
+  - RDD: unavailable (runtime `antigravity` is not an eligible immutable review runtime; RDD assessment returned `unassessable`).
+
+- **TASK-08**: Complete (Delegated direct).
+  - RED: `test_e2e_pending` failed with `AssertionError`.
+  - GREEN: Created comprehensive `tests/e2e/test_fastapi_e2e.py` covering landing page, upload analysis, report file generation, download endpoints, and error flows. Removed `gradio_app.py` and `tests/e2e/test_gradio_e2e.py`. Removed `gradio` and added `fastapi`, `uvicorn`, `jinja2`, `python-multipart` to `requirements.txt`. Cleaned `ruff.toml`.
+  - REFACTOR: Full test suite green (728 passed, 0 skipped, 1 warning).
+  - Commit: `41c5a30` (`feat(fastapi): add FastAPI E2E tests, deprecate Gradio, and update dependencies`).
   - RDD: unavailable (runtime `antigravity` is not an eligible immutable review runtime; RDD assessment returned `unassessable`).
