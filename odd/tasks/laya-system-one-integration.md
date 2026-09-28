@@ -44,7 +44,7 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
   - **Scope**: Create `src/infrastructure/adapters/classification/ollama_research_intent_adapter.py` implementing `ResearchIntentDetectorPort` by delegating to `LlmGeneratorPort`, prompt template rendering, and `ArticleClassificationResponseParser`.
   - **Verification**: Unit tests in `src/infrastructure/tests/adapters/classification/test_ollama_research_intent_adapter.py`.
 
-- [ ] **TASK-03: Refactor `ArticleClassifier` to depend on `ResearchIntentDetectorPort`**
+- [x] **TASK-03: Refactor `ArticleClassifier` to depend on `ResearchIntentDetectorPort`**
   - **Route**: direct inline
   - **Scope**: Update `src/domain/classification/article_classifier.py` constructor to receive `research_intent_detector: ResearchIntentDetectorPort` instead of `llm_generator`, `signal_prompt_template`, `temperature`, `num_predict`, and `response_parser`.
   - **Verification**: Update `src/domain/tests/classification/test_article_classifier.py` with a fake test double implementing `ResearchIntentDetectorPort`.
@@ -63,8 +63,8 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
 
 ## 4. Progress & Verification Log
 
-- **Current Status**: In Progress (TASK-02 complete; ready for TASK-03)
-- **Next Step**: Awaiting user approval to proceed with TASK-03 (Refactor `ArticleClassifier` to depend on `ResearchIntentDetectorPort`)
+- **Current Status**: In Progress (TASK-03 complete; ready for TASK-04)
+- **Next Step**: Awaiting user approval to proceed with TASK-04 (Update `AnalyzeDocumentUseCaseWiring`)
 
 ### Verification History
 - **TASK-01**: Complete.
@@ -75,4 +75,9 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
 - **TASK-02**: Complete.
   - RED: pytest collection failed with `ModuleNotFoundError: No module named 'src.infrastructure.adapters.classification.ollama_research_intent_adapter'`.
   - GREEN: Implemented `OllamaResearchIntentAdapter` fulfilling `ResearchIntentDetectorPort`. 5 tests passed in `test_ollama_research_intent_adapter.py`. Full suite: 695 passed.
+  - Commit: `cc7644a` (`feat(classification): implement OllamaResearchIntentAdapter and unit tests`).
+
+- **TASK-03**: Complete.
+  - RED: Constructor mismatch and type error when attempting to instantiate with `research_intent_detector`.
+  - GREEN: Refactored `ArticleClassifier` constructor and `classify` method. Removed direct dependencies on `LlmGeneratorPort`, prompt templates, and response parsers. 5 tests passed in `test_article_classifier_imryd_override.py`.
   - Commit: Pending user instruction (held).
