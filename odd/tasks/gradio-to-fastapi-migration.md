@@ -113,4 +113,5 @@ Today, `launch_silvina.bat` runs `gradio_app.py`, which is constrained by Gradio
   - RED: Verified test collection failures for `DocumentInvalidType`, `DocumentTooLarge`, and `upload_validator.py`.
   - GREEN: Added `DocumentInvalidType` and `DocumentTooLarge` to `src/domain/exceptions/document_errors.py`. Implemented `validate_and_persist` in `src/infrastructure/fastapi/src/utils/upload_validator.py`. All 13 new unit tests passed (5 in validator with 11 subtests, 8 in domain exceptions).
   - REFACTOR: Full test suite green (652 passed, 17 subtests).
-  - Commit: Pending (work-unit commit).
+  - Commit: `48e7d8c` (`feat(fastapi): implement upload_validator with size and extension validation`).
+  - RDD: unavailable (runtime `antigravity` is not an eligible immutable review runtime; RDD assessment returned `unassessable`).
