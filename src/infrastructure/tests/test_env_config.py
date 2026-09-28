@@ -50,6 +50,7 @@ class TestEnvConfig(TestCase):
         self.assertEqual(config.report_max_errors_displayed, 5)
         self.assertEqual(config.report_context_truncation_limit, 150)
         self.assertEqual(config.report_max_replacements, 3)
+        self.assertEqual(config.upload_max_size_bytes, 26214400)
 
     def test_raises_file_not_found_when_version_file_missing_outside_testing(self):
         with patch.dict(environ, {}, clear=True):
@@ -118,6 +119,11 @@ class TestEnvConfig(TestCase):
         with patch.dict(environ, {"REPORT_WORDS_PER_PAGE": "300"}):
             config = EnvConfig()
         self.assertEqual(config.report_words_per_page, 300)
+
+    def test_env_var_overrides_upload_max_size_bytes(self):
+        with patch.dict(environ, {"UPLOAD_MAX_SIZE_BYTES": "52428800"}):
+            config = EnvConfig()
+        self.assertEqual(config.upload_max_size_bytes, 52428800)
 
     def test_int_env_vars_are_cast_to_int(self):
         with patch.dict(environ, {"REPORT_MAX_REPLACEMENTS": "9"}):

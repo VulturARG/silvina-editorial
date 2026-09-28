@@ -97,6 +97,7 @@ class EnvConfig:
             getenv("REPORT_CONTEXT_TRUNCATION_LIMIT", "150")
         )
         self.report_max_replacements: int = int(getenv("REPORT_MAX_REPLACEMENTS", "3"))
+        self.upload_max_size_bytes: int = int(getenv("UPLOAD_MAX_SIZE_BYTES", "26214400"))
 
     def get_recommendation_settings(self) -> RecommendationSettingsDTO:
         """Builds RecommendationSettingsDTO from cached configuration values."""
