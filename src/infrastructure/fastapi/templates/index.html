@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="card">
+    <h2 class="card-title">📄 Paso 1: Cargar Documento</h2>
+    <p class="card-subtitle">Seleccione el manuscrito en formato Word (.docx) que desea analizar.</p>
+
+    <form hx-post="/analyze"
+          hx-target="#results-container"
+          hx-swap="innerHTML"
+          hx-indicator="#loading-indicator"
+          enctype="multipart/form-data"
+          class="upload-form">
+        <div class="form-group">
+            <div class="file-input-wrapper">
+                <input type="file" name="file" id="file" accept=".docx" required>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">
+            🔍 Analizar Documento
+        </button>
+    </form>
+
+    <div id="loading-indicator" class="htmx-indicator">
+        <div class="loading-indicator-container">
+            <div class="spinner"></div>
+            <div class="loading-text">Analizando documento...</div>
+            <div class="loading-subtext">Por favor espere mientras Silvina procesa el manuscrito (esto puede tomar unos momentos)</div>
+        </div>
+    </div>
+</section>
+
+<section class="card">
+    <h2 class="card-title">📊 Paso 2: Resultados del Análisis</h2>
+    <div id="results-container">
+        <p style="color: var(--text-muted); text-align: center; padding: 20px 0;">
+            Los resultados del análisis se mostrarán aquí una vez procesado el documento.
+        </p>
+    </div>
+</section>
+{% endblock %}
