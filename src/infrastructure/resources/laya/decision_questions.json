@@ -1,0 +1,82 @@
+[
+  {
+    "name": "s4_intent",
+    "type": "choice",
+    "options": [
+      "SI",
+      "NO"
+    ],
+    "description": "Intención explícita de investigación (verbos de intención, hipótesis, etc.)"
+  },
+  {
+    "name": "s5_evidence",
+    "type": "choice",
+    "options": [
+      "SI",
+      "NO"
+    ],
+    "description": "Contribución conclusiva basada en evidencia (datos empíricos, resultados sistemáticos)"
+  },
+  {
+    "name": "s6_theory",
+    "type": "choice",
+    "options": [
+      "SI",
+      "NO"
+    ],
+    "description": "Justificación teórica o anclaje en literatura previa y vacíos del conocimiento"
+  },
+  {
+    "name": "editorial_verdict",
+    "type": "choice",
+    "options": [
+      "SUSTENTADA",
+      "PARCIAL",
+      "NO SUSTENTADA"
+    ],
+    "description": "Evaluación de adecuación y sustentación de la contribución al conocimiento militar"
+  },
+  {
+    "name": "research_line",
+    "type": "choice",
+    "options": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "NINGUNA"
+    ],
+    "description": "Alineación con las 7 líneas institucionales de investigación para la defensa"
+  },
+  {
+    "name": "score_clarity",
+    "type": "score",
+    "min": 0.0,
+    "max": 10.0,
+    "description": "Puntuación de claridad del argumento central y facilidad de lectura"
+  },
+  {
+    "name": "score_coherence",
+    "type": "score",
+    "min": 0.0,
+    "max": 10.0,
+    "description": "Puntuación de coherencia, articulación lógica y transiciones"
+  },
+  {
+    "name": "score_argumentation",
+    "type": "score",
+    "min": 0.0,
+    "max": 10.0,
+    "description": "Puntuación de calidad de la argumentación y solidez conceptual"
+  },
+  {
+    "name": "score_conclusions",
+    "type": "score",
+    "min": 0.0,
+    "max": 10.0,
+    "description": "Puntuación de pertinencia y sustentación de las conclusiones"
+  }
+]
