@@ -106,3 +106,5 @@ Today, `launch_silvina.bat` runs `gradio_app.py`, which is constrained by Gradio
   - RED: `test_defaults_are_loaded_when_env_is_empty` and `test_env_var_overrides_upload_max_size_bytes` failed with `AttributeError` for missing `upload_max_size_bytes`.
   - GREEN: Added `self.upload_max_size_bytes: int = int(getenv("UPLOAD_MAX_SIZE_BYTES", "26214400"))` in `src/infrastructure/env_config.py`. All 19 tests in `test_env_config.py` passed.
   - REFACTOR: Full test suite green (639 passed, 6 subtests).
+  - Commit: `5f3d161` (`feat(config): add upload_max_size_bytes to EnvConfig`).
+  - RDD: unavailable (runtime `antigravity` is not an eligible immutable review runtime; RDD assessment returned `unassessable`).
