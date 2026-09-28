@@ -1,6 +1,9 @@
+import os
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends
+from fastapi.templating import Jinja2Templates
 
 from src.application.analyze_document_use_case import AnalyzeDocumentUseCase
 from src.application.export_report_use_case import ExportReportUseCase
@@ -11,10 +14,26 @@ from src.infrastructure.wirings.analyze_document_use_case_wiring import (
 from src.infrastructure.wirings.export_report_wiring import ExportReportWiring
 from src.infrastructure.wirings.json_report_wiring import JsonReportWiring
 
+TEMPLATES_DIR = Path(__file__).resolve().parents[2] / "templates"
+_templates: Jinja2Templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+
 _analyze_use_case: AnalyzeDocumentUseCase = AnalyzeDocumentUseCaseWiring().create_use_case()
 _export_use_case: ExportReportUseCase = ExportReportWiring().create_use_case()
 _json_export_use_case: ExportReportUseCase = JsonReportWiring().create_use_case()
 _env_config: EnvConfig = EnvConfig()
+
+
+def get_templates() -> Jinja2Templates:
+    """Return the singleton instance of Jinja2Templates."""
+    return _templates
+
+
+def get_reports_directory() -> Path:
+    """Return the output directory for generated reports."""
+    reports_dir_env = os.getenv("SILVINA_REPORTS_DIR")
+    if reports_dir_env:
+        return Path(reports_dir_env)
+    return Path.home() / "Documents" / "Silvina" / "reports"
 
 
 def get_analyze_document_use_case() -> AnalyzeDocumentUseCase:
@@ -39,14 +58,17 @@ def get_env_config() -> EnvConfig:
 
 def reset_dependencies() -> None:
     """Reset and re-instantiate dependency singletons, primarily for testing."""
-    global _analyze_use_case, _export_use_case, _json_export_use_case, _env_config
+    global _analyze_use_case, _export_use_case, _json_export_use_case, _env_config, _templates
     _analyze_use_case = AnalyzeDocumentUseCaseWiring().create_use_case()
     _export_use_case = ExportReportWiring().create_use_case()
     _json_export_use_case = JsonReportWiring().create_use_case()
     _env_config = EnvConfig()
+    _templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 
 AnalyzeUseCaseDep = Annotated[AnalyzeDocumentUseCase, Depends(get_analyze_document_use_case)]
 ExportReportUseCaseDep = Annotated[ExportReportUseCase, Depends(get_export_report_use_case)]
 JsonReportUseCaseDep = Annotated[ExportReportUseCase, Depends(get_json_export_report_use_case)]
 EnvConfigDep = Annotated[EnvConfig, Depends(get_env_config)]
+TemplatesDep = Annotated[Jinja2Templates, Depends(get_templates)]
+ReportsDirDep = Annotated[Path, Depends(get_reports_directory)]

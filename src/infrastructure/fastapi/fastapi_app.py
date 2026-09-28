@@ -10,7 +10,6 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request, Response
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 
 from src.domain.exceptions.base_src_error import (
     BaseSrcError,
@@ -19,13 +18,19 @@ from src.domain.exceptions.base_src_error import (
     SrcBaseWarning,
 )
 from src.domain.exceptions.document_errors import DocumentNotFound
+from src.infrastructure.fastapi.src.config.dependencies import get_templates
+from src.infrastructure.fastapi.src.routes import (
+    analyze_router,
+    page_router,
+    report_router,
+)
 
 logger = logging.getLogger(__name__)
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
 
-templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+templates = get_templates()
 
 
 def _open_browser(url: str = "http://127.0.0.1:7861") -> None:
@@ -113,6 +118,10 @@ def create_app(auto_open_browser: bool = True) -> FastAPI:
 
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
     register_exception_handlers(app)
+
+    app.include_router(page_router)
+    app.include_router(analyze_router)
+    app.include_router(report_router)
 
     return app
 

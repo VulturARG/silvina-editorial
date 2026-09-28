@@ -6,7 +6,7 @@
 - **TDD Runner**: `.venv\Scripts\python -m pytest`
 - **Delivery Strategy**: `ask-on-risk`
 - **Forecast Changed Lines**: ~650 lines (excluding templates/CSS assets)
-- **Running Authored Lines**: 766
+- **Running Authored Lines**: 1111
 
 ---
 
@@ -73,7 +73,7 @@ Today, `launch_silvina.bat` runs `gradio_app.py`, which is constrained by Gradio
   - **Scope**: Create `src/infrastructure/fastapi/fastapi_app.py` setting up `FastAPI`, mounting static files, configuring `Jinja2Templates`, registering exception handlers for `BaseSrcError` and subtypes, and lifespan browser open hook.
   - **Verification**: Test exception handlers with TestClient in `src/infrastructure/fastapi/tests/test_exception_handlers.py`.
 
-- [ ] **TASK-06: Routes (Page, Analyze, Report)**
+- [x] **TASK-06: Routes (Page, Analyze, Report)**
   - **Route**: delegated direct
   - **Scope**:
     - `src/infrastructure/fastapi/src/routes/page_endpoint.py`: `GET /` -> renders `index.html`.
@@ -98,8 +98,8 @@ Today, `launch_silvina.bat` runs `gradio_app.py`, which is constrained by Gradio
 
 ## 4. Progress & Verification Log
 
-- **Current Status**: In Progress (TASK-01, TASK-02, TASK-03, TASK-04, TASK-05 complete)
-- **Next Step**: TASK-06 (Routes: Page, Analyze, Report)
+- **Current Status**: In Progress (TASK-01 through TASK-06 complete)
+- **Next Step**: TASK-07 (Root launcher `web_main.py` and `launch_silvina.bat`)
 
 ### Verification History
 - **TASK-01**: Complete.
@@ -135,4 +135,11 @@ Today, `launch_silvina.bat` runs `gradio_app.py`, which is constrained by Gradio
   - GREEN: Implemented `src/infrastructure/fastapi/fastapi_app.py` with `create_app()`, `/static` mount, `lifespan` browser open hook, and domain exception handlers (`DocumentNotFound`, `SrcBaseNotFound`, `SrcBaseNotAuthorized`, `SrcBaseWarning`, `BaseSrcError`, `Exception`) returning `_error.html` partial with corresponding HTTP status codes (400, 403, 404, 500). All 7 tests in `test_exception_handlers.py` passed.
   - REFACTOR: Full test suite green (719 passed, 3 skipped).
   - Commit: `1d55430` (`feat(fastapi): implement FastAPI app factory and domain exception handlers`).
+  - RDD: unavailable (runtime `antigravity` is not an eligible immutable review runtime; RDD assessment returned `unassessable`).
+
+- **TASK-06**: Complete (Delegated direct).
+  - RED: Collection failure on initial test file execution (`ImportError: cannot import name 'get_reports_directory' from 'src.infrastructure.fastapi.src.config.dependencies'`).
+  - GREEN: Implemented `page_router` (`GET /`), `analyze_router` (`POST /analyze` with validation, pipeline execution, reports export, cleanup, and results rendering), and `report_router` (`GET /reports/{filename:path}` with path traversal protection using `is_relative_to`), wired into `dependencies.py` and `fastapi_app.py`. All 13 tests in `src/infrastructure/fastapi/tests/test_routes.py` passed.
+  - REFACTOR: Full test suite green (732 passed, 3 skipped).
+  - Commit: `57ae1c8` (`feat(fastapi): implement page, analyze, and report routes with path traversal guards`).
   - RDD: unavailable (runtime `antigravity` is not an eligible immutable review runtime; RDD assessment returned `unassessable`).
