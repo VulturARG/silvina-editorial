@@ -54,7 +54,7 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
   - **Scope**: Update `src/infrastructure/wirings/analyze_document_use_case_wiring.py` method `_get_article_classifier()` to instantiate `OllamaResearchIntentAdapter` and inject it.
   - **Verification**: Test wiring and integration in `src/infrastructure/tests/wirings/test_analyze_document_use_case_wiring.py` or existing wiring tests.
 
-- [ ] **TASK-05: Regression Verification & Work-Unit Commit**
+- [x] **TASK-05: Regression Verification & Work-Unit Commit**
   - **Route**: direct inline
   - **Scope**: Run full pytest suite across `src/` (685+ tests). Ensure zero regressions.
   - **Verification**: Commit work-unit to `feat/laya-system-one-ports`.
@@ -63,8 +63,8 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
 
 ## 4. Progress & Verification Log
 
-- **Current Status**: In Progress (TASK-04 complete; ready for TASK-05)
-- **Next Step**: Awaiting user approval to proceed with TASK-05 (Regression Verification & Work-Unit Commit)
+- **Current Status**: Complete (TASK-01 through TASK-05 complete)
+- **Next Step**: Awaiting user instruction to commit TASK-05 and close Phase 1
 
 ### Verification History
 - **TASK-01**: Complete.
@@ -85,4 +85,8 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
 - **TASK-04**: Complete.
   - RED: Verified existing wiring tests failed due to attribute mismatch on `_article_classifier._llm_generator`.
   - GREEN: Added `_get_research_intent_detector(self) -> ResearchIntentDetectorPort` instantiating `OllamaResearchIntentAdapter`, updated `_get_article_classifier`, and updated wiring tests. All 15 tests in `test_analyze_document_use_case_wiring.py` passed. Full suite: 695 passed.
+  - Commit: `ee560c1` (`feat(wiring): wire OllamaResearchIntentAdapter into AnalyzeDocumentUseCaseWiring`).
+
+- **TASK-05**: Complete.
+  - Verification: Full pytest suite across `src/` passed cleanly (695 passed, 1 warning, 17 subtests passed in 2.74s) with zero regressions.
   - Commit: Pending user instruction (held).
