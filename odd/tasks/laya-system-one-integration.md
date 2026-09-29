@@ -59,12 +59,33 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
   - **Scope**: Run full pytest suite across `src/` (685+ tests). Ensure zero regressions.
   - **Verification**: Commit work-unit to `feat/laya-system-one-ports`.
 
+### Phase 2: Synthetic Dataset Generation & Laya Fine-Tuning
+- [x] **TASK-06: Define the 56-Archetype Combinatorial Matrix Specification**
+  - **Route**: direct inline
+  - **Scope**: Create `E:/IA/laya/data/silvina_editorial/archetypes_specification.json` defining the 56 combinations (7 defense lines x 8 boolean profiles) with realistic subthemes, signal criteria, and ground truth.
+  - **Verification**: Integrity test in Python asserting 56 distinct archetypes.
+
+- [ ] **TASK-07: Implement Batch Synthetic Dataset Generator**
+  - **Route**: direct inline
+  - **Scope**: Implement modular generator in `E:/IA/laya/scripts/generate_full_dataset.py` capable of batch-generating 1.000–1.200 word academic texts conforming to canonical Laya schema (`max_len=2048`).
+  - **Verification**: Execute generator on first batch and verify word counts and question schemas.
+
+- [ ] **TASK-08: Generate Full Dataset (~450-500 samples)**
+  - **Route**: subagent delegation / batch execution
+  - **Scope**: Generate complete dataset covering all 56 archetypes plus out-of-domain controls.
+  - **Verification**: Line count, word count distribution, and JSONL format validation.
+
+- [ ] **TASK-09: Stratified Partitioning (Train / Calibration / Test)**
+  - **Route**: direct inline
+  - **Scope**: Split raw dataset into `train.jsonl` (80%), `calibration.jsonl` (10%), and `test.jsonl` (10%) with balanced representation across archetypes.
+  - **Verification**: Assert non-overlapping splits, seed reproducibility, and calibration holdout integrity.
+
 ---
 
 ## 4. Progress & Verification Log
 
-- **Current Status**: Complete (TASK-01 through TASK-05 complete)
-- **Next Step**: Awaiting user instruction to commit TASK-05 and close Phase 1
+- **Current Status**: In Progress (Phase 2: TASK-06 complete; ready for TASK-07)
+- **Next Step**: Awaiting user approval to proceed with TASK-07 (Implement Batch Synthetic Dataset Generator)
 
 ### Verification History
 - **TASK-01**: Complete.
@@ -89,4 +110,8 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
 
 - **TASK-05**: Complete.
   - Verification: Full pytest suite across `src/` passed cleanly (695 passed, 1 warning, 17 subtests passed in 2.74s) with zero regressions.
+  - Commit: `682479f` (`docs(odd): complete TASK-05 regression verification and close phase 1`).
+
+- **TASK-06**: Complete.
+  - Verification: Generated `archetypes_specification.json` defining the 56 archetypes (7 defense lines x 8 boolean profiles) with realistic subthemes and ground truth. Automated integrity test passed asserting 56 distinct archetypes, 7 lines, and 8 profiles per line.
   - Commit: Pending user instruction (held).
