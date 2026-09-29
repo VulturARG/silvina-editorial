@@ -1,0 +1,1186 @@
+{
+  "version": "1.0",
+  "total_archetypes": 56,
+  "target_samples_per_archetype": 8,
+  "total_expected_samples": 448,
+  "research_lines_count": 7,
+  "boolean_profiles_count": 8,
+  "archetypes": [
+    {
+      "archetype_id": "ARC-01",
+      "research_line_id": "1",
+      "research_line_name": "Ámbitos de conflicto y su interacción",
+      "profile_id": "000",
+      "subtheme": "Operaciones conjuntas y combinadas en el teatro de operaciones del Atlántico Sur",
+      "signals": {
+        "s4_intent": "NO",
+        "s5_evidence": "NO",
+        "s6_theory": "NO"
+      },
+      "editorial_verdict": "NO SUSTENTADA",
+      "expected_scores": {
+        "clarity": 7.0,
+        "coherence": 6.5,
+        "argumentation": 5.0,
+        "conclusions": 4.5
+      },
+      "style_archetype": "Ensayo de opinión / reflexión libre sin método científico, sin datos ni marco conceptual formal",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-02",
+      "research_line_id": "1",
+      "research_line_name": "Ámbitos de conflicto y su interacción",
+      "profile_id": "001",
+      "subtheme": "Logística militar y líneas de abastecimiento en combate de alta intensidad",
+      "signals": {
+        "s4_intent": "NO",
+        "s5_evidence": "NO",
+        "s6_theory": "SI"
+      },
+      "editorial_verdict": "NO SUSTENTADA",
+      "expected_scores": {
+        "clarity": 7.5,
+        "coherence": 7.0,
+        "argumentation": 6.0,
+        "conclusions": 5.5
+      },
+      "style_archetype": "Ensayo teórico con referencias bibliográficas pero sin preguntas de investigación ni datos empíricos",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-03",
+      "research_line_id": "1",
+      "research_line_name": "Ámbitos de conflicto y su interacción",
+      "profile_id": "010",
+      "subtheme": "Juegos de guerra y simulación operacional en el planeamiento de estado mayor",
+      "signals": {
+        "s4_intent": "NO",
+        "s5_evidence": "SI",
+        "s6_theory": "NO"
+      },
+      "editorial_verdict": "PARCIAL",
+      "expected_scores": {
+        "clarity": 8.5,
+        "coherence": 8.0,
+        "argumentation": 6.0,
+        "conclusions": 6.5
+      },
+      "style_archetype": "Informe técnico descriptivo con abundantes datos empíricos y métricas, pero sin hipótesis ni marco teórico",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-04",
+      "research_line_id": "1",
+      "research_line_name": "Ámbitos de conflicto y su interacción",
+      "profile_id": "011",
+      "subtheme": "Doctrina de maniobra blindada y fuegos coordinados en terreno semiárido",
+      "signals": {
+        "s4_intent": "NO",
+        "s5_evidence": "SI",
+        "s6_theory": "SI"
+      },
+      "editorial_verdict": "PARCIAL",
+      "expected_scores": {
+        "clarity": 8.5,
+        "coherence": 8.0,
+        "argumentation": 7.0,
+        "conclusions": 7.0
+      },
+      "style_archetype": "Monografía analítica con datos y literatura previa, pero estructurada descriptivamente sin pregunta/diseño formal",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-05",
+      "research_line_id": "1",
+      "research_line_name": "Ámbitos de conflicto y su interacción",
+      "profile_id": "100",
+      "subtheme": "Control y vigilancia de la Zona Económica Exclusiva (ZEE) y espacios jurisdiccionales",
+      "signals": {
+        "s4_intent": "SI",
+        "s5_evidence": "NO",
+        "s6_theory": "NO"
+      },
+      "editorial_verdict": "NO SUSTENTADA",
+      "expected_scores": {
+        "clarity": 7.5,
+        "coherence": 7.0,
+        "argumentation": 5.5,
+        "conclusions": 5.0
+      },
+      "style_archetype": "Propuesta preliminar o proyecto exploratorio que plantea preguntas pero no presenta datos ni marco teórico",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-06",
+      "research_line_id": "1",
+      "research_line_name": "Ámbitos de conflicto y su interacción",
+      "profile_id": "101",
+      "subtheme": "Lecciones aprendidas en operaciones militares de paz bajo mandato de la ONU",
+      "signals": {
+        "s4_intent": "SI",
+        "s5_evidence": "NO",
+        "s6_theory": "SI"
+      },
+      "editorial_verdict": "PARCIAL",
+      "expected_scores": {
+        "clarity": 8.5,
+        "coherence": 8.5,
+        "argumentation": 8.0,
+        "conclusions": 6.5
+      },
+      "style_archetype": "Artículo teórico-conceptual riguroso con pregunta de investigación y marco doctrinal, pero sin contrastación empírica",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-07",
+      "research_line_id": "1",
+      "research_line_name": "Ámbitos de conflicto y su interacción",
+      "profile_id": "110",
+      "subtheme": "Evolución del combate multidominio: integración de capacidades aeroespaciales y terrestres",
+      "signals": {
+        "s4_intent": "SI",
+        "s5_evidence": "SI",
+        "s6_theory": "NO"
+      },
+      "editorial_verdict": "PARCIAL",
+      "expected_scores": {
+        "clarity": 8.5,
+        "coherence": 8.0,
+        "argumentation": 7.5,
+        "conclusions": 7.0
+      },
+      "style_archetype": "Estudio empírico/experimental con metodología y resultados cuantitativos, pero con escaso marco conceptual o estado del arte",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-08",
+      "research_line_id": "1",
+      "research_line_name": "Ámbitos de conflicto y su interacción",
+      "profile_id": "111",
+      "subtheme": "Toma de decisiones tácticas en escalón brigada bajo denegación electromagnética",
+      "signals": {
+        "s4_intent": "SI",
+        "s5_evidence": "SI",
+        "s6_theory": "SI"
+      },
+      "editorial_verdict": "SUSTENTADA",
+      "expected_scores": {
+        "clarity": 9.0,
+        "coherence": 9.0,
+        "argumentation": 9.0,
+        "conclusions": 8.5
+      },
+      "style_archetype": "Artículo científico pleno con estructura IMRyD, marco teórico sólido, datos empíricos demostrativos y conclusiones fundadas",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-09",
+      "research_line_id": "2",
+      "research_line_name": "Estrategia, conflicto y política internacional",
+      "profile_id": "000",
+      "subtheme": "Estrategia de disuasión no provocativa en el Cono Sur",
+      "signals": {
+        "s4_intent": "NO",
+        "s5_evidence": "NO",
+        "s6_theory": "NO"
+      },
+      "editorial_verdict": "NO SUSTENTADA",
+      "expected_scores": {
+        "clarity": 7.0,
+        "coherence": 6.5,
+        "argumentation": 5.0,
+        "conclusions": 4.5
+      },
+      "style_archetype": "Ensayo de opinión / reflexión libre sin método científico, sin datos ni marco conceptual formal",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-10",
+      "research_line_id": "2",
+      "research_line_name": "Estrategia, conflicto y política internacional",
+      "profile_id": "001",
+      "subtheme": "Geopolítica del Atlántico Sur, paso bioceánico y proyección antártica",
+      "signals": {
+        "s4_intent": "NO",
+        "s5_evidence": "NO",
+        "s6_theory": "SI"
+      },
+      "editorial_verdict": "NO SUSTENTADA",
+      "expected_scores": {
+        "clarity": 7.5,
+        "coherence": 7.0,
+        "argumentation": 6.0,
+        "conclusions": 5.5
+      },
+      "style_archetype": "Ensayo teórico con referencias bibliográficas pero sin preguntas de investigación ni datos empíricos",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-11",
+      "research_line_id": "2",
+      "research_line_name": "Estrategia, conflicto y política internacional",
+      "profile_id": "010",
+      "subtheme": "Impacto de la multipolaridad y la competencia entre superpotencias en América Latina",
+      "signals": {
+        "s4_intent": "NO",
+        "s5_evidence": "SI",
+        "s6_theory": "NO"
+      },
+      "editorial_verdict": "PARCIAL",
+      "expected_scores": {
+        "clarity": 8.5,
+        "coherence": 8.0,
+        "argumentation": 6.0,
+        "conclusions": 6.5
+      },
+      "style_archetype": "Informe técnico descriptivo con abundantes datos empíricos y métricas, pero sin hipótesis ni marco teórico",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-12",
+      "research_line_id": "2",
+      "research_line_name": "Estrategia, conflicto y política internacional",
+      "profile_id": "011",
+      "subtheme": "Articulación entre diplomacia y poder militar en crisis interestatales",
+      "signals": {
+        "s4_intent": "NO",
+        "s5_evidence": "SI",
+        "s6_theory": "SI"
+      },
+      "editorial_verdict": "PARCIAL",
+      "expected_scores": {
+        "clarity": 8.5,
+        "coherence": 8.0,
+        "argumentation": 7.0,
+        "conclusions": 7.0
+      },
+      "style_archetype": "Monografía analítica con datos y literatura previa, pero estructurada descriptivamente sin pregunta/diseño formal",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-13",
+      "research_line_id": "2",
+      "research_line_name": "Estrategia, conflicto y política internacional",
+      "profile_id": "100",
+      "subtheme": "El Tratado Antártico y los desafíos a la soberanía nacional hacia 2048",
+      "signals": {
+        "s4_intent": "SI",
+        "s5_evidence": "NO",
+        "s6_theory": "NO"
+      },
+      "editorial_verdict": "NO SUSTENTADA",
+      "expected_scores": {
+        "clarity": 7.5,
+        "coherence": 7.0,
+        "argumentation": 5.5,
+        "conclusions": 5.0
+      },
+      "style_archetype": "Propuesta preliminar o proyecto exploratorio que plantea preguntas pero no presenta datos ni marco teórico",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-14",
+      "research_line_id": "2",
+      "research_line_name": "Estrategia, conflicto y política internacional",
+      "profile_id": "101",
+      "subtheme": "Alianzas estratégicas regionales y Consejo de Defensa Suramericano",
+      "signals": {
+        "s4_intent": "SI",
+        "s5_evidence": "NO",
+        "s6_theory": "SI"
+      },
+      "editorial_verdict": "PARCIAL",
+      "expected_scores": {
+        "clarity": 8.5,
+        "coherence": 8.5,
+        "argumentation": 8.0,
+        "conclusions": 6.5
+      },
+      "style_archetype": "Artículo teórico-conceptual riguroso con pregunta de investigación y marco doctrinal, pero sin contrastación empírica",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-15",
+      "research_line_id": "2",
+      "research_line_name": "Estrategia, conflicto y política internacional",
+      "profile_id": "110",
+      "subtheme": "Guerra irrestricta y zonas grises en la periferia global",
+      "signals": {
+        "s4_intent": "SI",
+        "s5_evidence": "SI",
+        "s6_theory": "NO"
+      },
+      "editorial_verdict": "PARCIAL",
+      "expected_scores": {
+        "clarity": 8.5,
+        "coherence": 8.0,
+        "argumentation": 7.5,
+        "conclusions": 7.0
+      },
+      "style_archetype": "Estudio empírico/experimental con metodología y resultados cuantitativos, pero con escaso marco conceptual o estado del arte",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-16",
+      "research_line_id": "2",
+      "research_line_name": "Estrategia, conflicto y política internacional",
+      "profile_id": "111",
+      "subtheme": "Fundamentos teóricos del pensamiento estratégico clásico y contemporáneo",
+      "signals": {
+        "s4_intent": "SI",
+        "s5_evidence": "SI",
+        "s6_theory": "SI"
+      },
+      "editorial_verdict": "SUSTENTADA",
+      "expected_scores": {
+        "clarity": 9.0,
+        "coherence": 9.0,
+        "argumentation": 9.0,
+        "conclusions": 8.5
+      },
+      "style_archetype": "Artículo científico pleno con estructura IMRyD, marco teórico sólido, datos empíricos demostrativos y conclusiones fundadas",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-17",
+      "research_line_id": "3",
+      "research_line_name": "Recursos humanos para la defensa",
+      "profile_id": "000",
+      "subtheme": "Gestión del talento y retención de especialistas en áreas técnicas y cibernéticas",
+      "signals": {
+        "s4_intent": "NO",
+        "s5_evidence": "NO",
+        "s6_theory": "NO"
+      },
+      "editorial_verdict": "NO SUSTENTADA",
+      "expected_scores": {
+        "clarity": 7.0,
+        "coherence": 6.5,
+        "argumentation": 5.0,
+        "conclusions": 4.5
+      },
+      "style_archetype": "Ensayo de opinión / reflexión libre sin método científico, sin datos ni marco conceptual formal",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-18",
+      "research_line_id": "3",
+      "research_line_name": "Recursos humanos para la defensa",
+      "profile_id": "001",
+      "subtheme": "Liderazgo y toma de decisiones tácticas bajo estrés extremo en combate",
+      "signals": {
+        "s4_intent": "NO",
+        "s5_evidence": "NO",
+        "s6_theory": "SI"
+      },
+      "editorial_verdict": "NO SUSTENTADA",
+      "expected_scores": {
+        "clarity": 7.5,
+        "coherence": 7.0,
+        "argumentation": 6.0,
+        "conclusions": 5.5
+      },
+      "style_archetype": "Ensayo teórico con referencias bibliográficas pero sin preguntas de investigación ni datos empíricos",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-19",
+      "research_line_id": "3",
+      "research_line_name": "Recursos humanos para la defensa",
+      "profile_id": "010",
+      "subtheme": "Impacto psicológico y abordaje del TEPT en personal de fuerzas especiales",
+      "signals": {
+        "s4_intent": "NO",
+        "s5_evidence": "SI",
+        "s6_theory": "NO"
+      },
+      "editorial_verdict": "PARCIAL",
+      "expected_scores": {
+        "clarity": 8.5,
+        "coherence": 8.0,
+        "argumentation": 6.0,
+        "conclusions": 6.5
+      },
+      "style_archetype": "Informe técnico descriptivo con abundantes datos empíricos y métricas, pero sin hipótesis ni marco teórico",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-20",
+      "research_line_id": "3",
+      "research_line_name": "Recursos humanos para la defensa",
+      "profile_id": "011",
+      "subtheme": "Integración de factores humanos en la operación de sistemas de armas autónomos",
+      "signals": {
+        "s4_intent": "NO",
+        "s5_evidence": "SI",
+        "s6_theory": "SI"
+      },
+      "editorial_verdict": "PARCIAL",
+      "expected_scores": {
+        "clarity": 8.5,
+        "coherence": 8.0,
+        "argumentation": 7.0,
+        "conclusions": 7.0
+      },
+      "style_archetype": "Monografía analítica con datos y literatura previa, pero estructurada descriptivamente sin pregunta/diseño formal",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-21",
+      "research_line_id": "3",
+      "research_line_name": "Recursos humanos para la defensa",
+      "profile_id": "100",
+      "subtheme": "Modelos de carrera militar profesional y voluntaria en el siglo XXI",
+      "signals": {
+        "s4_intent": "SI",
+        "s5_evidence": "NO",
+        "s6_theory": "NO"
+      },
+      "editorial_verdict": "NO SUSTENTADA",
+      "expected_scores": {
+        "clarity": 7.5,
+        "coherence": 7.0,
+        "argumentation": 5.5,
+        "conclusions": 5.0
+      },
+      "style_archetype": "Propuesta preliminar o proyecto exploratorio que plantea preguntas pero no presenta datos ni marco teórico",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-22",
+      "research_line_id": "3",
+      "research_line_name": "Recursos humanos para la defensa",
+      "profile_id": "101",
+      "subtheme": "Capacitación y doctrina militar frente a la irrupción de la IA en estados mayores",
+      "signals": {
+        "s4_intent": "SI",
+        "s5_evidence": "NO",
+        "s6_theory": "SI"
+      },
+      "editorial_verdict": "PARCIAL",
+      "expected_scores": {
+        "clarity": 8.5,
+        "coherence": 8.5,
+        "argumentation": 8.0,
+        "conclusions": 6.5
+      },
+      "style_archetype": "Artículo teórico-conceptual riguroso con pregunta de investigación y marco doctrinal, pero sin contrastación empírica",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-23",
+      "research_line_id": "3",
+      "research_line_name": "Recursos humanos para la defensa",
+      "profile_id": "110",
+      "subtheme": "Aspectos psicosociales en misiones de aislamiento prolongado (Bases Antárticas)",
+      "signals": {
+        "s4_intent": "SI",
+        "s5_evidence": "SI",
+        "s6_theory": "NO"
+      },
+      "editorial_verdict": "PARCIAL",
+      "expected_scores": {
+        "clarity": 8.5,
+        "coherence": 8.0,
+        "argumentation": 7.5,
+        "conclusions": 7.0
+      },
+      "style_archetype": "Estudio empírico/experimental con metodología y resultados cuantitativos, pero con escaso marco conceptual o estado del arte",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-24",
+      "research_line_id": "3",
+      "research_line_name": "Recursos humanos para la defensa",
+      "profile_id": "111",
+      "subtheme": "Ética militar y conducción en escenarios de guerra híbrida y asimétrica",
+      "signals": {
+        "s4_intent": "SI",
+        "s5_evidence": "SI",
+        "s6_theory": "SI"
+      },
+      "editorial_verdict": "SUSTENTADA",
+      "expected_scores": {
+        "clarity": 9.0,
+        "coherence": 9.0,
+        "argumentation": 9.0,
+        "conclusions": 8.5
+      },
+      "style_archetype": "Artículo científico pleno con estructura IMRyD, marco teórico sólido, datos empíricos demostrativos y conclusiones fundadas",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-25",
+      "research_line_id": "4",
+      "research_line_name": "Dinámica de los conflictos en el ciberespacio",
+      "profile_id": "000",
+      "subtheme": "Ciber-resiliencia de redes tácticas de mando y control (C2) bajo guerra electrónica",
+      "signals": {
+        "s4_intent": "NO",
+        "s5_evidence": "NO",
+        "s6_theory": "NO"
+      },
+      "editorial_verdict": "NO SUSTENTADA",
+      "expected_scores": {
+        "clarity": 7.0,
+        "coherence": 6.5,
+        "argumentation": 5.0,
+        "conclusions": 4.5
+      },
+      "style_archetype": "Ensayo de opinión / reflexión libre sin método científico, sin datos ni marco conceptual formal",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-26",
+      "research_line_id": "4",
+      "research_line_name": "Dinámica de los conflictos en el ciberespacio",
+      "profile_id": "001",
+      "subtheme": "Ataques cibernéticos contra infraestructuras críticas y centrales de energía",
+      "signals": {
+        "s4_intent": "NO",
+        "s5_evidence": "NO",
+        "s6_theory": "SI"
+      },
+      "editorial_verdict": "NO SUSTENTADA",
+      "expected_scores": {
+        "clarity": 7.5,
+        "coherence": 7.0,
+        "argumentation": 6.0,
+        "conclusions": 5.5
+      },
+      "style_archetype": "Ensayo teórico con referencias bibliográficas pero sin preguntas de investigación ni datos empíricos",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-27",
+      "research_line_id": "4",
+      "research_line_name": "Dinámica de los conflictos en el ciberespacio",
+      "profile_id": "010",
+      "subtheme": "Marcos jurídicos y Derecho Internacional Humanitario aplicable a ciberoperaciones ofensivas",
+      "signals": {
+        "s4_intent": "NO",
+        "s5_evidence": "SI",
+        "s6_theory": "NO"
+      },
+      "editorial_verdict": "PARCIAL",
+      "expected_scores": {
+        "clarity": 8.5,
+        "coherence": 8.0,
+        "argumentation": 6.0,
+        "conclusions": 6.5
+      },
+      "style_archetype": "Informe técnico descriptivo con abundantes datos empíricos y métricas, pero sin hipótesis ni marco teórico",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-28",
+      "research_line_id": "4",
+      "research_line_name": "Dinámica de los conflictos en el ciberespacio",
+      "profile_id": "011",
+      "subtheme": "Guerra de información, desinformación algorítmica y operaciones psicológicas",
+      "signals": {
+        "s4_intent": "NO",
+        "s5_evidence": "SI",
+        "s6_theory": "SI"
+      },
+      "editorial_verdict": "PARCIAL",
+      "expected_scores": {
+        "clarity": 8.5,
+        "coherence": 8.0,
+        "argumentation": 7.0,
+        "conclusions": 7.0
+      },
+      "style_archetype": "Monografía analítica con datos y literatura previa, pero estructurada descriptivamente sin pregunta/diseño formal",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-29",
+      "research_line_id": "4",
+      "research_line_name": "Dinámica de los conflictos en el ciberespacio",
+      "profile_id": "100",
+      "subtheme": "Convergencia ciber-física y vulnerabilidad de sistemas de armas digitalizados",
+      "signals": {
+        "s4_intent": "SI",
+        "s5_evidence": "NO",
+        "s6_theory": "NO"
+      },
+      "editorial_verdict": "NO SUSTENTADA",
+      "expected_scores": {
+        "clarity": 7.5,
+        "coherence": 7.0,
+        "argumentation": 5.5,
+        "conclusions": 5.0
+      },
+      "style_archetype": "Propuesta preliminar o proyecto exploratorio que plantea preguntas pero no presenta datos ni marco teórico",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-30",
+      "research_line_id": "4",
+      "research_line_name": "Dinámica de los conflictos en el ciberespacio",
+      "profile_id": "101",
+      "subtheme": "Criptografía poscuántica para comunicaciones tácticas seguras",
+      "signals": {
+        "s4_intent": "SI",
+        "s5_evidence": "NO",
+        "s6_theory": "SI"
+      },
+      "editorial_verdict": "PARCIAL",
+      "expected_scores": {
+        "clarity": 8.5,
+        "coherence": 8.5,
+        "argumentation": 8.0,
+        "conclusions": 6.5
+      },
+      "style_archetype": "Artículo teórico-conceptual riguroso con pregunta de investigación y marco doctrinal, pero sin contrastación empírica",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-31",
+      "research_line_id": "4",
+      "research_line_name": "Dinámica de los conflictos en el ciberespacio",
+      "profile_id": "110",
+      "subtheme": "Doctrina de ciberdefensa activa y respuesta ante amenazas persistentes avanzadas (APT)",
+      "signals": {
+        "s4_intent": "SI",
+        "s5_evidence": "SI",
+        "s6_theory": "NO"
+      },
+      "editorial_verdict": "PARCIAL",
+      "expected_scores": {
+        "clarity": 8.5,
+        "coherence": 8.0,
+        "argumentation": 7.5,
+        "conclusions": 7.0
+      },
+      "style_archetype": "Estudio empírico/experimental con metodología y resultados cuantitativos, pero con escaso marco conceptual o estado del arte",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-32",
+      "research_line_id": "4",
+      "research_line_name": "Dinámica de los conflictos en el ciberespacio",
+      "profile_id": "111",
+      "subtheme": "Protección de redes satelitales y telemetría espacial frente a ciberataques",
+      "signals": {
+        "s4_intent": "SI",
+        "s5_evidence": "SI",
+        "s6_theory": "SI"
+      },
+      "editorial_verdict": "SUSTENTADA",
+      "expected_scores": {
+        "clarity": 9.0,
+        "coherence": 9.0,
+        "argumentation": 9.0,
+        "conclusions": 8.5
+      },
+      "style_archetype": "Artículo científico pleno con estructura IMRyD, marco teórico sólido, datos empíricos demostrativos y conclusiones fundadas",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-33",
+      "research_line_id": "5",
+      "research_line_name": "Conocimiento, gestión y protección de recursos estratégicos",
+      "profile_id": "000",
+      "subtheme": "Protección y resiliencia de Objetivos de Valor Estratégico (OVE) energéticos (SIN 500 kV)",
+      "signals": {
+        "s4_intent": "NO",
+        "s5_evidence": "NO",
+        "s6_theory": "NO"
+      },
+      "editorial_verdict": "NO SUSTENTADA",
+      "expected_scores": {
+        "clarity": 7.0,
+        "coherence": 6.5,
+        "argumentation": 5.0,
+        "conclusions": 4.5
+      },
+      "style_archetype": "Ensayo de opinión / reflexión libre sin método científico, sin datos ni marco conceptual formal",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-34",
+      "research_line_id": "5",
+      "research_line_name": "Conocimiento, gestión y protección de recursos estratégicos",
+      "profile_id": "001",
+      "subtheme": "Seguridad y control de la navegación en la Hidrovía Paraná-Paraguay",
+      "signals": {
+        "s4_intent": "NO",
+        "s5_evidence": "NO",
+        "s6_theory": "SI"
+      },
+      "editorial_verdict": "NO SUSTENTADA",
+      "expected_scores": {
+        "clarity": 7.5,
+        "coherence": 7.0,
+        "argumentation": 6.0,
+        "conclusions": 5.5
+      },
+      "style_archetype": "Ensayo teórico con referencias bibliográficas pero sin preguntas de investigación ni datos empíricos",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-35",
+      "research_line_id": "5",
+      "research_line_name": "Conocimiento, gestión y protección de recursos estratégicos",
+      "profile_id": "010",
+      "subtheme": "Minerales críticos para la defensa: geopolítica y aseguramiento del litio y cobre",
+      "signals": {
+        "s4_intent": "NO",
+        "s5_evidence": "SI",
+        "s6_theory": "NO"
+      },
+      "editorial_verdict": "PARCIAL",
+      "expected_scores": {
+        "clarity": 8.5,
+        "coherence": 8.0,
+        "argumentation": 6.0,
+        "conclusions": 6.5
+      },
+      "style_archetype": "Informe técnico descriptivo con abundantes datos empíricos y métricas, pero sin hipótesis ni marco teórico",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-36",
+      "research_line_id": "5",
+      "research_line_name": "Conocimiento, gestión y protección de recursos estratégicos",
+      "profile_id": "011",
+      "subtheme": "Protección de cuencas hídricas transfronterizas y acuíferos estratégicos",
+      "signals": {
+        "s4_intent": "NO",
+        "s5_evidence": "SI",
+        "s6_theory": "SI"
+      },
+      "editorial_verdict": "PARCIAL",
+      "expected_scores": {
+        "clarity": 8.5,
+        "coherence": 8.0,
+        "argumentation": 7.0,
+        "conclusions": 7.0
+      },
+      "style_archetype": "Monografía analítica con datos y literatura previa, pero estructurada descriptivamente sin pregunta/diseño formal",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-37",
+      "research_line_id": "5",
+      "research_line_name": "Conocimiento, gestión y protección de recursos estratégicos",
+      "profile_id": "100",
+      "subtheme": "Infraestructura portuaria y corredores logísticos bioceánicos en la Patagonia",
+      "signals": {
+        "s4_intent": "SI",
+        "s5_evidence": "NO",
+        "s6_theory": "NO"
+      },
+      "editorial_verdict": "NO SUSTENTADA",
+      "expected_scores": {
+        "clarity": 7.5,
+        "coherence": 7.0,
+        "argumentation": 5.5,
+        "conclusions": 5.0
+      },
+      "style_archetype": "Propuesta preliminar o proyecto exploratorio que plantea preguntas pero no presenta datos ni marco teórico",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-38",
+      "research_line_id": "5",
+      "research_line_name": "Conocimiento, gestión y protección de recursos estratégicos",
+      "profile_id": "101",
+      "subtheme": "Sustentabilidad y autosuficiencia de combustibles en bases militares desplegadas",
+      "signals": {
+        "s4_intent": "SI",
+        "s5_evidence": "NO",
+        "s6_theory": "SI"
+      },
+      "editorial_verdict": "PARCIAL",
+      "expected_scores": {
+        "clarity": 8.5,
+        "coherence": 8.5,
+        "argumentation": 8.0,
+        "conclusions": 6.5
+      },
+      "style_archetype": "Artículo teórico-conceptual riguroso con pregunta de investigación y marco doctrinal, pero sin contrastación empírica",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-39",
+      "research_line_id": "5",
+      "research_line_name": "Conocimiento, gestión y protección de recursos estratégicos",
+      "profile_id": "110",
+      "subtheme": "Vulnerabilidad de las telecomunicaciones submarinas y cables de datos de fibra óptica",
+      "signals": {
+        "s4_intent": "SI",
+        "s5_evidence": "SI",
+        "s6_theory": "NO"
+      },
+      "editorial_verdict": "PARCIAL",
+      "expected_scores": {
+        "clarity": 8.5,
+        "coherence": 8.0,
+        "argumentation": 7.5,
+        "conclusions": 7.0
+      },
+      "style_archetype": "Estudio empírico/experimental con metodología y resultados cuantitativos, pero con escaso marco conceptual o estado del arte",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-40",
+      "research_line_id": "5",
+      "research_line_name": "Conocimiento, gestión y protección de recursos estratégicos",
+      "profile_id": "111",
+      "subtheme": "Defensa de la plataforma continental y de los recursos vivos del mar austral",
+      "signals": {
+        "s4_intent": "SI",
+        "s5_evidence": "SI",
+        "s6_theory": "SI"
+      },
+      "editorial_verdict": "SUSTENTADA",
+      "expected_scores": {
+        "clarity": 9.0,
+        "coherence": 9.0,
+        "argumentation": 9.0,
+        "conclusions": 8.5
+      },
+      "style_archetype": "Artículo científico pleno con estructura IMRyD, marco teórico sólido, datos empíricos demostrativos y conclusiones fundadas",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-41",
+      "research_line_id": "6",
+      "research_line_name": "Inteligencia en los diversos ámbitos de conflicto",
+      "profile_id": "000",
+      "subtheme": "Inteligencia geoespacial (GEOINT) satelital para el control de fronteras terrestres",
+      "signals": {
+        "s4_intent": "NO",
+        "s5_evidence": "NO",
+        "s6_theory": "NO"
+      },
+      "editorial_verdict": "NO SUSTENTADA",
+      "expected_scores": {
+        "clarity": 7.0,
+        "coherence": 6.5,
+        "argumentation": 5.0,
+        "conclusions": 4.5
+      },
+      "style_archetype": "Ensayo de opinión / reflexión libre sin método científico, sin datos ni marco conceptual formal",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-42",
+      "research_line_id": "6",
+      "research_line_name": "Inteligencia en los diversos ámbitos de conflicto",
+      "profile_id": "001",
+      "subtheme": "Epistemología y límites del razonamiento automatizado en la apreciación estratégica",
+      "signals": {
+        "s4_intent": "NO",
+        "s5_evidence": "NO",
+        "s6_theory": "SI"
+      },
+      "editorial_verdict": "NO SUSTENTADA",
+      "expected_scores": {
+        "clarity": 7.5,
+        "coherence": 7.0,
+        "argumentation": 6.0,
+        "conclusions": 5.5
+      },
+      "style_archetype": "Ensayo teórico con referencias bibliográficas pero sin preguntas de investigación ni datos empíricos",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-43",
+      "research_line_id": "6",
+      "research_line_name": "Inteligencia en los diversos ámbitos de conflicto",
+      "profile_id": "010",
+      "subtheme": "Ciclo de inteligencia conjunto frente a la sobreabundancia de fuentes abiertas (OSINT)",
+      "signals": {
+        "s4_intent": "NO",
+        "s5_evidence": "SI",
+        "s6_theory": "NO"
+      },
+      "editorial_verdict": "PARCIAL",
+      "expected_scores": {
+        "clarity": 8.5,
+        "coherence": 8.0,
+        "argumentation": 6.0,
+        "conclusions": 6.5
+      },
+      "style_archetype": "Informe técnico descriptivo con abundantes datos empíricos y métricas, pero sin hipótesis ni marco teórico",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-44",
+      "research_line_id": "6",
+      "research_line_name": "Inteligencia en los diversos ámbitos de conflicto",
+      "profile_id": "011",
+      "subtheme": "Detección de decepción estratégica (maskirovka) en operaciones militares contemporáneas",
+      "signals": {
+        "s4_intent": "NO",
+        "s5_evidence": "SI",
+        "s6_theory": "SI"
+      },
+      "editorial_verdict": "PARCIAL",
+      "expected_scores": {
+        "clarity": 8.5,
+        "coherence": 8.0,
+        "argumentation": 7.0,
+        "conclusions": 7.0
+      },
+      "style_archetype": "Monografía analítica con datos y literatura previa, pero estructurada descriptivamente sin pregunta/diseño formal",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-45",
+      "research_line_id": "6",
+      "research_line_name": "Inteligencia en los diversos ámbitos de conflicto",
+      "profile_id": "100",
+      "subtheme": "Sistemas C4ISR integrados para alerta temprana en la defensa aeroespacial",
+      "signals": {
+        "s4_intent": "SI",
+        "s5_evidence": "NO",
+        "s6_theory": "NO"
+      },
+      "editorial_verdict": "NO SUSTENTADA",
+      "expected_scores": {
+        "clarity": 7.5,
+        "coherence": 7.0,
+        "argumentation": 5.5,
+        "conclusions": 5.0
+      },
+      "style_archetype": "Propuesta preliminar o proyecto exploratorio que plantea preguntas pero no presenta datos ni marco teórico",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-46",
+      "research_line_id": "6",
+      "research_line_name": "Inteligencia en los diversos ámbitos de conflicto",
+      "profile_id": "101",
+      "subtheme": "Producción de inteligencia prospectiva en escenarios de crisis geopolítica",
+      "signals": {
+        "s4_intent": "SI",
+        "s5_evidence": "NO",
+        "s6_theory": "SI"
+      },
+      "editorial_verdict": "PARCIAL",
+      "expected_scores": {
+        "clarity": 8.5,
+        "coherence": 8.5,
+        "argumentation": 8.0,
+        "conclusions": 6.5
+      },
+      "style_archetype": "Artículo teórico-conceptual riguroso con pregunta de investigación y marco doctrinal, pero sin contrastación empírica",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-47",
+      "research_line_id": "6",
+      "research_line_name": "Inteligencia en los diversos ámbitos de conflicto",
+      "profile_id": "110",
+      "subtheme": "Contrainteligencia digital y protección de secretos tecnológicos militares",
+      "signals": {
+        "s4_intent": "SI",
+        "s5_evidence": "SI",
+        "s6_theory": "NO"
+      },
+      "editorial_verdict": "PARCIAL",
+      "expected_scores": {
+        "clarity": 8.5,
+        "coherence": 8.0,
+        "argumentation": 7.5,
+        "conclusions": 7.0
+      },
+      "style_archetype": "Estudio empírico/experimental con metodología y resultados cuantitativos, pero con escaso marco conceptual o estado del arte",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-48",
+      "research_line_id": "6",
+      "research_line_name": "Inteligencia en los diversos ámbitos de conflicto",
+      "profile_id": "111",
+      "subtheme": "Interoperabilidad de sensores multidominio en tiempo real para estados mayores",
+      "signals": {
+        "s4_intent": "SI",
+        "s5_evidence": "SI",
+        "s6_theory": "SI"
+      },
+      "editorial_verdict": "SUSTENTADA",
+      "expected_scores": {
+        "clarity": 9.0,
+        "coherence": 9.0,
+        "argumentation": 9.0,
+        "conclusions": 8.5
+      },
+      "style_archetype": "Artículo científico pleno con estructura IMRyD, marco teórico sólido, datos empíricos demostrativos y conclusiones fundadas",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-49",
+      "research_line_id": "7",
+      "research_line_name": "Ciencia, tecnología y producción en la defensa",
+      "profile_id": "000",
+      "subtheme": "Desarrollo de la base industrial para la defensa a través del FONDEF",
+      "signals": {
+        "s4_intent": "NO",
+        "s5_evidence": "NO",
+        "s6_theory": "NO"
+      },
+      "editorial_verdict": "NO SUSTENTADA",
+      "expected_scores": {
+        "clarity": 7.0,
+        "coherence": 6.5,
+        "argumentation": 5.0,
+        "conclusions": 4.5
+      },
+      "style_archetype": "Ensayo de opinión / reflexión libre sin método científico, sin datos ni marco conceptual formal",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-50",
+      "research_line_id": "7",
+      "research_line_name": "Ciencia, tecnología y producción en la defensa",
+      "profile_id": "001",
+      "subtheme": "Modernización de blindados y vehículos de combate: el programa TAM 2C",
+      "signals": {
+        "s4_intent": "NO",
+        "s5_evidence": "NO",
+        "s6_theory": "SI"
+      },
+      "editorial_verdict": "NO SUSTENTADA",
+      "expected_scores": {
+        "clarity": 7.5,
+        "coherence": 7.0,
+        "argumentation": 6.0,
+        "conclusions": 5.5
+      },
+      "style_archetype": "Ensayo teórico con referencias bibliográficas pero sin preguntas de investigación ni datos empíricos",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-51",
+      "research_line_id": "7",
+      "research_line_name": "Ciencia, tecnología y producción en la defensa",
+      "profile_id": "010",
+      "subtheme": "Producción de radares primarios militares 3D (RPA) y soberanía de vigilancia",
+      "signals": {
+        "s4_intent": "NO",
+        "s5_evidence": "SI",
+        "s6_theory": "NO"
+      },
+      "editorial_verdict": "PARCIAL",
+      "expected_scores": {
+        "clarity": 8.5,
+        "coherence": 8.0,
+        "argumentation": 6.0,
+        "conclusions": 6.5
+      },
+      "style_archetype": "Informe técnico descriptivo con abundantes datos empíricos y métricas, pero sin hipótesis ni marco teórico",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-52",
+      "research_line_id": "7",
+      "research_line_name": "Ciencia, tecnología y producción en la defensa",
+      "profile_id": "011",
+      "subtheme": "Desarrollo y fabricación de aeronaves de entrenamiento avanzado (IA-63 Pampa III)",
+      "signals": {
+        "s4_intent": "NO",
+        "s5_evidence": "SI",
+        "s6_theory": "SI"
+      },
+      "editorial_verdict": "PARCIAL",
+      "expected_scores": {
+        "clarity": 8.5,
+        "coherence": 8.0,
+        "argumentation": 7.0,
+        "conclusions": 7.0
+      },
+      "style_archetype": "Monografía analítica con datos y literatura previa, pero estructurada descriptivamente sin pregunta/diseño formal",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-53",
+      "research_line_id": "7",
+      "research_line_name": "Ciencia, tecnología y producción en la defensa",
+      "profile_id": "100",
+      "subtheme": "Sistemas autónomos no tripulados (UAV / UGV) de producción nacional",
+      "signals": {
+        "s4_intent": "SI",
+        "s5_evidence": "NO",
+        "s6_theory": "NO"
+      },
+      "editorial_verdict": "NO SUSTENTADA",
+      "expected_scores": {
+        "clarity": 7.5,
+        "coherence": 7.0,
+        "argumentation": 5.5,
+        "conclusions": 5.0
+      },
+      "style_archetype": "Propuesta preliminar o proyecto exploratorio que plantea preguntas pero no presenta datos ni marco teórico",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-54",
+      "research_line_id": "7",
+      "research_line_name": "Ciencia, tecnología y producción en la defensa",
+      "profile_id": "101",
+      "subtheme": "Capacidades astilleras navales y patrulleros oceánicos para la milla 200",
+      "signals": {
+        "s4_intent": "SI",
+        "s5_evidence": "NO",
+        "s6_theory": "SI"
+      },
+      "editorial_verdict": "PARCIAL",
+      "expected_scores": {
+        "clarity": 8.5,
+        "coherence": 8.5,
+        "argumentation": 8.0,
+        "conclusions": 6.5
+      },
+      "style_archetype": "Artículo teórico-conceptual riguroso con pregunta de investigación y marco doctrinal, pero sin contrastación empírica",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-55",
+      "research_line_id": "7",
+      "research_line_name": "Ciencia, tecnología y producción en la defensa",
+      "profile_id": "110",
+      "subtheme": "Transferencia tecnológica y soberanía en munición guiada de precisión",
+      "signals": {
+        "s4_intent": "SI",
+        "s5_evidence": "SI",
+        "s6_theory": "NO"
+      },
+      "editorial_verdict": "PARCIAL",
+      "expected_scores": {
+        "clarity": 8.5,
+        "coherence": 8.0,
+        "argumentation": 7.5,
+        "conclusions": 7.0
+      },
+      "style_archetype": "Estudio empírico/experimental con metodología y resultados cuantitativos, pero con escaso marco conceptual o estado del arte",
+      "samples_target_count": 8
+    },
+    {
+      "archetype_id": "ARC-56",
+      "research_line_id": "7",
+      "research_line_name": "Ciencia, tecnología y producción en la defensa",
+      "profile_id": "111",
+      "subtheme": "Desarrollo de propelentes y tecnología de vectores aeroespaciales soberanos",
+      "signals": {
+        "s4_intent": "SI",
+        "s5_evidence": "SI",
+        "s6_theory": "SI"
+      },
+      "editorial_verdict": "SUSTENTADA",
+      "expected_scores": {
+        "clarity": 9.0,
+        "coherence": 9.0,
+        "argumentation": 9.0,
+        "conclusions": 8.5
+      },
+      "style_archetype": "Artículo científico pleno con estructura IMRyD, marco teórico sólido, datos empíricos demostrativos y conclusiones fundadas",
+      "samples_target_count": 8
+    }
+  ]
+}

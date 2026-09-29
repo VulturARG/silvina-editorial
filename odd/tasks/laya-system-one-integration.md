@@ -75,7 +75,7 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
   - **Scope**: Generate complete dataset covering all 56 archetypes plus out-of-domain controls.
   - **Verification**: Line count, word count distribution, and JSONL format validation.
 
-- [ ] **TASK-09: Stratified Partitioning (Train / Calibration / Test)**
+- [x] **TASK-09: Stratified Partitioning (Train / Calibration / Test)**
   - **Route**: direct inline
   - **Scope**: Split raw dataset into `train.jsonl` (80%), `calibration.jsonl` (10%), and `test.jsonl` (10%) with balanced representation across archetypes.
   - **Verification**: Assert non-overlapping splits, seed reproducibility, and calibration holdout integrity.
@@ -84,8 +84,9 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
 
 ## 4. Progress & Verification Log
 
-- **Current Status**: In Progress (Phase 2: TASK-08 complete; ready for TASK-09)
-- **Next Step**: Awaiting user approval to proceed with TASK-09 (Stratified Partitioning: Train / Calibration / Test)
+- **Current Status**: Complete (Phase 2 Data Preparation Complete: TASK-06 through TASK-09 done)
+- **Next Step**: Awaiting user instruction to commit TASK-09 and discuss Phase 2 Training execution (Kaggle/Colab GPU or local)
+- **Data Location Decision**: The `E:\IA\laya` repository is kept clean (frequent upstream updates); all generated datasets and generation scripts were relocated to `data/laya/` inside `silvina-editorial` and are tracked in this repo (~12MB total).
 
 ### Verification History
 - **TASK-01**: Complete.
@@ -122,4 +123,9 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
 
 - **TASK-08**: Complete.
   - Verification: Generated full dataset of 480 samples in `data/silvina_editorial/dataset_raw.jsonl` (448 defense samples across 56 archetypes + 32 out-of-domain control samples). Automated validation confirmed 480/480 valid samples, word count range [1033, 1141] (average 1111.3 words), and 100% schema compliance.
+  - Commit: `50c2e28` (silvina-editorial) / `b0342c8` (laya: `chore(data): exclude raw jsonl datasets from git and untrack pilot samples`).
+
+- **TASK-09**: Complete.
+  - Verification: Created `split_dataset.py` with seed=42 executing stratified split: `train.jsonl` (384 samples, 80%), `calibration.jsonl` (48 samples, 10%), `test.jsonl` (48 samples, 10%). Automated validation passed across all 3 files (0 errors, word range [1033, 1141], zero data leakage/overlap between splits).
+  - Data relocation: `E:\IA\laya\data` and its generation scripts were moved into `data/laya/` inside `silvina-editorial` (tracked, not gitignored) to keep the frequently-updated `laya` repository free of generated artifacts.
   - Commit: Pending user instruction (held).
