@@ -70,7 +70,7 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
   - **Scope**: Implement modular generator in `E:/IA/laya/scripts/generate_full_dataset.py` capable of batch-generating 1.000–1.200 word academic texts conforming to canonical Laya schema (`max_len=2048`).
   - **Verification**: Execute generator on first batch and verify word counts and question schemas.
 
-- [ ] **TASK-08: Generate Full Dataset (~450-500 samples)**
+- [x] **TASK-08: Generate Full Dataset (~450-500 samples)**
   - **Route**: subagent delegation / batch execution
   - **Scope**: Generate complete dataset covering all 56 archetypes plus out-of-domain controls.
   - **Verification**: Line count, word count distribution, and JSONL format validation.
@@ -84,8 +84,8 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
 
 ## 4. Progress & Verification Log
 
-- **Current Status**: In Progress (Phase 2: TASK-07 complete; ready for TASK-08)
-- **Next Step**: Awaiting user approval to proceed with TASK-08 (Generate Full Dataset)
+- **Current Status**: In Progress (Phase 2: TASK-08 complete; ready for TASK-09)
+- **Next Step**: Awaiting user approval to proceed with TASK-09 (Stratified Partitioning: Train / Calibration / Test)
 
 ### Verification History
 - **TASK-01**: Complete.
@@ -118,4 +118,8 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
 
 - **TASK-07**: Complete.
   - Verification: Implemented `generate_full_dataset.py` with batch filtering, schema validation, and word range calibration. Executed test batch on Line 1 (16 samples) verifying word count range [1034, 1141] and 100% schema compliance.
+  - Commit: `faf9b3f` (silvina-editorial) / `bdefc7a` (laya: `feat(scripts): implement batch synthetic dataset generator and validator for Laya`).
+
+- **TASK-08**: Complete.
+  - Verification: Generated full dataset of 480 samples in `data/silvina_editorial/dataset_raw.jsonl` (448 defense samples across 56 archetypes + 32 out-of-domain control samples). Automated validation confirmed 480/480 valid samples, word count range [1033, 1141] (average 1111.3 words), and 100% schema compliance.
   - Commit: Pending user instruction (held).
