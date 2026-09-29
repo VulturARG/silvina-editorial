@@ -65,7 +65,7 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
   - **Scope**: Create `E:/IA/laya/data/silvina_editorial/archetypes_specification.json` defining the 56 combinations (7 defense lines x 8 boolean profiles) with realistic subthemes, signal criteria, and ground truth.
   - **Verification**: Integrity test in Python asserting 56 distinct archetypes.
 
-- [ ] **TASK-07: Implement Batch Synthetic Dataset Generator**
+- [x] **TASK-07: Implement Batch Synthetic Dataset Generator**
   - **Route**: direct inline
   - **Scope**: Implement modular generator in `E:/IA/laya/scripts/generate_full_dataset.py` capable of batch-generating 1.000–1.200 word academic texts conforming to canonical Laya schema (`max_len=2048`).
   - **Verification**: Execute generator on first batch and verify word counts and question schemas.
@@ -84,8 +84,8 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
 
 ## 4. Progress & Verification Log
 
-- **Current Status**: In Progress (Phase 2: TASK-06 complete; ready for TASK-07)
-- **Next Step**: Awaiting user approval to proceed with TASK-07 (Implement Batch Synthetic Dataset Generator)
+- **Current Status**: In Progress (Phase 2: TASK-07 complete; ready for TASK-08)
+- **Next Step**: Awaiting user approval to proceed with TASK-08 (Generate Full Dataset)
 
 ### Verification History
 - **TASK-01**: Complete.
@@ -114,4 +114,8 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
 
 - **TASK-06**: Complete.
   - Verification: Generated `archetypes_specification.json` defining the 56 archetypes (7 defense lines x 8 boolean profiles) with realistic subthemes and ground truth. Automated integrity test passed asserting 56 distinct archetypes, 7 lines, and 8 profiles per line.
+  - Commit: `ffd2cc8` (silvina-editorial) / `8b6a4af` (laya: `feat(data): define 56-archetype combinatorial matrix specification for defense domain`).
+
+- **TASK-07**: Complete.
+  - Verification: Implemented `generate_full_dataset.py` with batch filtering, schema validation, and word range calibration. Executed test batch on Line 1 (16 samples) verifying word count range [1034, 1141] and 100% schema compliance.
   - Commit: Pending user instruction (held).
