@@ -80,12 +80,17 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
   - **Scope**: Split raw dataset into `train.jsonl` (80%), `calibration.jsonl` (10%), and `test.jsonl` (10%) with balanced representation across archetypes.
   - **Verification**: Assert non-overlapping splits, seed reproducibility, and calibration holdout integrity.
 
+- [x] **TASK-10: Generate Teacher Gold Distributions via Ollama**
+  - **Route**: direct inline / batch execution
+  - **Scope**: Generate the `gold` field (per-question teacher probability distributions) required by Laya's RLCD fine-tuning format, by sampling each `state`+`questions` against Ollama K=5 times at temperature 0.7 and computing empirical frequency per question.
+  - **Verification**: All 480 records (384 train + 48 calibration + 48 test) carry `gold` with all 9 question ids and probabilities summing to 1.0.
+
 ---
 
 ## 4. Progress & Verification Log
 
-- **Current Status**: Complete (Phase 2 Data Preparation Complete: TASK-06 through TASK-09 done)
-- **Next Step**: Awaiting user instruction to commit TASK-09 and discuss Phase 2 Training execution (Kaggle/Colab GPU or local)
+- **Current Status**: Complete (Phase 2 Data Preparation Complete: TASK-06 through TASK-10 done)
+- **Next Step**: Awaiting user instruction to commit TASK-10 and adapt the Kaggle fine-tuning notebook to read `data/laya/gold/{train,calibration,test}_with_gold.jsonl` instead of the public `LocalLLaMA/typed-decisions` benchmark
 - **Data Location Decision**: The `E:\IA\laya` repository is kept clean (frequent upstream updates); all generated datasets and generation scripts were relocated to `data/laya/` inside `silvina-editorial` and are tracked in this repo (~12MB total).
 
 ### Verification History
@@ -128,4 +133,9 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
 - **TASK-09**: Complete.
   - Verification: Created `split_dataset.py` with seed=42 executing stratified split: `train.jsonl` (384 samples, 80%), `calibration.jsonl` (48 samples, 10%), `test.jsonl` (48 samples, 10%). Automated validation passed across all 3 files (0 errors, word range [1033, 1141], zero data leakage/overlap between splits).
   - Data relocation: `E:\IA\laya\data` and its generation scripts were moved into `data/laya/` inside `silvina-editorial` (tracked, not gitignored) to keep the frequently-updated `laya` repository free of generated artifacts.
+  - Commit: Pending user instruction (held).
+
+- **TASK-10**: Complete.
+  - Verification: Implemented `generate_gold_distributions.py`, sampling each `state`+`questions` against Ollama (`hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:UD-IQ4_XS`) 5 times at temperature 0.7 to build empirical teacher probability distributions. Ran in small batches (~30 samples, ~15-20 min each) to avoid long unattended runs. Consolidated and validated `data/laya/gold/train_with_gold.jsonl` (384), `calibration_with_gold.jsonl` (48), `test_with_gold.jsonl` (48) — 480/480 records, all `gold` distributions sum to 1.0 across the 9 question ids.
+  - Fixed a prompt bug where `choice`-type questions (e.g. `research_line`) only listed option keys without their descriptions, causing the model to guess blindly; fix included the criteria description per key.
   - Commit: Pending user instruction (held).
