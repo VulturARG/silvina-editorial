@@ -1,82 +1,117 @@
-[
-  {
-    "name": "s4_intent",
+{
+  "s4_intent": {
     "type": "choice",
-    "options": [
-      "SI",
-      "NO"
-    ],
-    "description": "Intención explícita de investigación (verbos de intención, hipótesis, etc.)"
+    "instructions": "¿El artículo expresa explícitamente una intención de investigación o hipótesis formal?",
+    "criteria": {
+      "SI": "Expresa explícitamente intención con verbos de investigación, preguntas u objetivos",
+      "NO": "No expresa intención ni preguntas de investigación formales"
+    }
   },
-  {
-    "name": "s5_evidence",
+  "s5_evidence": {
     "type": "choice",
-    "options": [
-      "SI",
-      "NO"
-    ],
-    "description": "Contribución conclusiva basada en evidencia (datos empíricos, resultados sistemáticos)"
+    "instructions": "¿El artículo presenta conclusiones basadas en evidencia empírica sistemática?",
+    "criteria": {
+      "SI": "Presenta datos cuantitativos, métricas, experimentos o análisis sistemático",
+      "NO": "Solo expresa opiniones personales o afirmaciones sin evidencia empírica"
+    }
   },
-  {
-    "name": "s6_theory",
+  "s6_theory": {
     "type": "choice",
-    "options": [
-      "SI",
-      "NO"
-    ],
-    "description": "Justificación teórica o anclaje en literatura previa y vacíos del conocimiento"
+    "instructions": "¿El artículo justifica su marco teórico o identifica vacíos en la literatura previa?",
+    "criteria": {
+      "SI": "Ancla el trabajo en el estado del arte e identifica brechas de conocimiento",
+      "NO": "Carece de marco conceptual y de referencias a literatura previa"
+    }
   },
-  {
-    "name": "editorial_verdict",
+  "editorial_verdict": {
     "type": "choice",
-    "options": [
-      "SUSTENTADA",
-      "PARCIAL",
-      "NO SUSTENTADA"
-    ],
-    "description": "Evaluación de adecuación y sustentación de la contribución al conocimiento militar"
+    "instructions": "¿Cuál es el veredicto sobre la sustentación de la contribución al conocimiento militar?",
+    "criteria": {
+      "SUSTENTADA": "Contribución metodológicamente demostrada con evidencia",
+      "PARCIAL": "Contribución declarada pero insuficientemente demostrada",
+      "NO SUSTENTADA": "Sin aporte original o sin sustento comprobable"
+    }
   },
-  {
-    "name": "research_line",
+  "research_line": {
     "type": "choice",
-    "options": [
-      "1",
-      "2",
-      "3",
-      "4",
-      "5",
-      "6",
-      "7",
-      "NINGUNA"
-    ],
-    "description": "Alineación con las 7 líneas institucionales de investigación para la defensa"
+    "instructions": "¿Con cuál de las 7 líneas institucionales de defensa se alinea el artículo?",
+    "criteria": {
+      "1": "Ámbitos de conflicto y su interacción",
+      "2": "Estrategia, conflicto y política internacional",
+      "3": "Recursos humanos para la defensa",
+      "4": "Dinámica de los conflictos en el ciberespacio",
+      "5": "Conocimiento, gestión y protección de recursos estratégicos",
+      "6": "Inteligencia en los diversos ámbitos de conflicto",
+      "7": "Ciencia, tecnología y producción en la defensa",
+      "NINGUNA": "No se alinea con ninguna línea temática de defensa"
+    }
   },
-  {
-    "name": "score_clarity",
+  "score_clarity": {
     "type": "score",
-    "min": 0.0,
-    "max": 10.0,
-    "description": "Puntuación de claridad del argumento central y facilidad de lectura"
+    "instructions": "Califique la claridad del argumento central y facilidad de lectura",
+    "criteria": [
+      "Inaceptable: argumento incomprensible",
+      "Muy deficiente",
+      "Deficiente: mensaje confuso",
+      "Regular bajo",
+      "Aceptable: comprensible con esfuerzo",
+      "Aceptable regular",
+      "Bueno: mensaje claro",
+      "Muy bueno: fluido y directo",
+      "Excelente: claridad total",
+      "Sobresaliente",
+      "Excepcional: argumento impecable"
+    ]
   },
-  {
-    "name": "score_coherence",
+  "score_coherence": {
     "type": "score",
-    "min": 0.0,
-    "max": 10.0,
-    "description": "Puntuación de coherencia, articulación lógica y transiciones"
+    "instructions": "Califique la coherencia, articulación lógica y transiciones entre ideas",
+    "criteria": [
+      "Inaceptable: ideas inconexas",
+      "Muy deficiente",
+      "Deficiente: saltos abruptos sin nexos",
+      "Regular bajo",
+      "Aceptable: articulación básica",
+      "Aceptable regular",
+      "Bueno: transiciones lógicas",
+      "Muy bueno: estructura sólida",
+      "Excelente: integración perfecta",
+      "Sobresaliente",
+      "Excepcional: hilación impecable"
+    ]
   },
-  {
-    "name": "score_argumentation",
+  "score_argumentation": {
     "type": "score",
-    "min": 0.0,
-    "max": 10.0,
-    "description": "Puntuación de calidad de la argumentación y solidez conceptual"
+    "instructions": "Califique la solidez de la argumentación y calidad de las premisas",
+    "criteria": [
+      "Inaceptable: sin premisas ni razonamiento",
+      "Muy deficiente",
+      "Deficiente: falacias o afirmaciones gratuitas",
+      "Regular bajo",
+      "Aceptable: argumentos básicos",
+      "Aceptable regular",
+      "Bueno: argumentos sólidos con respaldo",
+      "Muy bueno: análisis crítico riguroso",
+      "Excelente: fundamentación exhaustiva",
+      "Sobresaliente",
+      "Excepcional: debate epistemológico sobresaliente"
+    ]
   },
-  {
-    "name": "score_conclusions",
+  "score_conclusions": {
     "type": "score",
-    "min": 0.0,
-    "max": 10.0,
-    "description": "Puntuación de pertinencia y sustentación de las conclusiones"
+    "instructions": "Califique la pertinencia y sustentación de las conclusiones alcanzadas",
+    "criteria": [
+      "Inaceptable: conclusiones contradictorias o ausentes",
+      "Muy deficiente",
+      "Deficiente: no derivan del texto",
+      "Regular bajo",
+      "Aceptable: resumen descriptivo básico",
+      "Aceptable regular",
+      "Bueno: conclusiones derivadas de los datos",
+      "Muy bueno: síntesis prospectiva clara",
+      "Excelente: conclusiones de alto impacto",
+      "Sobresaliente",
+      "Excepcional: derivación doctrinal impecable"
+    ]
   }
-]
+}
