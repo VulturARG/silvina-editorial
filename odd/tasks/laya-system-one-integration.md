@@ -92,10 +92,10 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
   - **Scope**: Create `src/domain/laya/laya_decision_port.py` (abstract method `decide(text_sample: str) -> LayaDecisionResultDTO`) and `src/domain/dtos/laya_decision_result_dto.py` carrying the 9 raw decisions from `decision_questions.json` (`s4_research_intent`, `s5_empirical_evidence`, `s6_theoretical_framework` — renamed from the `s4_intent`/`s5_evidence`/`s6_theory` question ids to avoid opaque abbreviations, so `LayaDecisionAdapter` maps ids to fields —, `editorial_verdict`, `research_line` as `LayaChoiceDecisionDTO` carrying `answer`, per-option `probabilities` and `confidence`; `score_clarity`, `score_coherence`, `score_argumentation`, `score_conclusions` as `LayaScoreDecisionDTO` carrying the 0-10 `expected_value` and `confidence`). Confidence is Laya's `answer_confidence` (calibrated probability of the reported answer), kept so downstream services can request LLM narrative when Laya is uncertain.
   - **Verification**: Unit tests in `src/domain/tests/laya/test_laya_decision_port.py` and `src/domain/tests/dtos/test_laya_decision_result_dto.py`.
 
-- [ ] **TASK-13: Implement the Laya text sampler**
+- [x] **TASK-13: Implement the Laya text sampler**
   - **Route**: direct inline
-  - **Scope**: Create `src/domain/laya/laya_text_sampler.py` building a `state` excerpt consistent with the training distribution (~1000-1200 words / ~8000 chars of near-complete document text, not the shorter/differently-shaped excerpts used by `ArticleClassificationTextSampler` or `QualityTextSampler`).
-  - **Verification**: Unit tests in `src/domain/tests/laya/test_laya_text_sampler.py` asserting word/char bounds and fallback behavior on short documents.
+  - **Scope**: Create `src/domain/laya/laya_text_sampler.py` building the single Laya `state` with the same strategy the pre-Laya `QualityTextSampler` used (the legacy sampler that loaded the most characters): title + first 3 paragraphs + 2 middle paragraphs + up to 3 conclusion paragraphs (or the last 2 non-reference paragraphs), joined up to 8000 characters completing the boundary paragraph, falling back to the full document when the excerpt has fewer than 400 words. Every parameter is injected (no hardcoded defaults) and read from `.env` via `EnvConfig` (`LAYA_TEXT_SAMPLE_*`).
+  - **Verification**: Unit tests in `src/domain/tests/laya/test_laya_text_sampler.py` covering each parameter and the fallback, plus `EnvConfig` default/override tests.
 
 - [ ] **TASK-14: Implement `LayaDecisionAdapter`**
   - **Route**: direct inline
@@ -137,7 +137,7 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
 ## 4. Progress & Verification Log
 
 - **Current Status**: Phase 2 Complete (TASK-06 through TASK-11 done; validated checkpoint at `data/laya/checkpoints/laya_finetuned_v1_16epochs/`). Phase 3 planned (TASK-12 through TASK-20 defined below), awaiting explicit user go-ahead to start TASK-12.
-- **Next Step**: TASK-13 — implement the Laya text sampler.
+- **Next Step**: TASK-14 — implement `LayaDecisionAdapter`.
 - **Data Location Decision**: The `E:\IA\laya` repository is kept clean (frequent upstream updates); all generated datasets and generation scripts were relocated to `data/laya/` inside `silvina-editorial` and are tracked in this repo (~12MB total).
 
 ### Verification History

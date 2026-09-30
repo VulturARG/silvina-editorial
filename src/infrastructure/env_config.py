@@ -1,6 +1,7 @@
 from os import getenv
 from pathlib import Path
 
+from src.domain.dtos.laya_text_sample_settings_dto import LayaTextSampleSettingsDTO
 from src.domain.dtos.recommendation_settings_dto import RecommendationSettingsDTO
 
 _VERSION_FILE_PATH = Path(__file__).resolve().parents[2] / "version.txt"
@@ -61,6 +62,31 @@ class EnvConfig:
             getenv("QUALITY_TEXT_SAMPLE_CHARACTER_LIMIT", "8000")
         )
 
+        self.laya_text_sample_min_word_count: int = int(
+            getenv("LAYA_TEXT_SAMPLE_MIN_WORD_COUNT", "400")
+        )
+        self.laya_text_sample_character_limit: int = int(
+            getenv("LAYA_TEXT_SAMPLE_CHARACTER_LIMIT", "8000")
+        )
+        self.laya_text_sample_reference_line_prefix_length: int = int(
+            getenv("LAYA_TEXT_SAMPLE_REFERENCE_LINE_PREFIX_LENGTH", "80")
+        )
+        self.laya_text_sample_introduction_paragraph_count: int = int(
+            getenv("LAYA_TEXT_SAMPLE_INTRODUCTION_PARAGRAPH_COUNT", "3")
+        )
+        self.laya_text_sample_middle_paragraph_count: int = int(
+            getenv("LAYA_TEXT_SAMPLE_MIDDLE_PARAGRAPH_COUNT", "2")
+        )
+        self.laya_text_sample_conclusion_paragraph_limit: int = int(
+            getenv("LAYA_TEXT_SAMPLE_CONCLUSION_PARAGRAPH_LIMIT", "3")
+        )
+        self.laya_text_sample_fallback_tail_paragraph_count: int = int(
+            getenv("LAYA_TEXT_SAMPLE_FALLBACK_TAIL_PARAGRAPH_COUNT", "2")
+        )
+        self.laya_text_sample_conclusion_header_marker: str = getenv(
+            "LAYA_TEXT_SAMPLE_CONCLUSION_HEADER_MARKER", "conclusi"
+        )
+
         self.ollama_model_name: str = getenv(
             "OLLAMA_MODEL_NAME", "hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:UD-IQ4_XS"
         )
@@ -112,6 +138,19 @@ class EnvConfig:
             classification_confidence_threshold=self.classification_confidence_threshold,
             critical_quality_threshold=self.critical_quality_threshold,
             critical_grammar_threshold=self.critical_grammar_threshold,
+        )
+
+    def get_laya_text_sample_settings(self) -> LayaTextSampleSettingsDTO:
+        """Builds LayaTextSampleSettingsDTO from cached configuration values."""
+        return LayaTextSampleSettingsDTO(
+            min_sample_word_count=self.laya_text_sample_min_word_count,
+            text_sample_character_limit=self.laya_text_sample_character_limit,
+            reference_line_prefix_length=self.laya_text_sample_reference_line_prefix_length,
+            introduction_paragraph_count=self.laya_text_sample_introduction_paragraph_count,
+            middle_paragraph_count=self.laya_text_sample_middle_paragraph_count,
+            conclusion_paragraph_limit=self.laya_text_sample_conclusion_paragraph_limit,
+            fallback_tail_paragraph_count=self.laya_text_sample_fallback_tail_paragraph_count,
+            conclusion_header_marker=self.laya_text_sample_conclusion_header_marker,
         )
 
     def _resolve_version(self) -> str:
