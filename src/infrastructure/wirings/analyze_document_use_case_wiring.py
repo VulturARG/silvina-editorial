@@ -1,17 +1,15 @@
+from json import loads
 from os.path import join
+from typing import Any
 
 from dotenv import load_dotenv
+from laya import load
+from laya.agent import Agent
 
 from src.application.analyze_document_use_case import AnalyzeDocumentUseCase
 from src.domain.citation.apa_validator import ApaValidator
 from src.domain.citation.citation_extractor import CitationExtractor
 from src.domain.citation.citation_matcher import CitationMatcher
-from src.domain.classification.article_classification_response_parser import (
-    ArticleClassificationResponseParser,
-)
-from src.domain.classification.article_classification_text_sampler import (
-    ArticleClassificationTextSampler,
-)
 from src.domain.classification.article_classifier import ArticleClassifier
 from src.domain.classification.article_size_classifier import ArticleSizeClassifier
 from src.domain.classification.classification_rule_table import ClassificationRuleTable
@@ -20,9 +18,6 @@ from src.domain.classification.methodological_vocabulary_detector import (
     MethodologicalVocabularyDetector,
 )
 from src.domain.classification.reference_signal_detector import ReferenceSignalDetector
-from src.domain.classification.research_intent_detector_port import (
-    ResearchIntentDetectorPort,
-)
 from src.domain.document.character_count_port import CharacterCountPort
 from src.domain.document.citation_extraction_port import CitationExtractionPort
 from src.domain.document.content_extraction_port import ContentExtractionPort
@@ -34,6 +29,9 @@ from src.domain.document.reference_extraction_port import ReferenceExtractionPor
 from src.domain.dtos.article_size_thresholds_dto import ArticleSizeThresholdsDTO
 from src.domain.grammar.grammar_check_port import GrammarCheckPort
 from src.domain.grammar.grammar_checker import GrammarChecker
+from src.domain.laya.laya_decision_maker import LayaDecisionMaker
+from src.domain.laya.laya_decision_port import LayaDecisionPort
+from src.domain.laya.laya_text_sampler import LayaTextSampler
 from src.domain.ports.llm_generator_port import LlmGeneratorPort
 from src.domain.quality.editorial_suitability_analyzer import EditorialSuitabilityAnalyzer
 from src.domain.quality.editorial_suitability_parser import EditorialSuitabilityParser
@@ -42,9 +40,6 @@ from src.domain.quality.quality_response_parser import QualityResponseParser
 from src.domain.quality.quality_text_sampler import QualityTextSampler
 from src.domain.recommendation.recommendation_builder import RecommendationBuilder
 from src.domain.structure.structure_validator import StructureValidator
-from src.infrastructure.adapters.classification.ollama_research_intent_adapter import (
-    OllamaResearchIntentAdapter,
-)
 from src.infrastructure.adapters.document.docx_citation_adapter import DocxCitationAdapter
 from src.infrastructure.adapters.document.docx_eumic_adapter import DocxEumicAdapter
 from src.infrastructure.adapters.document.docx_reference_adapter import DocxReferenceAdapter
@@ -55,13 +50,12 @@ from src.infrastructure.adapters.document.win32com_word_count_adapter import (
 )
 from src.infrastructure.adapters.gateway.file_gateway_adapter import FileGatewayAdapter
 from src.infrastructure.adapters.grammar.language_tool_adapter import LanguageToolAdapter
+from src.infrastructure.adapters.laya.laya_decision_adapter import LayaDecisionAdapter
 from src.infrastructure.adapters.llm_generator.ollama_generator_adapter import (
     OllamaGeneratorAdapter,
 )
 from src.infrastructure.env_config import EnvConfig
-from src.infrastructure.resources.prompts.classification import (
-    PROMPTS_DIR as CLASSIFICATION_PROMPTS_DIR,
-)
+from src.infrastructure.resources.laya import LAYA_RESOURCES_DIR
 from src.infrastructure.resources.prompts.quality import PROMPTS_DIR as QUALITY_PROMPTS_DIR
 from src.infrastructure.resources.text_resource_loader import read_text_resource
 
@@ -82,6 +76,7 @@ class AnalyzeDocumentUseCaseWiring:
             document_format_inspector=self._get_document_format_inspector(),
             grammar_checker=self._get_grammar_checker(),
             apa_validator=self._get_apa_validator(),
+            laya_decision_maker=self._get_laya_decision_maker(),
             article_classifier=self._get_article_classifier(),
             quality_analyzer=self._get_quality_analyzer(),
             structure_validator=self._get_structure_validator(),
@@ -154,24 +149,35 @@ class AnalyzeDocumentUseCaseWiring:
     def _get_recommendation_builder(self) -> RecommendationBuilder:
         return RecommendationBuilder(settings=self._get_env_config().get_recommendation_settings())
 
-    def _get_research_intent_detector(self) -> ResearchIntentDetectorPort:
+    def _get_laya_decision_maker(self) -> LayaDecisionMaker:
+        return LayaDecisionMaker(
+            text_sampler=self._get_laya_text_sampler(),
+            laya_decision_port=self._get_laya_decision_port(),
+        )
+
+    def _get_laya_text_sampler(self) -> LayaTextSampler:
+        return LayaTextSampler(
+            text_sample_settings=self._get_env_config().get_laya_text_sample_settings()
+        )
+
+    def _get_laya_decision_port(self) -> LayaDecisionPort:
+        return LayaDecisionAdapter(
+            agent=self._get_laya_agent(), questions=self._get_laya_decision_questions()
+        )
+
+    def _get_laya_agent(self) -> Agent:
         env_config = self._get_env_config()
-        return OllamaResearchIntentAdapter(
-            llm_generator=self._get_llm_generator(),
-            response_parser=ArticleClassificationResponseParser(),
-            signal_prompt_template=read_text_resource(
-                directory=CLASSIFICATION_PROMPTS_DIR, filename="s4_s5_s6_signal_prompt.txt"
-            ),
-            temperature=env_config.article_classifier_temperature,
-            num_predict=env_config.article_classifier_num_predict,
+        return load(env_config.laya_checkpoint_path, device=env_config.laya_device)
+
+    def _get_laya_decision_questions(self) -> dict[str, dict[str, Any]]:
+        return loads(
+            read_text_resource(directory=LAYA_RESOURCES_DIR, filename="decision_questions.json")
         )
 
     def _get_article_classifier(self) -> ArticleClassifier:
         return ArticleClassifier(
-            research_intent_detector=self._get_research_intent_detector(),
             signal_detector=ImrydSignalDetector(),
             article_size_classifier=self._get_article_size_classifier(),
-            text_sampler=ArticleClassificationTextSampler(),
             methodological_vocabulary_detector=MethodologicalVocabularyDetector(),
             reference_signal_detector=ReferenceSignalDetector(),
             rule_table=ClassificationRuleTable(),

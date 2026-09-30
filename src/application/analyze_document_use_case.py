@@ -13,6 +13,7 @@ from src.domain.enums.article_type import ArticleType
 from src.domain.enums.section_name import SectionName
 from src.domain.exceptions.decorators.generic_error_handler import generic_error_handler
 from src.domain.grammar.grammar_checker import GrammarChecker
+from src.domain.laya.laya_decision_maker import LayaDecisionMaker
 from src.domain.quality.quality_analyzer import QualityAnalyzer
 from src.domain.recommendation.recommendation_builder import RecommendationBuilder
 from src.domain.structure.structure_validator import StructureValidator
@@ -28,6 +29,7 @@ class AnalyzeDocumentUseCase:
         document_format_inspector: DocumentFormatInspector,
         grammar_checker: GrammarChecker,
         apa_validator: ApaValidator,
+        laya_decision_maker: LayaDecisionMaker,
         article_classifier: ArticleClassifier,
         quality_analyzer: QualityAnalyzer,
         structure_validator: StructureValidator,
@@ -39,6 +41,7 @@ class AnalyzeDocumentUseCase:
         self._document_format_inspector = document_format_inspector
         self._grammar_checker = grammar_checker
         self._apa_validator = apa_validator
+        self._laya_decision_maker = laya_decision_maker
         self._article_classifier = article_classifier
         self._quality_analyzer = quality_analyzer
         self._structure_validator = structure_validator
@@ -59,7 +62,10 @@ class AnalyzeDocumentUseCase:
         )
 
         grammar = self._grammar_checker.check_grammar(paragraphs=document_content.paragraphs)
-        classification = self._article_classifier.classify(document_content=document_content)
+        laya_decision = self._laya_decision_maker.decide(document_content=document_content)
+        classification = self._article_classifier.classify(
+            document_content=document_content, laya_decision=laya_decision
+        )
         quality = self._quality_analyzer.analyze(document_content=document_content)
 
         effective_type = classification.effective_structure_type

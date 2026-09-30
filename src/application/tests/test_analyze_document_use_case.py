@@ -30,6 +30,7 @@ class TestAnalyzeDocumentUseCase(TestCase):
         document_format_inspector = MagicMock()
         grammar_checker = MagicMock()
         apa_validator = MagicMock()
+        laya_decision_maker = MagicMock()
         article_classifier = MagicMock()
         quality_analyzer = MagicMock()
         structure_validator = MagicMock()
@@ -40,6 +41,7 @@ class TestAnalyzeDocumentUseCase(TestCase):
         citation_extractor.extract_citations_and_references.return_value = ([], [], "Referencias")
         apa_validator.validate_all_citations.return_value = []
         grammar_checker.check_grammar.return_value = MagicMock()
+        laya_decision_maker.decide.return_value = MagicMock()
         article_classifier.classify.return_value = _make_classification()
         quality_analyzer.analyze.return_value = MagicMock(overall_score=8.0)
         structure_validator.validate_structure.return_value = StructureValidationResultDTO(
@@ -57,6 +59,7 @@ class TestAnalyzeDocumentUseCase(TestCase):
             "document_format_inspector": document_format_inspector,
             "grammar_checker": grammar_checker,
             "apa_validator": apa_validator,
+            "laya_decision_maker": laya_decision_maker,
             "article_classifier": article_classifier,
             "quality_analyzer": quality_analyzer,
             "structure_validator": structure_validator,
@@ -84,12 +87,30 @@ class TestAnalyzeDocumentUseCase(TestCase):
         )
         mocks["apa_validator"].validate_all_citations.assert_called_once()
         mocks["grammar_checker"].check_grammar.assert_called_once()
+        mocks["laya_decision_maker"].decide.assert_called_once()
         mocks["article_classifier"].classify.assert_called_once()
         mocks["quality_analyzer"].analyze.assert_called_once()
         mocks["structure_validator"].validate_structure.assert_called_once()
         mocks["citation_matcher"].match_citations_to_references.assert_called_once()
         mocks["document_format_inspector"].inspect.assert_called_once()
         mocks["recommendation_builder"].build.assert_called_once()
+
+    def test_laya_decision_is_made_once_from_the_document_content(self):
+        use_case, mocks = self._make_use_case()
+        use_case.execute(document_path="test.docx")
+
+        mocks["laya_decision_maker"].decide.assert_called_once_with(
+            document_content=mocks["document_content_extractor"].extract_content.return_value
+        )
+
+    def test_article_classifier_receives_the_laya_decision(self):
+        use_case, mocks = self._make_use_case()
+        use_case.execute(document_path="test.docx")
+
+        mocks["article_classifier"].classify.assert_called_once_with(
+            document_content=mocks["document_content_extractor"].extract_content.return_value,
+            laya_decision=mocks["laya_decision_maker"].decide.return_value,
+        )
 
     def test_apa_validator_receives_citations_and_document_paragraphs(self):
         content = _make_content(paragraphs=["Para 0", "Para 1", "Para 2"])

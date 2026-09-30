@@ -1,12 +1,14 @@
 """
 E2E test for main.py SilvinaEditorialAssistant orchestrator.
-Runs in-process with mocked external dependencies (Ollama, LanguageTool, COM).
+Runs in-process with mocked external dependencies (Ollama, Laya, LanguageTool, COM).
 """
 
 import sys
 import os
 import unittest
 from unittest.mock import MagicMock, patch
+
+from src.infrastructure.tests.test_doubles.fake_laya_agent import FakeLayaAgent
 
 # Path adjustment from tests/e2e/ → project root
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -42,6 +44,30 @@ def _make_ollama_client_mock(
     return mock_client
 
 
+def _make_laya_agent_fake():
+    """Return a Laya agent double mirroring the Ollama mock: S4/S5/S6 affirmative, scores 8."""
+
+    def choice(answer):
+        return {"choice": answer, "probabilities": {answer: 1.0}, "answer_confidence": 1.0}
+
+    def score(value):
+        return {"score": value, "probabilities": {}, "answer_confidence": 1.0}
+
+    return FakeLayaAgent(
+        answers={
+            "s4_intent": choice("SI"),
+            "s5_evidence": choice("SI"),
+            "s6_theory": choice("SI"),
+            "editorial_verdict": choice("SUSTENTADA"),
+            "research_line": choice("1"),
+            "score_clarity": score(8.0),
+            "score_coherence": score(8.0),
+            "score_argumentation": score(8.0),
+            "score_conclusions": score(8.0),
+        }
+    )
+
+
 class TestCLIE2E(unittest.TestCase):
     """
     In-process E2E test: constructs SilvinaEditorialAssistant, calls
@@ -61,6 +87,10 @@ class TestCLIE2E(unittest.TestCase):
         with (
             patch("ollama.Client", return_value=mock_client),
             patch(
+                "src.infrastructure.wirings.analyze_document_use_case_wiring.load",
+                return_value=_make_laya_agent_fake(),
+            ),
+            patch(
                 "src.infrastructure.adapters.document.win32com_word_count_adapter."
                 "WIN32COM_AVAILABLE",
                 False,
@@ -77,6 +107,10 @@ class TestCLIE2E(unittest.TestCase):
         mock_client = _make_ollama_client_mock()
         with (
             patch("ollama.Client", return_value=mock_client),
+            patch(
+                "src.infrastructure.wirings.analyze_document_use_case_wiring.load",
+                return_value=_make_laya_agent_fake(),
+            ),
             patch(
                 "src.infrastructure.adapters.document.win32com_word_count_adapter."
                 "WIN32COM_AVAILABLE",
@@ -102,6 +136,10 @@ class TestCLIE2E(unittest.TestCase):
         with (
             patch("ollama.Client", return_value=mock_client),
             patch(
+                "src.infrastructure.wirings.analyze_document_use_case_wiring.load",
+                return_value=_make_laya_agent_fake(),
+            ),
+            patch(
                 "src.infrastructure.adapters.document.win32com_word_count_adapter."
                 "WIN32COM_AVAILABLE",
                 False,
@@ -118,6 +156,10 @@ class TestCLIE2E(unittest.TestCase):
         mock_client = _make_ollama_client_mock()
         with (
             patch("ollama.Client", return_value=mock_client),
+            patch(
+                "src.infrastructure.wirings.analyze_document_use_case_wiring.load",
+                return_value=_make_laya_agent_fake(),
+            ),
             patch(
                 "src.infrastructure.adapters.document.win32com_word_count_adapter."
                 "WIN32COM_AVAILABLE",

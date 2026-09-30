@@ -15,8 +15,10 @@ class TestEnvConfig(TestCase):
         self.assertEqual(config.citation_max_author_name_length, 100)
         self.assertEqual(config.grammar_max_replacements, 3)
         self.assertEqual(config.structure_max_header_length, 100)
-        self.assertAlmostEqual(config.article_classifier_temperature, 0.1)
-        self.assertEqual(config.article_classifier_num_predict, 300)
+        self.assertEqual(
+            config.laya_checkpoint_path, "data/laya/checkpoints/laya_finetuned_v1_16epochs"
+        )
+        self.assertIsNone(config.laya_device)
         self.assertEqual(config.article_size_short_min_chars, 16000)
         self.assertEqual(config.article_size_short_max_chars, 24000)
         self.assertEqual(config.article_size_undefined_min_chars, 24001)
@@ -94,10 +96,25 @@ class TestEnvConfig(TestCase):
             config = EnvConfig()
         self.assertEqual(config.structure_max_header_length, 42)
 
-    def test_env_var_overrides_article_classifier_temperature(self):
-        with patch.dict(environ, {"ARTICLE_CLASSIFIER_TEMPERATURE": "0.5"}):
+    def test_env_var_overrides_laya_checkpoint_path(self):
+        with patch.dict(environ, {"LAYA_CHECKPOINT_PATH": "other/checkpoint"}):
             config = EnvConfig()
-        self.assertAlmostEqual(config.article_classifier_temperature, 0.5)
+        self.assertEqual(config.laya_checkpoint_path, "other/checkpoint")
+
+    def test_env_var_overrides_laya_device(self):
+        with patch.dict(environ, {"LAYA_DEVICE": "cuda"}):
+            config = EnvConfig()
+        self.assertEqual(config.laya_device, "cuda")
+
+    def test_empty_laya_device_means_automatic_device_selection(self):
+        with patch.dict(environ, {"LAYA_DEVICE": ""}):
+            config = EnvConfig()
+        self.assertIsNone(config.laya_device)
+
+    def test_article_classifier_llm_settings_are_no_longer_loaded(self):
+        config = EnvConfig()
+        self.assertFalse(hasattr(config, "article_classifier_temperature"))
+        self.assertFalse(hasattr(config, "article_classifier_num_predict"))
 
     def test_env_var_overrides_ollama_model_name(self):
         with patch.dict(environ, {"OLLAMA_MODEL_NAME": "custom-model"}):

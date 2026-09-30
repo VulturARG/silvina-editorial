@@ -1,6 +1,3 @@
-from src.domain.classification.article_classification_text_sampler import (
-    ArticleClassificationTextSampler,
-)
 from src.domain.classification.article_size_classifier import ArticleSizeClassifier
 from src.domain.classification.classification_rule_table import ClassificationRuleTable
 from src.domain.classification.imryd_signal_detector import ImrydSignalDetector
@@ -8,15 +5,15 @@ from src.domain.classification.methodological_vocabulary_detector import (
     MethodologicalVocabularyDetector,
 )
 from src.domain.classification.reference_signal_detector import ReferenceSignalDetector
-from src.domain.classification.research_intent_detector_port import (
-    ResearchIntentDetectorPort,
-)
 from src.domain.dtos.classification_result_dto import ClassificationResultDTO
 from src.domain.dtos.classification_signals_dto import ClassificationSignalsDTO
 from src.domain.dtos.document_content_dto import DocumentContentDTO
+from src.domain.dtos.laya_choice_decision_dto import LayaChoiceDecisionDTO
+from src.domain.dtos.laya_decision_result_dto import LayaDecisionResultDTO
 from src.domain.enums.article_size import ArticleSize
 from src.domain.enums.article_type import ArticleType
 from src.domain.enums.classification_confidence import ClassificationConfidence
+from src.domain.enums.laya_binary_answer import LayaBinaryAnswer
 from src.domain.exceptions.classification_errors import ClassificationFailed
 
 
@@ -25,24 +22,22 @@ class ArticleClassifier:
 
     def __init__(
         self,
-        research_intent_detector: ResearchIntentDetectorPort,
         signal_detector: ImrydSignalDetector,
         article_size_classifier: ArticleSizeClassifier,
-        text_sampler: ArticleClassificationTextSampler,
         methodological_vocabulary_detector: MethodologicalVocabularyDetector,
         reference_signal_detector: ReferenceSignalDetector,
         rule_table: ClassificationRuleTable,
     ) -> None:
-        self._research_intent_detector = research_intent_detector
         self._signal_detector = signal_detector
         self._article_size_classifier = article_size_classifier
-        self._text_sampler = text_sampler
         self._methodological_vocabulary_detector = methodological_vocabulary_detector
         self._reference_signal_detector = reference_signal_detector
         self._rule_table = rule_table
 
-    def classify(self, document_content: DocumentContentDTO) -> ClassificationResultDTO:
-        """Classify a document into an ArticleType with confidence and reasoning."""
+    def classify(
+        self, document_content: DocumentContentDTO, laya_decision: LayaDecisionResultDTO
+    ) -> ClassificationResultDTO:
+        """Classify a document into an ArticleType using detected and Laya-decided signals."""
         if not document_content.paragraphs:
             raise ClassificationFailed()
 
@@ -59,12 +54,6 @@ class ArticleClassifier:
                 reasoning="Estructura IMRyD completa detectada (override determinístico).",
             )
 
-        text_sample = self._text_sampler.build_sample(document_content=document_content)
-        has_research_intent, has_evidence_based_contribution, has_theoretical_justification = (
-            self._research_intent_detector.detect(
-                text_sample=text_sample, title=document_content.title
-            )
-        )
         signals = ClassificationSignalsDTO(
             has_sufficient_reference_count=self._reference_signal_detector.has_sufficient_count(
                 document_content=document_content
@@ -75,12 +64,19 @@ class ArticleClassifier:
             has_methodological_vocabulary=self._methodological_vocabulary_detector.detect(
                 document_content=document_content
             ),
-            has_research_intent=has_research_intent,
-            has_evidence_based_contribution=has_evidence_based_contribution,
-            has_theoretical_justification=has_theoretical_justification,
+            has_research_intent=self._is_affirmative(laya_decision.s4_research_intent),
+            has_evidence_based_contribution=self._is_affirmative(
+                laya_decision.s5_empirical_evidence
+            ),
+            has_theoretical_justification=self._is_affirmative(
+                laya_decision.s6_theoretical_framework
+            ),
         )
 
         return self._apply_rule(signals=signals, article_size=article_size)
+
+    def _is_affirmative(self, choice_decision: LayaChoiceDecisionDTO) -> bool:
+        return choice_decision.answer == LayaBinaryAnswer.YES.value
 
     def _apply_rule(
         self, signals: ClassificationSignalsDTO, article_size: ArticleSize

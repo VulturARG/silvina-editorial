@@ -107,10 +107,11 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
   - **Scope**: Create `src/domain/laya/laya_decision_maker.py` injecting `LayaTextSampler` and `LayaDecisionPort`, exposing `decide(document_content: DocumentContentDTO) -> LayaDecisionResultDTO` (build the `state` once, call the port once). Per the clean-architecture skill the use case must never call a port directly, so the use case orchestrates this domain service instead. The use-case integration happens incrementally in TASK-16 to TASK-18 so the suite stays green after each task.
   - **Verification**: Unit tests in `src/domain/tests/laya/test_laya_decision_maker.py` with `FakeLayaDecisionPort`.
 
-- [ ] **TASK-16: Refactor `ArticleClassifier` to consume `LayaDecisionResultDTO`**
+- [x] **TASK-16: Refactor `ArticleClassifier` to consume `LayaDecisionResultDTO`**
   - **Route**: direct inline
   - **Scope**: Make `AnalyzeDocumentUseCase` call `LayaDecisionMaker.decide()` once per document and pass the resulting `LayaDecisionResultDTO` into `ArticleClassifier.classify()`. Replace the `ResearchIntentDetectorPort` dependency in `src/domain/classification/article_classifier.py` with a read of `s4_research_intent`/`s5_empirical_evidence`/`s6_theoretical_framework` from the injected `LayaDecisionResultDTO`. Retire `ResearchIntentDetectorPort` and `OllamaResearchIntentAdapter` once no longer referenced.
   - **Verification**: Update `src/domain/tests/classification/test_article_classifier.py` and `src/application/tests/test_analyze_document_use_case.py`.
+  - **Outcome**: Signals map `LayaBinaryAnswer.YES` (`"SI"`) to `True`. Retired `ResearchIntentDetectorPort`, `OllamaResearchIntentAdapter`, `ArticleClassificationTextSampler`, `ArticleClassificationResponseParser`, the `s4_s5_s6_signal_prompt.txt` prompt, the classification-only `FakeLlmGeneratorAdapter`, and the `ARTICLE_CLASSIFIER_TEMPERATURE`/`ARTICLE_CLASSIFIER_NUM_PREDICT` env vars. The constructor change forced the Laya part of TASK-19 forward: the wiring now builds `LayaDecisionMaker` (`laya.load(LAYA_CHECKPOINT_PATH, device=LAYA_DEVICE)`, empty device = automatic) and `AnalyzeDocumentUseCaseWiringForTest` swaps in `FakeLayaDecisionPort`; the CLI e2e test patches `laya.load` with `FakeLayaAgent`. The living OpenSpec specs (`openspec/specs/analyze-document/spec.md`, `openspec/specs/classify-article/spec.md`) still describe the retired env vars and LLM signal path — pending update.
 
 - [ ] **TASK-17: Refactor `QualityAnalyzer` to consume Laya scores, Ollama feedback on demand**
   - **Route**: direct inline
@@ -124,7 +125,7 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
 
 - [ ] **TASK-19: Update `AnalyzeDocumentUseCaseWiring`**
   - **Route**: direct inline
-  - **Scope**: In `src/infrastructure/wirings/analyze_document_use_case_wiring.py`, load the agent with `laya.load` (`data/laya/checkpoints/laya_finetuned_v1_16epochs/`), read `decision_questions.json`, build `LayaDecisionAdapter`, inject it into `LayaDecisionMaker` together with `LayaTextSampler` (settings from `EnvConfig.get_laya_text_sample_settings()`), and inject `LayaDecisionMaker` into the use case.
+  - **Scope**: Laya construction already landed in TASK-16; remaining: any QualityAnalyzer/EditorialSuitabilityAnalyzer wiring changes from TASK-17/18. Original scope: In `src/infrastructure/wirings/analyze_document_use_case_wiring.py`, load the agent with `laya.load` (`data/laya/checkpoints/laya_finetuned_v1_16epochs/`), read `decision_questions.json`, build `LayaDecisionAdapter`, inject it into `LayaDecisionMaker` together with `LayaTextSampler` (settings from `EnvConfig.get_laya_text_sample_settings()`), and inject `LayaDecisionMaker` into the use case.
   - **Verification**: Update `src/infrastructure/tests/wirings/test_analyze_document_use_case_wiring.py`.
 
 - [ ] **TASK-21: Validate Laya GPU inference on AMD ROCm (before TASK-19)**
@@ -142,7 +143,7 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
 ## 4. Progress & Verification Log
 
 - **Current Status**: Phase 2 Complete (TASK-06 through TASK-11 done; validated checkpoint at `data/laya/checkpoints/laya_finetuned_v1_16epochs/`). Phase 3 planned (TASK-12 through TASK-21 defined below), awaiting explicit user go-ahead to start TASK-12.
-- **Next Step**: TASK-16 — `ArticleClassifier` consumes `LayaDecisionResultDTO`; use case calls `LayaDecisionMaker` once. Smoke run of the fine-tuned checkpoint on CPU: load 11.6 s, one `decide` 25.5 s (see TASK-21 for GPU).
+- **Next Step**: TASK-17 — `QualityAnalyzer` consumes Laya scores; use case passes the Laya decision. Smoke run of the fine-tuned checkpoint on CPU: load 11.6 s, one `decide` 25.5 s (see TASK-21 for GPU).
 - **Data Location Decision**: The `E:\IA\laya` repository is kept clean (frequent upstream updates); all generated datasets and generation scripts were relocated to `data/laya/` inside `silvina-editorial` and are tracked in this repo (~12MB total).
 
 ### Verification History

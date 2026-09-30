@@ -21,12 +21,10 @@ class EnvConfig:
         self.grammar_max_replacements: int = int(getenv("GRAMMAR_MAX_REPLACEMENTS", "3"))
         self.structure_max_header_length: int = int(getenv("STRUCTURE_MAX_HEADER_LENGTH", "100"))
 
-        self.article_classifier_temperature: float = float(
-            getenv("ARTICLE_CLASSIFIER_TEMPERATURE", "0.1")
+        self.laya_checkpoint_path: str = getenv(
+            "LAYA_CHECKPOINT_PATH", "data/laya/checkpoints/laya_finetuned_v1_16epochs"
         )
-        self.article_classifier_num_predict: int = int(
-            getenv("ARTICLE_CLASSIFIER_NUM_PREDICT", "300")
-        )
+        self.laya_device: str | None = getenv("LAYA_DEVICE") or None
 
         self.article_size_short_min_chars: int = int(
             getenv("ARTICLE_SIZE_SHORT_MIN_CHARS", "16000")
