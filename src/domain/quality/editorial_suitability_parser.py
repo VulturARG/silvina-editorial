@@ -1,13 +1,20 @@
-from re import IGNORECASE, Pattern, compile as re_compile
+from re import IGNORECASE, MULTILINE, Pattern, compile as re_compile
+
+from src.domain.enums.editorial_alignment_verdict import EditorialAlignmentVerdict
 
 _VERDICT_PATTERN = re_compile(r"VEREDICTO:\s*(.+)", IGNORECASE)
 _CONTRIBUTION_PATTERN = re_compile(r"CONTRIBUCI[OÓ]N:\s*(.+)", IGNORECASE)
 _LINES_PATTERN = re_compile(r"L[IÍ]NEAS:\s*(.+)", IGNORECASE)
 _JUSTIFICATION_PATTERN = re_compile(r"JUSTIFICACI[OÓ]N:\s*(.+)", IGNORECASE)
 _SENTENCE_END_PATTERN = re_compile(r"[.!?]")
+_RESEARCH_LINE_PATTERN = re_compile(r"^(\d+)\.\s*([^—\n]+?)\s*(?:—.*)?$", MULTILINE)
 
 _CONTRIBUTION_VERDICTS = ("NO SUSTENTADA", "PARCIAL", "SUSTENTADA")
-_ALIGNMENT_VERDICTS = ("NO ALINEADO", "PARCIALMENTE ALINEADO", "ALINEADO")
+_ALIGNMENT_VERDICTS = (
+    EditorialAlignmentVerdict.NOT_ALIGNED.value,
+    EditorialAlignmentVerdict.PARTIALLY_ALIGNED.value,
+    EditorialAlignmentVerdict.ALIGNED.value,
+)
 
 _PHRASE_MAX_LENGTH = 120
 _OBSERVATION_MAX_LENGTH = 120
@@ -28,7 +35,7 @@ class EditorialSuitabilityParser:
         phrase = self._truncate_field(
             self._extract_field(text, _CONTRIBUTION_PATTERN), _PHRASE_MAX_LENGTH
         )
-        observation = self._build_contribution_observation(verdict, phrase)
+        observation = self.build_contribution_observation(verdict, phrase)
         return verdict, phrase, observation
 
     def parse_alignment(self, text: str) -> tuple[str, str, str]:
@@ -40,7 +47,8 @@ class EditorialSuitabilityParser:
         )
         return verdict, lines, justification
 
-    def _build_contribution_observation(self, verdict: str, phrase: str) -> str:
+    def build_contribution_observation(self, verdict: str, phrase: str) -> str:
+        """Return the fixed observation text for a contribution verdict and its phrase."""
         if verdict == "NO SUSTENTADA":
             return _NOT_SUSTAINED_OBSERVATION
         if verdict == "PARCIAL":
@@ -48,6 +56,13 @@ class EditorialSuitabilityParser:
         if not phrase:
             return _SUSTAINED_OBSERVATION_FALLBACK
         return self._truncate_field(f"Contribución sustentada — {phrase}", _OBSERVATION_MAX_LENGTH)
+
+    def resolve_research_line_title(self, research_lines: str, line_id: str) -> str:
+        """Return formatted 'ID. Title' extracted from research lines text, or line_id on miss."""
+        for match in _RESEARCH_LINE_PATTERN.finditer(research_lines):
+            if match.group(1) == line_id:
+                return f"{match.group(1)}. {match.group(2).strip()}"
+        return line_id
 
     def _extract_verdict(self, text: str, candidates: tuple[str, ...]) -> str:
         match = _VERDICT_PATTERN.search(text)

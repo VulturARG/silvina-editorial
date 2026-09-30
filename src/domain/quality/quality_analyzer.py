@@ -48,7 +48,7 @@ class QualityAnalyzer:
         quality_level = QualityLevel.from_score(overall_score)
 
         editorial_suitability = self._editorial_suitability_analyzer.analyze(
-            text_sample=text_sample
+            text_sample=text_sample, laya_decision=laya_decision
         )
 
         return QualityResultDTO(

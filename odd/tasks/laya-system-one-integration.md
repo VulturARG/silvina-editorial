@@ -119,10 +119,11 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
   - **Verification**: Update `src/domain/tests/quality/test_quality_analyzer.py` covering both the all-above-threshold (no LLM calls) and below-threshold (LLM feedback requested) paths.
   - **Outcome**: `QualityAnalyzer.analyze(document_content, laya_decision)` takes the 4 scores from `LayaDecisionResultDTO` (overall = their mean). Each LLM prompt covers a pair (clarity+coherence, argumentation+conclusions) and is called only when a dimension of that pair scores below 7.0; the LLM score is discarded and only the feedback of the below-threshold dimensions is kept (other dimensions get an empty feedback, which the report skips). Unusable LLM output for a below-threshold dimension still raises `QualityAnalysisFailed`. `EditorialSuitabilityAnalyzer` is unchanged (TASK-18).
 
-- [ ] **TASK-18: Refactor `EditorialSuitabilityAnalyzer` to consume Laya verdicts, Ollama narrative on demand**
+- [x] **TASK-18: Refactor `EditorialSuitabilityAnalyzer` to consume Laya verdicts, Ollama narrative on demand**
   - **Route**: direct inline
   - **Scope**: `QualityAnalyzer` (not the use case) calls `EditorialSuitabilityAnalyzer`, so it forwards the `LayaDecisionResultDTO` it receives. Update `src/domain/quality/editorial_suitability_analyzer.py` to take `editorial_verdict`/`research_line` from `LayaDecisionResultDTO`; call the contribution/alignment LLM prompts only when the verdict is not the positive one (`SUSTENTADA` / aligned).
   - **Verification**: Update `src/domain/tests/quality/test_editorial_suitability_analyzer.py` covering positive-verdict (no LLM calls) and negative/partial-verdict (LLM narrative requested) paths.
+  - **Outcome**: Laya verdict is authoritative; LLM called for contribution only when verdict != SUSTENTADA, for alignment only when line == NINGUNA; Laya cannot express "PARCIALMENTE ALINEADO" so alignment is ALINEADO/NO ALINEADO; positive alignment has empty justification; LLM verdict discarded; docx skips empty justification.
 
 - [ ] **TASK-19: Update `AnalyzeDocumentUseCaseWiring`**
   - **Route**: direct inline
@@ -144,7 +145,7 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
 ## 4. Progress & Verification Log
 
 - **Current Status**: Phase 2 Complete (TASK-06 through TASK-11 done; validated checkpoint at `data/laya/checkpoints/laya_finetuned_v1_16epochs/`). Phase 3 planned (TASK-12 through TASK-21 defined below), awaiting explicit user go-ahead to start TASK-12.
-- **Next Step**: TASK-18 — `EditorialSuitabilityAnalyzer` consumes Laya verdicts. Smoke run of the fine-tuned checkpoint on CPU: load 11.6 s, one `decide` 25.5 s (see TASK-21 for GPU).
+- **Next Step**: TASK-21 (Validate Laya GPU inference on AMD ROCm) / TASK-19 (Update AnalyzeDocumentUseCaseWiring). Smoke run of the fine-tuned checkpoint on CPU: load 11.6 s, one `decide` 25.5 s (see TASK-21 for GPU).
 - **Data Location Decision**: The `E:\IA\laya` repository is kept clean (frequent upstream updates); all generated datasets and generation scripts were relocated to `data/laya/` inside `silvina-editorial` and are tracked in this repo (~12MB total).
 
 ### Verification History

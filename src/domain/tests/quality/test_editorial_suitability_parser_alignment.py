@@ -45,3 +45,24 @@ class TestEditorialSuitabilityParserAlignment(TestCase):
         expected_prefix = "WORD " * 14 + "WORD"
         self.assertEqual(lines, expected_prefix + "…")
         self.assertLess(len(lines), 80)
+
+    def test_resolve_research_line_title_extracts_id_and_title(self):
+        research_lines = "1. Inteligencia Artificial y Sociedad\n2. Sistemas Embebidos"
+
+        resolved_title = self.parser.resolve_research_line_title(research_lines, "1")
+
+        self.assertEqual(resolved_title, "1. Inteligencia Artificial y Sociedad")
+
+    def test_resolve_research_line_title_strips_em_dash_and_trailing_description(self):
+        research_lines = "1. Inteligencia Artificial — Estudio del impacto social y tecnico"
+
+        resolved_title = self.parser.resolve_research_line_title(research_lines, "1")
+
+        self.assertEqual(resolved_title, "1. Inteligencia Artificial")
+
+    def test_resolve_research_line_title_returns_line_id_when_not_found(self):
+        research_lines = "1. Inteligencia Artificial\n2. Sistemas Embebidos"
+
+        resolved_title = self.parser.resolve_research_line_title(research_lines, "99")
+
+        self.assertEqual(resolved_title, "99")

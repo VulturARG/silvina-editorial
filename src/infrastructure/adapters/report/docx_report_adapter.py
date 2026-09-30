@@ -374,9 +374,10 @@ class DocxReportAdapter(ReportExportPort):
         paragraph.add_run("Líneas relacionadas: ").bold = True
         paragraph.add_run(suitability.alignment_lines)
 
-        paragraph = doc.add_paragraph()
-        paragraph.add_run("Justificación: ").bold = True
-        paragraph.add_run(suitability.alignment_justification)
+        if suitability.alignment_justification:
+            paragraph = doc.add_paragraph()
+            paragraph.add_run("Justificación: ").bold = True
+            paragraph.add_run(suitability.alignment_justification)
 
     def _add_grammar_analysis(self, doc, report_input: ReportInputDTO) -> None:
         heading = doc.add_heading("📝 GRAMÁTICA Y ORTOGRAFÍA", 1)
