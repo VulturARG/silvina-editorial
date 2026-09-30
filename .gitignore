@@ -38,3 +38,6 @@ acme.json
 .pi/
 
 .codegraph/
+
+# Laya fine-tuned checkpoints (large binaries, not git-friendly without LFS)
+data/laya/checkpoints/

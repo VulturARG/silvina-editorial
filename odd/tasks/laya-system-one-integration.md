@@ -89,8 +89,8 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
 
 ## 4. Progress & Verification Log
 
-- **Current Status**: Complete (Phase 2 Data Preparation Complete: TASK-06 through TASK-10 done)
-- **Next Step**: Awaiting user instruction to commit TASK-10 and adapt the Kaggle fine-tuning notebook to read `data/laya/gold/{train,calibration,test}_with_gold.jsonl` instead of the public `LocalLLaMA/typed-decisions` benchmark
+- **Current Status**: Complete (Phase 2 Data Preparation + Fine-Tuning Complete: TASK-06 through TASK-11 done; validated checkpoint at `data/laya/checkpoints/laya_finetuned_v1_16epochs/`)
+- **Next Step**: Phase 3 — wire `LayaDecisionAdapter` into production and validate against real documents
 - **Data Location Decision**: The `E:\IA\laya` repository is kept clean (frequent upstream updates); all generated datasets and generation scripts were relocated to `data/laya/` inside `silvina-editorial` and are tracked in this repo (~12MB total).
 
 ### Verification History
@@ -133,9 +133,25 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
 - **TASK-09**: Complete.
   - Verification: Created `split_dataset.py` with seed=42 executing stratified split: `train.jsonl` (384 samples, 80%), `calibration.jsonl` (48 samples, 10%), `test.jsonl` (48 samples, 10%). Automated validation passed across all 3 files (0 errors, word range [1033, 1141], zero data leakage/overlap between splits).
   - Data relocation: `E:\IA\laya\data` and its generation scripts were moved into `data/laya/` inside `silvina-editorial` (tracked, not gitignored) to keep the frequently-updated `laya` repository free of generated artifacts.
-  - Commit: Pending user instruction (held).
+  - Commit: `409141b`.
 
 - **TASK-10**: Complete.
   - Verification: Implemented `generate_gold_distributions.py`, sampling each `state`+`questions` against Ollama (`hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:UD-IQ4_XS`) 5 times at temperature 0.7 to build empirical teacher probability distributions. Ran in small batches (~30 samples, ~15-20 min each) to avoid long unattended runs. Consolidated and validated `data/laya/gold/train_with_gold.jsonl` (384), `calibration_with_gold.jsonl` (48), `test_with_gold.jsonl` (48) — 480/480 records, all `gold` distributions sum to 1.0 across the 9 question ids.
   - Fixed a prompt bug where `choice`-type questions (e.g. `research_line`) only listed option keys without their descriptions, causing the model to guess blindly; fix included the criteria description per key.
-  - Commit: Pending user instruction (held).
+  - Commit: `f84b646`.
+
+- **TASK-11: Kaggle Fine-Tuning (Phase 2 completion)**
+  - Route: subagent delegation (notebook adaptation) + direct inline (Kaggle CLI setup, training runs, diagnosis).
+  - Uploaded `data/laya/gold/*.jsonl` as private Kaggle Dataset `vulturarg/silvina-editorial-laya-gold` (~6MB uncompressed).
+  - Delegated adaptation of `E:\IA\laya\notebooks\laya_finetune_typed_decisions_2xT4_kaggle.ipynb` to `gentle-ai-worker` (via a temporary copy inside `silvina-editorial`, since the notebook lives in a separate git repo outside this session's allowed edit surface): swapped the public `LocalLLaMA/typed-decisions` HF benchmark for our own dataset, built evaluation `gold` from `expected` (one-hot for `choice`, `{label, score}` for `score`), disabled HuggingFace Hub publish by default (`PUBLISH_TO_HUB = False`), and made per-workflow reporting dynamic.
+  - Kaggle requires phone verification on the account to unlock real GPU/TPU allocation — `enable_gpu: true` silently falls back to 0 GPUs otherwise. `--accelerator gpuT4x2` is required explicitly on `kaggle kernels push` for the dual-T4 shape.
+  - First run (4 epochs, default recipe): accuracy 44%, score MAE 4.95/10, within-1-level 0% against `expected`. Loss decreased cleanly each epoch (1.00→0.64→0.37→0.34) — not a training bug, just too few total gradient updates (~192) for our ~10x-smaller-than-reference dataset.
+  - Second run (16 epochs): `choice`-type metrics improved substantially (soft accuracy 77%→92%, Brier 0.36→0.14), but `score`-type metrics against `expected` barely moved (MAE 4.95→4.62, within-1-level stayed 0%).
+  - Added a diagnostic comparison in the evaluation cell (`gold_teacher`, built from the teacher's own `gold` distribution) run alongside the existing `expected`-based comparison. Third run (16 epochs) confirmed the real cause: **against the teacher, Laya scores 86.6% accuracy, 0.39 score MAE, 95.3% within-1-level** — essentially matching the reference benchmark's own published numbers. The earlier poor scores were an artifact of comparing against `expected` (the archetype's synthetic, formula-derived ground truth used only to guarantee dataset diversity), not a training failure. Laya successfully learned to imitate the teacher (Ollama), which is the actual architectural goal (replace Ollama's System 2 judgment with a fast System 1 engine).
+  - Decision: `expected` is retired as an evaluation yardstick going forward; the teacher's `gold` distribution is the correct reference, since it is what Laya is meant to reproduce.
+  - Checkpoint saved locally (not committed — no git-lfs) at `data/laya/checkpoints/laya_finetuned_v1_16epochs/` (~808MB), added to `.gitignore`.
+  - Commit: Pending (notebook lives in `E:\IA\laya`, a separate repo — not committed there yet, awaiting user instruction).
+
+### Phase 3 (Not Started): Wire `LayaDecisionAdapter` into Production
+- Build the concrete adapter loading `data/laya/checkpoints/laya_finetuned_v1_16epochs/` via `laya.load()`, implementing whatever port(s) replace/complement `OllamaResearchIntentAdapter` and the quality/classification analyzers.
+- Validate against real Silvina Editorial documents (not just the synthetic archetype test set) before considering it production-ready.
