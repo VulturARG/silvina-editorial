@@ -66,7 +66,9 @@ class AnalyzeDocumentUseCase:
         classification = self._article_classifier.classify(
             document_content=document_content, laya_decision=laya_decision
         )
-        quality = self._quality_analyzer.analyze(document_content=document_content)
+        quality = self._quality_analyzer.analyze(
+            document_content=document_content, laya_decision=laya_decision
+        )
 
         effective_type = classification.effective_structure_type
         has_references = len(references) > 0

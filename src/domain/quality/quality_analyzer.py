@@ -1,4 +1,5 @@
 from src.domain.dtos.document_content_dto import DocumentContentDTO
+from src.domain.dtos.laya_decision_result_dto import LayaDecisionResultDTO
 from src.domain.dtos.parsed_response_dto import ParsedResponseDTO
 from src.domain.dtos.quality_result_dto import QualityResultDTO
 from src.domain.enums.quality_dimension import QualityDimension
@@ -11,7 +12,7 @@ from src.domain.quality.quality_text_sampler import QualityTextSampler
 
 
 class QualityAnalyzer:
-    """Domain service that orchestrates LLM-backed quality scoring across 4 dimensions."""
+    """Domain service that scores 4 quality dimensions from Laya and adds LLM feedback on demand."""
 
     def __init__(
         self,
@@ -29,48 +30,21 @@ class QualityAnalyzer:
         self._argumentation_conclusions_prompt_template = argumentation_conclusions_prompt_template
         self._editorial_suitability_analyzer = editorial_suitability_analyzer
 
-    def analyze(self, document_content: DocumentContentDTO) -> QualityResultDTO:
-        """Score document quality across Claridad, Coherencia, Argumentación and Conclusiones."""
+    def analyze(
+        self, document_content: DocumentContentDTO, laya_decision: LayaDecisionResultDTO
+    ) -> QualityResultDTO:
+        """Score quality from Laya; request LLM feedback only for dimensions below GOOD."""
         text_sample = self._text_sampler.build_sample(document_content=document_content)
 
-        clarity_coherence_prompt = self._render_prompt(
-            template=self._clarity_coherence_prompt_template, text_sample=text_sample
-        )
-        argumentation_conclusions_prompt = self._render_prompt(
-            template=self._argumentation_conclusions_prompt_template, text_sample=text_sample
-        )
-
-        clarity_coherence_response = self._llm_generator.generate(prompt=clarity_coherence_prompt)
-        argumentation_conclusions_response = self._llm_generator.generate(
-            prompt=argumentation_conclusions_prompt
-        )
-
-        clarity_coherence_parsed = self._response_parser.parse(text=clarity_coherence_response)
-        self._ensure_call_produced_usable_content(
-            parsed_response=clarity_coherence_parsed,
-            relevant_dimensions=(QualityDimension.CLARITY, QualityDimension.COHERENCE),
-        )
-
-        argumentation_conclusions_parsed = self._response_parser.parse(
-            text=argumentation_conclusions_response
-        )
-        self._ensure_call_produced_usable_content(
-            parsed_response=argumentation_conclusions_parsed,
-            relevant_dimensions=(QualityDimension.ARGUMENTATION, QualityDimension.CONCLUSIONS),
-        )
-
-        dimension_scores = {
-            QualityDimension.CLARITY: clarity_coherence_parsed.scores[QualityDimension.CLARITY],
-            QualityDimension.COHERENCE: clarity_coherence_parsed.scores[QualityDimension.COHERENCE],
-            QualityDimension.ARGUMENTATION: argumentation_conclusions_parsed.scores[
-                QualityDimension.ARGUMENTATION
-            ],
-            QualityDimension.CONCLUSIONS: argumentation_conclusions_parsed.scores[
-                QualityDimension.CONCLUSIONS
-            ],
+        scores = {
+            QualityDimension.CLARITY: laya_decision.score_clarity.expected_value,
+            QualityDimension.COHERENCE: laya_decision.score_coherence.expected_value,
+            QualityDimension.ARGUMENTATION: laya_decision.score_argumentation.expected_value,
+            QualityDimension.CONCLUSIONS: laya_decision.score_conclusions.expected_value,
         }
+        feedback = self._request_feedback_for_low_dimensions(scores=scores, text_sample=text_sample)
 
-        overall_score = sum(d.score for d in dimension_scores.values()) / len(dimension_scores)
+        overall_score = sum(scores.values()) / len(scores)
         quality_level = QualityLevel.from_score(overall_score)
 
         editorial_suitability = self._editorial_suitability_analyzer.analyze(
@@ -81,16 +55,50 @@ class QualityAnalyzer:
             overall_score=overall_score,
             quality_level=quality_level,
             dimension_scores={
-                dimension.value: {"score": value.score, "feedback": value.feedback}
-                for dimension, value in dimension_scores.items()
+                dimension.value: {"score": scores[dimension], "feedback": feedback[dimension]}
+                for dimension in QualityDimension
             },
             editorial_suitability=editorial_suitability,
         )
 
+    def _request_feedback_for_low_dimensions(
+        self, scores: dict[QualityDimension, float], text_sample: str
+    ) -> dict[QualityDimension, str]:
+        feedback = dict.fromkeys(QualityDimension, "")
+        prompt_templates_by_dimensions = (
+            (
+                self._clarity_coherence_prompt_template,
+                (QualityDimension.CLARITY, QualityDimension.COHERENCE),
+            ),
+            (
+                self._argumentation_conclusions_prompt_template,
+                (QualityDimension.ARGUMENTATION, QualityDimension.CONCLUSIONS),
+            ),
+        )
+        for prompt_template, dimensions in prompt_templates_by_dimensions:
+            low_dimensions = tuple(
+                dimension
+                for dimension in dimensions
+                if scores[dimension] < QualityLevel.GOOD.min_threshold
+            )
+            if not low_dimensions:
+                continue
+
+            prompt = self._render_prompt(template=prompt_template, text_sample=text_sample)
+            parsed_response = self._response_parser.parse(
+                text=self._llm_generator.generate(prompt=prompt)
+            )
+            self._ensure_call_produced_usable_content(
+                parsed_response=parsed_response, relevant_dimensions=low_dimensions
+            )
+            for dimension in low_dimensions:
+                feedback[dimension] = parsed_response.scores[dimension].feedback
+        return feedback
+
     def _ensure_call_produced_usable_content(
         self,
         parsed_response: ParsedResponseDTO,
-        relevant_dimensions: tuple[QualityDimension, QualityDimension],
+        relevant_dimensions: tuple[QualityDimension, ...],
     ) -> None:
         if not any(
             dimension in parsed_response.matched_dimensions for dimension in relevant_dimensions

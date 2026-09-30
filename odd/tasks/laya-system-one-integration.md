@@ -113,10 +113,11 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
   - **Verification**: Update `src/domain/tests/classification/test_article_classifier.py` and `src/application/tests/test_analyze_document_use_case.py`.
   - **Outcome**: Signals map `LayaBinaryAnswer.YES` (`"SI"`) to `True`. Retired `ResearchIntentDetectorPort`, `OllamaResearchIntentAdapter`, `ArticleClassificationTextSampler`, `ArticleClassificationResponseParser`, the `s4_s5_s6_signal_prompt.txt` prompt, the classification-only `FakeLlmGeneratorAdapter`, and the `ARTICLE_CLASSIFIER_TEMPERATURE`/`ARTICLE_CLASSIFIER_NUM_PREDICT` env vars. The constructor change forced the Laya part of TASK-19 forward: the wiring now builds `LayaDecisionMaker` (`laya.load(LAYA_CHECKPOINT_PATH, device=LAYA_DEVICE)`, empty device = automatic) and `AnalyzeDocumentUseCaseWiringForTest` swaps in `FakeLayaDecisionPort`; the CLI e2e test patches `laya.load` with `FakeLayaAgent`. The living OpenSpec specs (`openspec/specs/analyze-document/spec.md`, `openspec/specs/classify-article/spec.md`) still describe the retired env vars and LLM signal path — pending update.
 
-- [ ] **TASK-17: Refactor `QualityAnalyzer` to consume Laya scores, Ollama feedback on demand**
+- [x] **TASK-17: Refactor `QualityAnalyzer` to consume Laya scores, Ollama feedback on demand**
   - **Route**: direct inline
   - **Scope**: Make `AnalyzeDocumentUseCase` pass the same `LayaDecisionResultDTO` into `QualityAnalyzer.analyze()`. Update `src/domain/quality/quality_analyzer.py` to take the 4 dimension scores directly from `LayaDecisionResultDTO`; call the LLM narrative prompts only for dimensions scoring below `QualityLevel.GOOD.min_threshold` (7.0).
   - **Verification**: Update `src/domain/tests/quality/test_quality_analyzer.py` covering both the all-above-threshold (no LLM calls) and below-threshold (LLM feedback requested) paths.
+  - **Outcome**: `QualityAnalyzer.analyze(document_content, laya_decision)` takes the 4 scores from `LayaDecisionResultDTO` (overall = their mean). Each LLM prompt covers a pair (clarity+coherence, argumentation+conclusions) and is called only when a dimension of that pair scores below 7.0; the LLM score is discarded and only the feedback of the below-threshold dimensions is kept (other dimensions get an empty feedback, which the report skips). Unusable LLM output for a below-threshold dimension still raises `QualityAnalysisFailed`. `EditorialSuitabilityAnalyzer` is unchanged (TASK-18).
 
 - [ ] **TASK-18: Refactor `EditorialSuitabilityAnalyzer` to consume Laya verdicts, Ollama narrative on demand**
   - **Route**: direct inline
@@ -143,7 +144,7 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
 ## 4. Progress & Verification Log
 
 - **Current Status**: Phase 2 Complete (TASK-06 through TASK-11 done; validated checkpoint at `data/laya/checkpoints/laya_finetuned_v1_16epochs/`). Phase 3 planned (TASK-12 through TASK-21 defined below), awaiting explicit user go-ahead to start TASK-12.
-- **Next Step**: TASK-17 — `QualityAnalyzer` consumes Laya scores; use case passes the Laya decision. Smoke run of the fine-tuned checkpoint on CPU: load 11.6 s, one `decide` 25.5 s (see TASK-21 for GPU).
+- **Next Step**: TASK-18 — `EditorialSuitabilityAnalyzer` consumes Laya verdicts. Smoke run of the fine-tuned checkpoint on CPU: load 11.6 s, one `decide` 25.5 s (see TASK-21 for GPU).
 - **Data Location Decision**: The `E:\IA\laya` repository is kept clean (frequent upstream updates); all generated datasets and generation scripts were relocated to `data/laya/` inside `silvina-editorial` and are tracked in this repo (~12MB total).
 
 ### Verification History

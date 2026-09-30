@@ -1,7 +1,12 @@
+import ast
+from dataclasses import replace
+from pathlib import Path
 from unittest import TestCase
 
 from src.domain.dtos.document_content_dto import DocumentContentDTO
 from src.domain.dtos.editorial_suitability_dto import EditorialSuitabilityDTO
+from src.domain.dtos.laya_decision_result_dto import LayaDecisionResultDTO
+from src.domain.dtos.laya_score_decision_dto import LayaScoreDecisionDTO
 from src.domain.enums.quality_level import QualityLevel
 from src.domain.exceptions.quality_errors import QualityAnalysisFailed
 from src.domain.quality.editorial_suitability_analyzer import EditorialSuitabilityAnalyzer
@@ -9,6 +14,7 @@ from src.domain.quality.editorial_suitability_parser import EditorialSuitability
 from src.domain.quality.quality_analyzer import QualityAnalyzer
 from src.domain.quality.quality_response_parser import QualityResponseParser
 from src.domain.quality.quality_text_sampler import QualityTextSampler
+from src.domain.tests.laya.fake_laya_decision_port import DEFAULT_DECISION_RESULT
 from src.domain.tests.quality.fake_llm_generator_adapter import FakeLlmGeneratorAdapter
 
 
@@ -22,6 +28,18 @@ def build_document_content(
         paragraph_count=len(paragraphs),
         title=title,
         paragraphs=paragraphs,
+    )
+
+
+def build_laya_decision(
+    clarity: float, coherence: float, argumentation: float, conclusions: float
+) -> LayaDecisionResultDTO:
+    return replace(
+        DEFAULT_DECISION_RESULT,
+        score_clarity=LayaScoreDecisionDTO(expected_value=clarity, confidence=1.0),
+        score_coherence=LayaScoreDecisionDTO(expected_value=coherence, confidence=1.0),
+        score_argumentation=LayaScoreDecisionDTO(expected_value=argumentation, confidence=1.0),
+        score_conclusions=LayaScoreDecisionDTO(expected_value=conclusions, confidence=1.0),
     )
 
 
@@ -77,18 +95,22 @@ def build_analyzer(fake_adapter: FakeLlmGeneratorAdapter) -> QualityAnalyzer:
     )
 
 
-VALID_RESPONSE_ONE = """**1. Claridad del argumento** [Puntuación: 8/10]
-El argumento central es claro y facil de seguir en todo el texto.
+ALL_GOOD_DECISION = build_laya_decision(
+    clarity=8.0, coherence=7.0, argumentation=9.0, conclusions=7.5
+)
 
-**2. Coherencia** [Puntuación: 8/10]
-Las ideas se conectan logicamente entre las distintas secciones del texto.
+LOW_CLARITY_RESPONSE = """**1. Claridad del argumento** [Puntuación: 2/10]
+El argumento central es confuso y dificil de seguir en todo el texto.
+
+**2. Coherencia** [Puntuación: 2/10]
+Este feedback de coherencia no debe usarse porque Laya la considera buena.
 """
 
-VALID_RESPONSE_TWO = """**1. Argumentación** [Puntuación: 8/10]
-Los argumentos presentados son solidos y estan bien fundamentados.
+LOW_ARGUMENTATION_RESPONSE = """**1. Argumentación** [Puntuación: 2/10]
+Los argumentos presentados son debiles y carecen de fundamento solido.
 
-**2. Conclusiones** [Puntuación: 8/10]
-Las conclusiones se desprenden claramente del contenido desarrollado.
+**2. Conclusiones** [Puntuación: 2/10]
+Este feedback de conclusiones no debe usarse porque Laya las considera buenas.
 """
 
 
@@ -96,107 +118,101 @@ class TestQualityAnalyzer(TestCase):
     def setUp(self):
         self.document_content = build_document_content(["Parrafo uno.", "Parrafo dos."])
 
-    def test_generate_is_called_exactly_twice_per_analysis(self):
-        fake_adapter = FakeLlmGeneratorAdapter([VALID_RESPONSE_ONE, VALID_RESPONSE_TWO])
-        analyzer = build_analyzer(fake_adapter)
+    def test_scores_come_from_laya_and_overall_score_is_their_mean(self):
+        analyzer = build_analyzer(FakeLlmGeneratorAdapter([]))
 
-        analyzer.analyze(self.document_content)
+        result = analyzer.analyze(self.document_content, ALL_GOOD_DECISION)
 
-        self.assertEqual(fake_adapter.call_count, 2)
+        self.assertEqual(result.dimension_scores["claridad"]["score"], 8.0)
+        self.assertEqual(result.dimension_scores["coherencia"]["score"], 7.0)
+        self.assertEqual(result.dimension_scores["argumentacion"]["score"], 9.0)
+        self.assertEqual(result.dimension_scores["conclusiones"]["score"], 7.5)
+        self.assertEqual(result.overall_score, 7.875)
 
-    def test_overall_score_is_mean_of_four_dimension_scores(self):
-        response_one = """**1. Claridad** [Puntuación: 8/10]
-El argumento central es claro y facil de seguir en todo el texto.
+    def test_overall_score_resolves_to_its_quality_level(self):
+        analyzer = build_analyzer(FakeLlmGeneratorAdapter([]))
 
-**2. Coherencia** [Puntuación: 6/10]
-Las ideas se conectan de forma parcial entre las distintas secciones del texto.
-"""
-        response_two = """**1. Argumentación** [Puntuación: 7/10]
-Los argumentos presentados son razonables y estan fundamentados en el texto.
-
-**2. Conclusiones** [Puntuación: 9/10]
-Las conclusiones se desprenden claramente del contenido desarrollado en detalle.
-"""
-        fake_adapter = FakeLlmGeneratorAdapter([response_one, response_two])
-        analyzer = build_analyzer(fake_adapter)
-
-        result = analyzer.analyze(self.document_content)
-
-        self.assertEqual(result.overall_score, 7.5)
-
-    def test_overall_score_of_seven_resolves_to_good_quality_level(self):
-        response_one = """**1. Claridad** [Puntuación: 7/10]
-El argumento central es claro y facil de seguir en todo el texto.
-
-**2. Coherencia** [Puntuación: 7/10]
-Las ideas se conectan logicamente entre las distintas secciones del texto.
-"""
-        response_two = """**1. Argumentación** [Puntuación: 7/10]
-Los argumentos presentados son razonables y estan fundamentados en el texto.
-
-**2. Conclusiones** [Puntuación: 7/10]
-Las conclusiones se desprenden claramente del contenido desarrollado en detalle.
-"""
-        fake_adapter = FakeLlmGeneratorAdapter([response_one, response_two])
-        analyzer = build_analyzer(fake_adapter)
-
-        result = analyzer.analyze(self.document_content)
+        result = analyzer.analyze(self.document_content, build_laya_decision(7, 7, 7, 7))
 
         self.assertEqual(result.quality_level, QualityLevel.GOOD)
 
-    def test_domain_service_has_zero_infrastructure_imports(self):
-        from pathlib import Path
+    def test_no_llm_call_when_every_dimension_reaches_the_good_threshold(self):
+        fake_adapter = FakeLlmGeneratorAdapter([])
+        analyzer = build_analyzer(fake_adapter)
 
+        result = analyzer.analyze(self.document_content, ALL_GOOD_DECISION)
+
+        self.assertEqual(fake_adapter.call_count, 0)
+        for dimension_data in result.dimension_scores.values():
+            self.assertEqual(dimension_data["feedback"], "")
+
+    def test_low_clarity_requests_only_the_clarity_coherence_prompt(self):
+        fake_adapter = FakeLlmGeneratorAdapter([LOW_CLARITY_RESPONSE])
+        analyzer = build_analyzer(fake_adapter)
+
+        analyzer.analyze(self.document_content, build_laya_decision(4.0, 8.0, 8.0, 8.0))
+
+        self.assertEqual(fake_adapter.call_count, 1)
+        self.assertIn("Evalúa Claridad y Coherencia.", fake_adapter.received_prompts[0])
+
+    def test_low_argumentation_requests_only_the_argumentation_conclusions_prompt(self):
+        fake_adapter = FakeLlmGeneratorAdapter([LOW_ARGUMENTATION_RESPONSE])
+        analyzer = build_analyzer(fake_adapter)
+
+        analyzer.analyze(self.document_content, build_laya_decision(8.0, 8.0, 4.0, 8.0))
+
+        self.assertEqual(fake_adapter.call_count, 1)
+        self.assertIn("Evalúa Argumentación y Conclusiones.", fake_adapter.received_prompts[0])
+
+    def test_all_dimensions_low_requests_both_prompts(self):
+        fake_adapter = FakeLlmGeneratorAdapter([LOW_CLARITY_RESPONSE, LOW_ARGUMENTATION_RESPONSE])
+        analyzer = build_analyzer(fake_adapter)
+
+        analyzer.analyze(self.document_content, build_laya_decision(4.0, 4.0, 4.0, 4.0))
+
+        self.assertEqual(fake_adapter.call_count, 2)
+
+    def test_threshold_is_inclusive_so_a_score_of_seven_requests_no_feedback(self):
+        fake_adapter = FakeLlmGeneratorAdapter([])
+        analyzer = build_analyzer(fake_adapter)
+
+        analyzer.analyze(self.document_content, build_laya_decision(7.0, 7.0, 7.0, 7.0))
+
+        self.assertEqual(fake_adapter.call_count, 0)
+
+    def test_feedback_is_kept_only_for_low_dimensions_and_scores_ignore_the_llm(self):
+        fake_adapter = FakeLlmGeneratorAdapter([LOW_CLARITY_RESPONSE])
+        analyzer = build_analyzer(fake_adapter)
+
+        result = analyzer.analyze(self.document_content, build_laya_decision(4.0, 8.0, 8.0, 8.0))
+
+        self.assertEqual(result.dimension_scores["claridad"]["score"], 4.0)
+        self.assertIn("confuso", result.dimension_scores["claridad"]["feedback"])
+        self.assertEqual(result.dimension_scores["coherencia"]["score"], 8.0)
+        self.assertEqual(result.dimension_scores["coherencia"]["feedback"], "")
+        self.assertEqual(result.dimension_scores["argumentacion"]["feedback"], "")
+
+    def test_unusable_feedback_response_for_a_low_dimension_raises_quality_analysis_failed(self):
+        fake_adapter = FakeLlmGeneratorAdapter(
+            ["Este texto no contiene ningun encabezado de dimension reconocible."]
+        )
+        analyzer = build_analyzer(fake_adapter)
+
+        with self.assertRaises(QualityAnalysisFailed):
+            analyzer.analyze(self.document_content, build_laya_decision(4.0, 8.0, 8.0, 8.0))
+
+    def test_domain_service_has_zero_infrastructure_imports(self):
         source = Path("src/domain/quality/quality_analyzer.py").read_text(encoding="utf-8")
 
         self.assertNotIn("src.infrastructure", source)
         self.assertNotIn("import ollama", source)
         self.assertNotIn("from ollama", source)
 
-    def test_claridad_and_coherencia_always_come_from_call_one(self):
-        response_two_with_claridad_like_header = """**1. Argumentación** [Puntuación: 3/10]
-Argumentos debiles presentados en el desarrollo del texto analizado aqui.
-
-**2. Conclusiones** [Puntuación: 8/10]
-Las conclusiones se desprenden claramente del contenido desarrollado.
-
-**Claridad** [Puntuación: 1/10]
-Este bloque de claridad nunca deberia usarse porque viene de la llamada dos.
-"""
-        fake_adapter = FakeLlmGeneratorAdapter(
-            [VALID_RESPONSE_ONE, response_two_with_claridad_like_header]
-        )
-        analyzer = build_analyzer(fake_adapter)
-
-        result = analyzer.analyze(self.document_content)
-
-        self.assertEqual(result.dimension_scores["claridad"]["score"], 8.0)
-        self.assertEqual(result.dimension_scores["coherencia"]["score"], 8.0)
-
-    def test_argumentacion_and_conclusiones_always_come_from_call_two(self):
-        fake_adapter = FakeLlmGeneratorAdapter([VALID_RESPONSE_ONE, VALID_RESPONSE_TWO])
-        analyzer = build_analyzer(fake_adapter)
-
-        result = analyzer.analyze(self.document_content)
-
-        self.assertEqual(result.dimension_scores["argumentacion"]["score"], 8.0)
-        self.assertEqual(result.dimension_scores["conclusiones"]["score"], 8.0)
-
-    def test_both_dimensions_failing_to_parse_in_one_call_raises_quality_analysis_failed(self):
-        response_one_without_headers = (
-            "Este texto no contiene ningun encabezado de dimension reconocible."
-        )
-        fake_adapter = FakeLlmGeneratorAdapter([response_one_without_headers, VALID_RESPONSE_TWO])
-        analyzer = build_analyzer(fake_adapter)
-
-        with self.assertRaises(QualityAnalysisFailed):
-            analyzer.analyze(self.document_content)
-
     def test_rendered_prompt_preserves_legacy_wording_with_sample_interpolated(self):
-        fake_adapter = FakeLlmGeneratorAdapter([VALID_RESPONSE_ONE, VALID_RESPONSE_TWO])
+        fake_adapter = FakeLlmGeneratorAdapter([LOW_CLARITY_RESPONSE])
         analyzer = build_analyzer(fake_adapter)
 
-        analyzer.analyze(self.document_content)
+        analyzer.analyze(self.document_content, build_laya_decision(4.0, 8.0, 8.0, 8.0))
 
         text_sample = QualityTextSampler().build_sample(self.document_content)
         self.assertIn(
@@ -205,19 +221,16 @@ Este bloque de claridad nunca deberia usarse porque viene de la llamada dos.
         self.assertIn(text_sample, fake_adapter.received_prompts[0])
 
     def test_result_includes_editorial_suitability_dto_from_analyzer(self):
-        fake_adapter = FakeLlmGeneratorAdapter([VALID_RESPONSE_ONE, VALID_RESPONSE_TWO])
-        analyzer = build_analyzer(fake_adapter)
+        analyzer = build_analyzer(FakeLlmGeneratorAdapter([]))
 
-        result = analyzer.analyze(self.document_content)
+        result = analyzer.analyze(self.document_content, ALL_GOOD_DECISION)
 
-        self.assertIsInstance(result.editorial_suitability, EditorialSuitabilityDTO)
-        self.assertEqual(result.editorial_suitability.contribution_verdict, "SUSTENTADA")
-        self.assertEqual(result.editorial_suitability.alignment_verdict, "ALINEADO")
+        suitability = result.editorial_suitability
+        assert isinstance(suitability, EditorialSuitabilityDTO)
+        self.assertEqual(suitability.contribution_verdict, "SUSTENTADA")
+        self.assertEqual(suitability.alignment_verdict, "ALINEADO")
 
     def test_quality_analyzer_module_defines_exactly_one_class(self):
-        import ast
-        from pathlib import Path
-
         source = Path("src/domain/quality/quality_analyzer.py").read_text(encoding="utf-8")
         tree = ast.parse(source)
         top_level_classes = [

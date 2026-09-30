@@ -112,6 +112,15 @@ class TestAnalyzeDocumentUseCase(TestCase):
             laya_decision=mocks["laya_decision_maker"].decide.return_value,
         )
 
+    def test_quality_analyzer_receives_the_laya_decision(self):
+        use_case, mocks = self._make_use_case()
+        use_case.execute(document_path="test.docx")
+
+        mocks["quality_analyzer"].analyze.assert_called_once_with(
+            document_content=mocks["document_content_extractor"].extract_content.return_value,
+            laya_decision=mocks["laya_decision_maker"].decide.return_value,
+        )
+
     def test_apa_validator_receives_citations_and_document_paragraphs(self):
         content = _make_content(paragraphs=["Para 0", "Para 1", "Para 2"])
         document_content_extractor = MagicMock()
