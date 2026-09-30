@@ -9,3 +9,4 @@ fastapi
 uvicorn
 jinja2
 python-multipart
+laya==0.3.22

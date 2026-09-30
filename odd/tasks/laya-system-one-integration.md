@@ -97,9 +97,9 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
   - **Scope**: Create `src/domain/laya/laya_text_sampler.py` building the single Laya `state` with the same strategy the pre-Laya `QualityTextSampler` used (the legacy sampler that loaded the most characters): title + first 3 paragraphs + 2 middle paragraphs + up to 3 conclusion paragraphs (or the last 2 non-reference paragraphs), joined up to 8000 characters completing the boundary paragraph, falling back to the full document when the excerpt has fewer than 400 words. Every parameter is injected (no hardcoded defaults) and read from `.env` via `EnvConfig` (`LAYA_TEXT_SAMPLE_*`).
   - **Verification**: Unit tests in `src/domain/tests/laya/test_laya_text_sampler.py` covering each parameter and the fallback, plus `EnvConfig` default/override tests.
 
-- [ ] **TASK-14: Implement `LayaDecisionAdapter`**
+- [x] **TASK-14: Implement `LayaDecisionAdapter`**
   - **Route**: direct inline
-  - **Scope**: Create `src/infrastructure/adapters/laya/laya_decision_adapter.py` implementing `LayaDecisionPort` via `laya.load(checkpoint_path)` and `agent.predict(state, questions)`, reading question definitions from `src/infrastructure/resources/laya/decision_questions.json` and mapping the raw `choice`/`score` answers into `LayaDecisionResultDTO`.
+  - **Scope**: Create `src/infrastructure/adapters/laya/laya_decision_adapter.py` implementing `LayaDecisionPort` via an injected, already-loaded Laya `Agent` and its question definitions (the wiring calls `laya.load(checkpoint_path)` and reads `src/infrastructure/resources/laya/decision_questions.json`), calling `agent.predict(state, questions)` once and mapping the raw `choice`/`score` answers into `LayaDecisionResultDTO`.
   - **Verification**: Unit tests in `src/infrastructure/tests/adapters/laya/test_laya_decision_adapter.py` with a faked/mocked Laya agent (no real checkpoint load in unit tests).
 
 - [ ] **TASK-15: Refactor `AnalyzeDocumentUseCase` to call Laya once**
@@ -127,6 +127,11 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
   - **Scope**: Instantiate `LayaDecisionAdapter` (loading `data/laya/checkpoints/laya_finetuned_v1_16epochs/`) in `src/infrastructure/wirings/analyze_document_use_case_wiring.py` and inject it into the use case and refactored domain services.
   - **Verification**: Update `src/infrastructure/tests/wirings/test_analyze_document_use_case_wiring.py`.
 
+- [ ] **TASK-21: Validate Laya GPU inference on AMD ROCm (before TASK-19)**
+  - **Route**: direct inline
+  - **Scope**: The app must run on AMD GPUs as well as NVIDIA/CPU. `requirements.txt` pins only `laya==0.3.22`; the PyTorch build is chosen per machine at setup (CPU by default in `setup.bat`, CUDA for NVIDIA, ROCm for AMD — ROCm exposes `torch.cuda`, so Laya needs no changes). Install the AMD ROCm PyTorch build on the dev machine (Radeon RX 7800 XT, gfx1101, Windows 11), confirming wheel availability for the `.venv` Python version (3.14; AMD Windows wheels historically targeted 3.12), and verify `laya.load` + `predict` run on the GPU with the fine-tuned checkpoint.
+  - **Verification**: `torch.cuda.is_available()` is true on the AMD GPU and a checkpoint prediction matches the CPU result within autocast tolerance; document the install steps in the README.
+
 - [ ] **TASK-20: Real-Document Validation & Regression Verification & Work-Unit Commit**
   - **Route**: direct inline
   - **Scope**: Run the full pytest suite across `src/`; manually validate results against real Silvina Editorial documents (not just the synthetic archetype test set).
@@ -136,8 +141,8 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
 
 ## 4. Progress & Verification Log
 
-- **Current Status**: Phase 2 Complete (TASK-06 through TASK-11 done; validated checkpoint at `data/laya/checkpoints/laya_finetuned_v1_16epochs/`). Phase 3 planned (TASK-12 through TASK-20 defined below), awaiting explicit user go-ahead to start TASK-12.
-- **Next Step**: TASK-14 — implement `LayaDecisionAdapter`.
+- **Current Status**: Phase 2 Complete (TASK-06 through TASK-11 done; validated checkpoint at `data/laya/checkpoints/laya_finetuned_v1_16epochs/`). Phase 3 planned (TASK-12 through TASK-21 defined below), awaiting explicit user go-ahead to start TASK-12.
+- **Next Step**: TASK-15 — refactor `AnalyzeDocumentUseCase` to call Laya once. Smoke run of the fine-tuned checkpoint on CPU: load 11.6 s, one `decide` 25.5 s (see TASK-21 for GPU).
 - **Data Location Decision**: The `E:\IA\laya` repository is kept clean (frequent upstream updates); all generated datasets and generation scripts were relocated to `data/laya/` inside `silvina-editorial` and are tracked in this repo (~12MB total).
 
 ### Verification History

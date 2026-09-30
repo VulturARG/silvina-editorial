@@ -202,7 +202,10 @@ cd silvina_editorial_v095
 python -m venv ../venv312
 source ../venv312/Scripts/activate  # Windows Git Bash
 
-# 4. Install dependencies
+# 4. Install PyTorch for your hardware (required by Laya), then dependencies
+pip install torch --index-url https://download.pytorch.org/whl/cpu   # CPU (any machine)
+# NVIDIA GPU: install the CUDA build from https://pytorch.org/get-started/locally/
+# AMD GPU:    install the ROCm build from https://rocm.docs.amd.com (PyTorch on Windows/Linux)
 pip install -r requirements.txt
 
 # 5. Pull LLM model
