@@ -26,6 +26,7 @@ acme.json
 .idea
 .idea/
 .venv/
+.venv*/
 .qodo/
 
 # Environment

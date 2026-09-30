@@ -203,9 +203,18 @@ python -m venv ../venv312
 source ../venv312/Scripts/activate  # Windows Git Bash
 
 # 4. Install PyTorch for your hardware (required by Laya), then dependencies
-pip install torch --index-url https://download.pytorch.org/whl/cpu   # CPU (any machine)
-# NVIDIA GPU: install the CUDA build from https://pytorch.org/get-started/locally/
-# AMD GPU:    install the ROCm build from https://rocm.docs.amd.com (PyTorch on Windows/Linux)
+# Option A - CPU (default / any OS / Python 3.12 or 3.14):
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+# Option B - NVIDIA GPU (CUDA):
+# Install the CUDA build from https://pytorch.org/get-started/locally/
+
+# Option C - AMD GPU (ROCm):
+# - Linux: pip install torch --index-url https://download.pytorch.org/whl/rocm6.2
+# - Windows 11 (Radeon RX 7000 / RDNA 3, e.g. RX 7800 XT / gfx110X, requires Python 3.12):
+#   pip install --index-url https://rocm.nightlies.amd.com/v2/gfx110X-all/ torch
+#   (Note: Windows ROCm wheels are compiled for Python 3.10-3.13; Python 3.14 falls back to CPU).
+
 pip install -r requirements.txt
 
 # 5. Pull LLM model

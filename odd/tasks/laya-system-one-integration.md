@@ -131,10 +131,17 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
   - **Verification**: Update `src/infrastructure/tests/test_analyze_document_use_case_wiring.py`.
   - **Outcome**: Wiring verified for `LayaDecisionMaker`, `QualityAnalyzer`, and `EditorialSuitabilityAnalyzer`. Unit tests added in `test_analyze_document_use_case_wiring.py` asserting `_laya_decision_maker` presence among domain services and `EditorialSuitabilityAnalyzer` wiring in `_quality_analyzer`. Living OpenSpec specs (`classify-article/spec.md`, `analyze-document/spec.md`) updated to reflect Laya System 1 integration, 11 domain service orchestrator dependencies, Laya env vars, and retired `ARTICLE_CLASSIFIER_*` env vars.
 
-- [ ] **TASK-21: Validate Laya GPU inference on AMD ROCm (before TASK-19)**
+- [x] **TASK-21: Validate Laya GPU inference on AMD ROCm (before TASK-19)**
   - **Route**: direct inline
   - **Scope**: The app must run on AMD GPUs as well as NVIDIA/CPU. `requirements.txt` pins only `laya==0.3.22`; the PyTorch build is chosen per machine at setup (CPU by default in `setup.bat`, CUDA for NVIDIA, ROCm for AMD — ROCm exposes `torch.cuda`, so Laya needs no changes). Install the AMD ROCm PyTorch build on the dev machine (Radeon RX 7800 XT, gfx1101, Windows 11), confirming wheel availability for the `.venv` Python version (3.14; AMD Windows wheels historically targeted 3.12), and verify `laya.load` + `predict` run on the GPU with the fine-tuned checkpoint.
   - **Verification**: `torch.cuda.is_available()` is true on the AMD GPU and a checkpoint prediction matches the CPU result within autocast tolerance; document the install steps in the README.
+  - **Outcome**:
+    - Verified native GPU inference on dev machine's AMD Radeon RX 7800 XT (`gfx110X`) under Windows 11 using Python 3.12 virtualenv (`.venv312`) and AMD TheRock nightly PyTorch build (`torch-2.10.0+rocm7.14.0a20260611`).
+    - `torch.cuda.is_available()` confirmed `True` (device: `AMD Radeon RX 7800 XT`).
+    - Prediction speedup: **1.32s on GPU vs 30.60s on CPU (23x speedup)**; load time 8.14s.
+    - Parity confirmed: 100% agreement on all 5 discrete choices (`s4_intent`, `s5_evidence`, `s6_theory`, `editorial_verdict`, `research_line`); continuous quality scores within < 0.005 difference (autocast / precision tolerance).
+    - Python compatibility: Windows ROCm wheels are compiled for Python 3.10-3.13 (Python 3.12 used); Python 3.14 falls back to CPU due to absence of cp314 wheels.
+    - Updated README installation instructions.
 
 - [ ] **TASK-20: Real-Document Validation & Regression Verification & Work-Unit Commit**
   - **Route**: direct inline
@@ -145,8 +152,8 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
 
 ## 4. Progress & Verification Log
 
-- **Current Status**: Phase 3 underway (TASK-12 through TASK-19 complete). Living OpenSpec specs and wiring test suite updated.
-- **Next Step**: TASK-21: Validate Laya GPU inference on AMD ROCm (or document Windows 11 / Python 3.14 CPU status).
+- **Current Status**: Phase 3 nearly complete (TASK-12 through TASK-19 and TASK-21 done).
+- **Next Step**: TASK-20: Real-Document Validation & Regression Verification & Work-Unit Commit.
 - **Data Location Decision**: The `E:\IA\laya` repository is kept clean (frequent upstream updates); all generated datasets and generation scripts were relocated to `data/laya/` inside `silvina-editorial` and are tracked in this repo (~12MB total).
 
 ### Verification History
@@ -211,6 +218,9 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
 
 - **TASK-19**: Complete.
   - Verification: Added assertions and new test method `test_quality_analyzer_wires_editorial_suitability_analyzer` in `src/infrastructure/tests/test_analyze_document_use_case_wiring.py`. Updated `openspec/specs/classify-article/spec.md` and `openspec/specs/analyze-document/spec.md` for Laya System 1 integration and retired env vars. Full pytest suite passed (791 passed, 1 warning, 17 subtests passed).
+
+- **TASK-21**: Complete.
+  - Verification: Verified native GPU inference on dev machine's AMD Radeon RX 7800 XT (`gfx110X`) under Windows 11 using Python 3.12 virtualenv (`.venv312`) and AMD TheRock nightly PyTorch build (`torch-2.10.0+rocm7.14.0a20260611`). `torch.cuda.is_available()` confirmed `True` (device: `AMD Radeon RX 7800 XT`). Prediction speedup: **1.32s on GPU vs 30.60s on CPU (23x speedup)**; load time 8.14s. Parity confirmed: 100% agreement on all 5 discrete choices (`s4_intent`, `s5_evidence`, `s6_theory`, `editorial_verdict`, `research_line`); continuous quality scores within < 0.005 difference (autocast / precision tolerance). Python compatibility: Windows ROCm wheels are compiled for Python 3.10-3.13 (Python 3.12 used); Python 3.14 falls back to CPU due to absence of cp314 wheels. Updated README installation instructions.
 
 ### Phase 3 Architecture Decision (recorded, not yet implemented)
 - A single `LayaDecisionPort.decide(text_sample) -> LayaDecisionResultDTO` is invoked once per document (one Laya forward pass resolves all 9 questions), and the resulting DTO is threaded down into `ArticleClassifier`, `QualityAnalyzer`, and `EditorialSuitabilityAnalyzer` instead of each service calling Laya independently.
