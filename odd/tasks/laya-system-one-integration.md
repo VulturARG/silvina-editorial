@@ -85,12 +85,59 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
   - **Scope**: Generate the `gold` field (per-question teacher probability distributions) required by Laya's RLCD fine-tuning format, by sampling each `state`+`questions` against Ollama K=5 times at temperature 0.7 and computing empirical frequency per question.
   - **Verification**: All 480 records (384 train + 48 calibration + 48 test) carry `gold` with all 9 question ids and probabilities summing to 1.0.
 
+### Phase 3: Wire `LayaDecisionAdapter` into Production
+
+- [x] **TASK-12: Define domain port `LayaDecisionPort` and `LayaDecisionResultDTO`**
+  - **Route**: direct inline
+  - **Scope**: Create `src/domain/laya/laya_decision_port.py` (abstract method `decide(text_sample: str) -> LayaDecisionResultDTO`) and `src/domain/dtos/laya_decision_result_dto.py` carrying the 9 raw decisions from `decision_questions.json` (`s4_research_intent`, `s5_empirical_evidence`, `s6_theoretical_framework` — renamed from the `s4_intent`/`s5_evidence`/`s6_theory` question ids to avoid opaque abbreviations, so `LayaDecisionAdapter` maps ids to fields —, `editorial_verdict`, `research_line` as `LayaChoiceDecisionDTO` carrying `answer`, per-option `probabilities` and `confidence`; `score_clarity`, `score_coherence`, `score_argumentation`, `score_conclusions` as `LayaScoreDecisionDTO` carrying the 0-10 `expected_value` and `confidence`). Confidence is Laya's `answer_confidence` (calibrated probability of the reported answer), kept so downstream services can request LLM narrative when Laya is uncertain.
+  - **Verification**: Unit tests in `src/domain/tests/laya/test_laya_decision_port.py` and `src/domain/tests/dtos/test_laya_decision_result_dto.py`.
+
+- [ ] **TASK-13: Implement the Laya text sampler**
+  - **Route**: direct inline
+  - **Scope**: Create `src/domain/laya/laya_text_sampler.py` building a `state` excerpt consistent with the training distribution (~1000-1200 words / ~8000 chars of near-complete document text, not the shorter/differently-shaped excerpts used by `ArticleClassificationTextSampler` or `QualityTextSampler`).
+  - **Verification**: Unit tests in `src/domain/tests/laya/test_laya_text_sampler.py` asserting word/char bounds and fallback behavior on short documents.
+
+- [ ] **TASK-14: Implement `LayaDecisionAdapter`**
+  - **Route**: direct inline
+  - **Scope**: Create `src/infrastructure/adapters/laya/laya_decision_adapter.py` implementing `LayaDecisionPort` via `laya.load(checkpoint_path)` and `agent.predict(state, questions)`, reading question definitions from `src/infrastructure/resources/laya/decision_questions.json` and mapping the raw `choice`/`score` answers into `LayaDecisionResultDTO`.
+  - **Verification**: Unit tests in `src/infrastructure/tests/adapters/laya/test_laya_decision_adapter.py` with a faked/mocked Laya agent (no real checkpoint load in unit tests).
+
+- [ ] **TASK-15: Refactor `AnalyzeDocumentUseCase` to call Laya once**
+  - **Route**: direct inline
+  - **Scope**: Update `src/application/analyze_document_use_case.py` to build the Laya `state` once, invoke `LayaDecisionPort.decide()` a single time per document, and pass the resulting `LayaDecisionResultDTO` down into `ArticleClassifier`, `QualityAnalyzer`, and `EditorialSuitabilityAnalyzer`.
+  - **Verification**: Update `src/application/tests/test_analyze_document_use_case.py` with a fake `LayaDecisionPort` double.
+
+- [ ] **TASK-16: Refactor `ArticleClassifier` to consume `LayaDecisionResultDTO`**
+  - **Route**: direct inline
+  - **Scope**: Replace the `ResearchIntentDetectorPort` dependency in `src/domain/classification/article_classifier.py` with a read of `s4_research_intent`/`s5_empirical_evidence`/`s6_theoretical_framework` from the injected `LayaDecisionResultDTO`. Retire `ResearchIntentDetectorPort` and `OllamaResearchIntentAdapter` once no longer referenced.
+  - **Verification**: Update `src/domain/tests/classification/test_article_classifier.py`.
+
+- [ ] **TASK-17: Refactor `QualityAnalyzer` to consume Laya scores, Ollama feedback on demand**
+  - **Route**: direct inline
+  - **Scope**: Update `src/domain/quality/quality_analyzer.py` to take the 4 dimension scores directly from `LayaDecisionResultDTO`; call the LLM narrative prompts only for dimensions scoring below `QualityLevel.GOOD.min_threshold` (7.0).
+  - **Verification**: Update `src/domain/tests/quality/test_quality_analyzer.py` covering both the all-above-threshold (no LLM calls) and below-threshold (LLM feedback requested) paths.
+
+- [ ] **TASK-18: Refactor `EditorialSuitabilityAnalyzer` to consume Laya verdicts, Ollama narrative on demand**
+  - **Route**: direct inline
+  - **Scope**: Update `src/domain/quality/editorial_suitability_analyzer.py` to take `editorial_verdict`/`research_line` from `LayaDecisionResultDTO`; call the contribution/alignment LLM prompts only when the verdict is not the positive one (`SUSTENTADA` / aligned).
+  - **Verification**: Update `src/domain/tests/quality/test_editorial_suitability_analyzer.py` covering positive-verdict (no LLM calls) and negative/partial-verdict (LLM narrative requested) paths.
+
+- [ ] **TASK-19: Update `AnalyzeDocumentUseCaseWiring`**
+  - **Route**: direct inline
+  - **Scope**: Instantiate `LayaDecisionAdapter` (loading `data/laya/checkpoints/laya_finetuned_v1_16epochs/`) in `src/infrastructure/wirings/analyze_document_use_case_wiring.py` and inject it into the use case and refactored domain services.
+  - **Verification**: Update `src/infrastructure/tests/wirings/test_analyze_document_use_case_wiring.py`.
+
+- [ ] **TASK-20: Real-Document Validation & Regression Verification & Work-Unit Commit**
+  - **Route**: direct inline
+  - **Scope**: Run the full pytest suite across `src/`; manually validate results against real Silvina Editorial documents (not just the synthetic archetype test set).
+  - **Verification**: Zero regressions; commit work-unit to `feat/laya-system-one-ports`.
+
 ---
 
 ## 4. Progress & Verification Log
 
-- **Current Status**: Complete (Phase 2 Data Preparation + Fine-Tuning Complete: TASK-06 through TASK-11 done; validated checkpoint at `data/laya/checkpoints/laya_finetuned_v1_16epochs/`)
-- **Next Step**: Phase 3 — wire `LayaDecisionAdapter` into production and validate against real documents
+- **Current Status**: Phase 2 Complete (TASK-06 through TASK-11 done; validated checkpoint at `data/laya/checkpoints/laya_finetuned_v1_16epochs/`). Phase 3 planned (TASK-12 through TASK-20 defined below), awaiting explicit user go-ahead to start TASK-12.
+- **Next Step**: TASK-13 — implement the Laya text sampler.
 - **Data Location Decision**: The `E:\IA\laya` repository is kept clean (frequent upstream updates); all generated datasets and generation scripts were relocated to `data/laya/` inside `silvina-editorial` and are tracked in this repo (~12MB total).
 
 ### Verification History
@@ -153,6 +200,8 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
   - Checkpoint saved locally (not committed — no git-lfs) at `data/laya/checkpoints/laya_finetuned_v1_16epochs/` (~808MB), added to `.gitignore`.
   - Commit: Pending user instruction (held).
 
-### Phase 3 (Not Started): Wire `LayaDecisionAdapter` into Production
-- Build the concrete adapter loading `data/laya/checkpoints/laya_finetuned_v1_16epochs/` via `laya.load()`, implementing whatever port(s) replace/complement `OllamaResearchIntentAdapter` and the quality/classification analyzers.
-- Validate against real Silvina Editorial documents (not just the synthetic archetype test set) before considering it production-ready.
+### Phase 3 Architecture Decision (recorded, not yet implemented)
+- A single `LayaDecisionPort.decide(text_sample) -> LayaDecisionResultDTO` is invoked once per document (one Laya forward pass resolves all 9 questions), and the resulting DTO is threaded down into `ArticleClassifier`, `QualityAnalyzer`, and `EditorialSuitabilityAnalyzer` instead of each service calling Laya independently.
+- Ollama stays wired for narrative text only, gated on demand: quality dimension feedback below 7.0 (`QualityLevel.GOOD` threshold), and editorial contribution/alignment narrative when the verdict is not the positive one.
+- Laya's training `state` was near-complete document text (~1000-1200 words / ~7500 chars), not an excerpt built by either existing text sampler — TASK-13 introduces a dedicated sampler for Laya's `state` input.
+- See TASK-12 through TASK-20 above for the full breakdown. Held pending explicit user instruction to start TASK-12.
