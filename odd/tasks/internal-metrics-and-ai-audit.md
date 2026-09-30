@@ -1,0 +1,103 @@
+# Feature: Internal Metrics and AI Audit
+
+- **Feature Name**: `internal-metrics-and-ai-audit`
+- **File Locator**: `odd/tasks/internal-metrics-and-ai-audit.md`
+- **TDD Mode**: Enabled (Strict TDD: RED -> GREEN -> REFACTOR)
+- **TDD Runner**: `.venv/Scripts/python -m pytest src/`
+- **Delivery Strategy**: `ask-on-risk`
+- **Forecast Changed Lines**: ~400 lines
+- **Running Authored Lines**: 0
+
+---
+
+## 1. Objective & Problem
+`silvina-editorial` lacks internal observability and metrics. There is currently no record of execution latencies per pipeline stage, no persistence of the prompts and raw responses exchanged with Ollama and Laya, and no structured logging of errors and HTTP requests.
+
+This feature introduces a 100% self-contained, open-source, and free observability and telemetry subsystem based on:
+1. **Local SQLite (`data/metrics.db`) with WAL mode** to record document analysis summaries (master) and full AI interactions (detail: prompts, questions, text samples, raw model outputs, and latencies).
+2. **Infrastructure Decorators** wrapping `LlmGeneratorPort` and `LayaDecisionPort` to intercept inputs and outputs cleanly without polluting domain services.
+3. **Correlation ID context (`AnalysisContext`)** using Python's standard `contextvars` to link AI interactions to the specific document analysis without changing domain method signatures.
+4. **Structured rotating file logging** (`logs/silvina.log`) and a FastAPI request-timing middleware to track API traffic and system events.
+
+---
+
+## 2. Scope & Constraints
+
+### In Scope
+- Define `AnalysisMetricsPort` in the domain/application layer and a test double `FakeAnalysisMetricsPort`.
+- Implement `AnalysisContext` using `contextvars` to manage execution/analysis IDs.
+- Implement `SqliteAnalysisMetricsAdapter` in infrastructure with SQLite WAL mode and relational tables: `analyses` (master) and `ai_interactions` (detail).
+- Implement `AuditedLlmGeneratorAdapter` wrapping `LlmGeneratorPort` to capture Ollama prompts, raw responses, and latencies.
+- Implement `AuditedLayaDecisionAdapter` wrapping `LayaDecisionPort` to capture Laya text samples, questions, raw decision dictionaries, and latencies.
+- Implement centralized structured logging in `src/infrastructure/config/logging_config.py` with `TimedRotatingFileHandler`.
+- Wire `SqliteAnalysisMetricsAdapter` and the audited decorators into `AnalyzeDocumentUseCaseWiring` and `AnalyzeDocumentUseCase`.
+- Add a lightweight request logging middleware in `src/infrastructure/fastapi/fastapi_app.py`.
+- Comprehensive unit and integration test suite with zero regressions across `src/`.
+
+### Out of Scope
+- External database servers (PostgreSQL, MySQL).
+- Heavy external observability stacks (Docker, Prometheus daemon, Grafana server).
+- Breaking existing domain public interfaces or existing tests.
+
+---
+
+## 3. Checklist of Actionable Tasks
+
+- [x] **TASK-01: Define domain port `AnalysisMetricsPort`, domain service `AnalysisMetricsRecorder`, DTOs, and test double**
+  - **Route**: subagent delegation (`gentle-ai-worker`)
+  - **Scope**: Under `src/domain/dtos/`, create `AnalysisStartDTO`, `StageDurationDTO`, `AiInteractionDTO`, and `AnalysisCompletionDTO` inheriting from `BaseDTO`. Under `src/domain/metrics/`, create `AnalysisMetricsPort(ABC)` with abstract methods accepting single DTO parameters: `record_analysis_start(start_data: AnalysisStartDTO)`, `record_stage_duration(stage_duration: StageDurationDTO)`, `record_ai_interaction(ai_interaction: AiInteractionDTO)`, and `record_analysis_completion(completion_data: AnalysisCompletionDTO)`. Create domain service `AnalysisMetricsRecorder` wrapping `AnalysisMetricsPort`. Create test double `src/domain/tests/metrics/fake_analysis_metrics_port.py`.
+  - **Verification**: Unit tests in `src/domain/tests/dtos/` (12 passed) and `src/domain/tests/metrics/` (10 passed) — 22 passed total.
+  - **Outcome**: Created all DTOs and interfaces with single-parameter contracts, strictly complying with Clean Architecture and parameter-object conventions. Full test suite: 770 passed in 9.18s.
+
+- [ ] **TASK-02: Implement `AnalysisContext` using `contextvars`**
+  - **Route**: direct inline
+  - **Scope**: Create `src/application/analysis_context.py` exposing helper functions to get/set/clear the active `analysis_id` via Python's native `contextvars.ContextVar`.
+  - **Verification**: Unit tests in `src/application/tests/test_analysis_context.py`.
+
+- [ ] **TASK-03: Implement `SqliteAnalysisMetricsAdapter`**
+  - **Route**: direct inline
+  - **Scope**: Create `src/infrastructure/adapters/metrics/sqlite_analysis_metrics_adapter.py` fulfilling `AnalysisMetricsPort`. Configure `PRAGMA journal_mode = WAL;`. Create tables `analyses` and `ai_interactions` on init. Implement parameterized synchronous SQL inserts.
+  - **Verification**: Unit tests in `src/infrastructure/tests/adapters/metrics/test_sqlite_analysis_metrics_adapter.py` verifying schema creation, WAL pragma, and transactional inserts.
+
+- [ ] **TASK-04: Implement `AuditedLlmGeneratorAdapter`**
+  - **Route**: direct inline
+  - **Scope**: Create `src/infrastructure/adapters/llm_generator/audited_llm_generator_adapter.py` wrapping `LlmGeneratorPort`. Intercept `generate()`, measure latency, audit prompt and raw response via `AnalysisMetricsPort`, and re-raise/record exceptions.
+  - **Verification**: Unit tests in `src/infrastructure/tests/adapters/llm_generator/test_audited_llm_generator_adapter.py`.
+
+- [ ] **TASK-05: Implement `AuditedLayaDecisionAdapter`**
+  - **Route**: direct inline
+  - **Scope**: Create `src/infrastructure/adapters/laya/audited_laya_decision_adapter.py` wrapping `LayaDecisionPort`. Intercept `decide()`, measure latency, audit input sample/questions and raw output answers via `AnalysisMetricsPort`.
+  - **Verification**: Unit tests in `src/infrastructure/tests/adapters/laya/test_audited_laya_decision_adapter.py`.
+
+- [ ] **TASK-06: Implement Centralized Structured Logging Configuration**
+  - **Route**: direct inline
+  - **Scope**: Create `src/infrastructure/config/logging_config.py` setting up `TimedRotatingFileHandler` writing to `logs/silvina.log` with standardized log format including correlation IDs and timestamps.
+  - **Verification**: Unit tests in `src/infrastructure/tests/test_logging_config.py`.
+
+- [ ] **TASK-07: Integrate Metrics and Audited Adapters into Pipeline & Wiring**
+  - **Route**: direct inline
+  - **Scope**: In `AnalyzeDocumentUseCase`, initialize analysis context and record stage latencies. In `AnalyzeDocumentUseCaseWiring`, wire `SqliteAnalysisMetricsAdapter` and wrap Laya/Ollama adapters with audited decorators. Ensure `AnalyzeDocumentUseCaseWiringForTest` uses `FakeAnalysisMetricsPort`.
+  - **Verification**: Unit tests in `src/infrastructure/tests/test_analyze_document_use_case_wiring.py` and `src/application/tests/test_analyze_document_use_case.py`.
+
+- [ ] **TASK-08: Add FastAPI Request-Timing & Logging Middleware**
+  - **Route**: direct inline
+  - **Scope**: Add middleware in `src/infrastructure/fastapi/fastapi_app.py` recording HTTP request method, path, status, and duration in `logs/silvina.log`.
+  - **Verification**: Tests in `src/infrastructure/fastapi/tests/test_middleware.py`.
+
+- [ ] **TASK-09: End-to-End Verification & Work-Unit Commit**
+  - **Route**: direct inline
+  - **Scope**: Execute full pytest suite across `src/`. Verify zero regressions. Perform test analysis and assert records in `data/metrics.db` and logs in `logs/silvina.log`.
+  - **Verification**: 100% test pass rate and work-unit commit.
+
+---
+
+## 4. Progress & Verification Log
+
+- **Current Status**: TASK-01 complete. Standing by for user authorization to proceed to TASK-02 or commit.
+- **Next Step**: TASK-02 (Implement `AnalysisContext` using `contextvars`).
+
+### Verification History
+- **TASK-01**: Complete.
+  - RED: `.venv/Scripts/python -m pytest src/domain/tests/metrics/` failed with `ModuleNotFoundError: No module named 'src.domain.metrics'`.
+  - GREEN: Implemented `AnalysisMetricsPort(ABC)`, `AnalysisMetricsRecorder`, and `FakeAnalysisMetricsPort`. 10 tests passed in `src/domain/tests/metrics/`. Full test suite: 758 passed in 19.44s.
+  - Verification: Clean architecture rules strictly verified: domain folder `src/domain/metrics/`, domain service with no `Service` suffix, `unittest.TestCase` format, and DTOs extending `BaseDTO`. Zero regressions. Commit: `19ec559`.
