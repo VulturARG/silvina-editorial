@@ -143,17 +143,18 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
     - Python compatibility: Windows ROCm wheels are compiled for Python 3.10-3.13 (Python 3.12 used); Python 3.14 falls back to CPU due to absence of cp314 wheels.
     - Updated README installation instructions.
 
-- [ ] **TASK-20: Real-Document Validation & Regression Verification & Work-Unit Commit**
+- [x] **TASK-20: Real-Document Validation & Regression Verification & Work-Unit Commit**
   - **Route**: direct inline
   - **Scope**: Run the full pytest suite across `src/`; manually validate results against real Silvina Editorial documents (not just the synthetic archetype test set).
   - **Verification**: Zero regressions; commit work-unit to `feat/laya-system-one-ports`.
+  - **Outcome**: Executed complete analysis pipeline on real editorial document (`capacidades_razonamiento_emergente_LLMs.docx`, 3613 words, 26k characters). Verified end-to-end integration: Laya decision engine runs on GPU/CPU in pipeline step 5, signals flow into `ArticleClassifier` (classified as DIVULGACION), scores flow into `QualityAnalyzer`, below-threshold dimensions trigger Ollama feedback on demand, structure and APA validation execute cleanly, and both Word (`.docx`) and JSON (`.json`) reports are exported successfully. Full test suite (791 tests) passed with zero regressions under both Python 3.14 (`.venv`) and Python 3.12 (`.venv312`). Phase 3 is complete.
 
 ---
 
 ## 4. Progress & Verification Log
 
-- **Current Status**: Phase 3 nearly complete (TASK-12 through TASK-19 and TASK-21 done).
-- **Next Step**: TASK-20: Real-Document Validation & Regression Verification & Work-Unit Commit.
+- **Current Status**: Phase 3 Complete (TASK-12 through TASK-21 done). Laya System 1 engine fully integrated into production pipeline with on-demand LLM narration and verified AMD ROCm GPU acceleration.
+- **Next Step**: Phase 3 complete. Ready for final review / merge of `feat/laya-system-one-ports`.
 - **Data Location Decision**: The `E:\IA\laya` repository is kept clean (frequent upstream updates); all generated datasets and generation scripts were relocated to `data/laya/` inside `silvina-editorial` and are tracked in this repo (~12MB total).
 
 ### Verification History
@@ -221,6 +222,9 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
 
 - **TASK-21**: Complete.
   - Verification: Verified native GPU inference on dev machine's AMD Radeon RX 7800 XT (`gfx110X`) under Windows 11 using Python 3.12 virtualenv (`.venv312`) and AMD TheRock nightly PyTorch build (`torch-2.10.0+rocm7.14.0a20260611`). `torch.cuda.is_available()` confirmed `True` (device: `AMD Radeon RX 7800 XT`). Prediction speedup: **1.32s on GPU vs 30.60s on CPU (23x speedup)**; load time 8.14s. Parity confirmed: 100% agreement on all 5 discrete choices (`s4_intent`, `s5_evidence`, `s6_theory`, `editorial_verdict`, `research_line`); continuous quality scores within < 0.005 difference (autocast / precision tolerance). Python compatibility: Windows ROCm wheels are compiled for Python 3.10-3.13 (Python 3.12 used); Python 3.14 falls back to CPU due to absence of cp314 wheels. Updated README installation instructions.
+
+- **TASK-20**: Complete.
+  - Verification: Executed full document analysis pipeline on real editorial document (`capacidades_razonamiento_emergente_LLMs.docx`, 3613 words, 26,235 characters). Verified end-to-end integration: Laya decision engine runs in pipeline step 5, qualitative and quantitative signals flow into `ArticleClassifier` (classified as DIVULGACION), quality scores flow into `QualityAnalyzer`, below-threshold dimensions trigger Ollama feedback on demand, structure and APA validation execute cleanly, and both Word (`.docx`) and JSON (`.json`) reports are exported successfully. Full test suite (791 tests) passed with zero regressions under both Python 3.14 (`.venv`) and Python 3.12 (`.venv312`). Phase 3 is complete.
 
 ### Phase 3 Architecture Decision (recorded, not yet implemented)
 - A single `LayaDecisionPort.decide(text_sample) -> LayaDecisionResultDTO` is invoked once per document (one Laya forward pass resolves all 9 questions), and the resulting DTO is threaded down into `ArticleClassifier`, `QualityAnalyzer`, and `EditorialSuitabilityAnalyzer` instead of each service calling Laya independently.
