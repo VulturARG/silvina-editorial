@@ -7,6 +7,7 @@ from src.application.analyze_document_use_case import AnalyzeDocumentUseCase
 from src.domain.dtos.recommendation_settings_dto import RecommendationSettingsDTO
 from src.domain.laya.laya_decision_maker import LayaDecisionMaker
 from src.domain.laya.laya_text_sampler import LayaTextSampler
+from src.domain.quality.editorial_suitability_analyzer import EditorialSuitabilityAnalyzer
 from src.infrastructure.adapters.laya.laya_decision_adapter import LayaDecisionAdapter
 from src.infrastructure.tests.test_doubles.analyze_document_use_case_wiring_for_test import (
     AnalyzeDocumentUseCaseWiringForTest,
@@ -27,11 +28,19 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         self.assertIsNotNone(result._document_format_inspector)
         self.assertIsNotNone(result._grammar_checker)
         self.assertIsNotNone(result._apa_validator)
+        self.assertIsNotNone(result._laya_decision_maker)
         self.assertIsNotNone(result._article_classifier)
         self.assertIsNotNone(result._quality_analyzer)
         self.assertIsNotNone(result._structure_validator)
         self.assertIsNotNone(result._citation_matcher)
         self.assertIsNotNone(result._recommendation_builder)
+
+    def test_quality_analyzer_wires_editorial_suitability_analyzer(self):
+        result = AnalyzeDocumentUseCaseWiringForTest().create_use_case()
+        self.assertIsInstance(
+            result._quality_analyzer._editorial_suitability_analyzer,
+            EditorialSuitabilityAnalyzer,
+        )
 
     def test_create_use_case_wires_laya_decision_maker(self):
         result = AnalyzeDocumentUseCaseWiringForTest().create_use_case()

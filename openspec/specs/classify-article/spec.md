@@ -124,6 +124,14 @@ interpretation, defaulting, or translation of the dict's contents.
 
 ### Requirement: ArticleClassifier Domain Service Orchestrates Classification
 
+> **Superseded (Phase 3 Laya System 1 integration, TASK-16)**: In Phase 3 Laya System 1
+> integration (TASK-16), S4, S5, and S6 are derived directly from `laya_decision: LayaDecisionResultDTO`
+> (`s4_research_intent`, `s5_empirical_evidence`, `s6_theoretical_framework` mapping
+> `LayaBinaryAnswer.YES` to `True`), and the Ollama LLM signal call, prompt, parser, and
+> `ARTICLE_CLASSIFIER_TEMPERATURE`/`ARTICLE_CLASSIFIER_NUM_PREDICT` env vars were retired.
+> `ArticleClassifier.classify()` receives `(document_content, laya_decision)` and no longer
+> depends on `LlmGeneratorPort`.
+
 `ArticleClassifier` (or equivalent name finalized in design) MUST be a domain
 service, constructor-injected with an `LlmGeneratorPort` instance, the IMRyD
 signal detector, a text sampler, a response parser, and two required
@@ -216,6 +224,11 @@ joined text.
   text (including any bibliography)
 
 ### Requirement: S4/S5/S6 Response Parser
+
+> **Superseded (Phase 3 Laya System 1 integration, TASK-16)**: The Ollama LLM signal call,
+> prompt, and response parser were retired. S4, S5, and S6 are derived directly from
+> `laya_decision: LayaDecisionResultDTO` (`s4_research_intent`, `s5_empirical_evidence`,
+> `s6_theoretical_framework` mapping `LayaBinaryAnswer.YES` to `True`).
 
 A response parser MUST extract 3 independent yes/no booleans (S4: explicit
 research intent; S5: evidence-based conclusive contribution; S6: theoretical
@@ -486,6 +499,11 @@ ported verbatim: `36000 <= char_count <= 40000` → `LARGO`;
   service's classification method would produce for the same input
 
 ### Requirement: AnalyzeDocumentUseCaseWiring Owns Tunable Defaults
+
+> **Superseded (Phase 3 Laya System 1 integration, TASK-16)**: In Phase 3 Laya System 1
+> integration (TASK-16), `ARTICLE_CLASSIFIER_TEMPERATURE` and `ARTICLE_CLASSIFIER_NUM_PREDICT`
+> env vars were retired. `ArticleClassifier` no longer depends on `LlmGeneratorPort` or
+> generation tunables; S4, S5, and S6 are derived directly from `laya_decision: LayaDecisionResultDTO`.
 
 `AnalyzeDocumentUseCaseWiring._get_article_classifier()` MUST construct `ArticleClassifier`
 directly. It MUST reuse the shared `OllamaGeneratorAdapter` instance from `_get_llm_generator()`

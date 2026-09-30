@@ -143,8 +143,18 @@ The application version attribute (`silvina_version`) MUST be resolved dynamical
 | `CITATION_MAX_AUTHOR_NAME_LENGTH` | `int` | `100` | `citation_max_author_name_length` |
 | `GRAMMAR_MAX_REPLACEMENTS` | `int` | `3` | `grammar_max_replacements` |
 | `STRUCTURE_MAX_HEADER_LENGTH` | `int` | `100` | `structure_max_header_length` |
-| `ARTICLE_CLASSIFIER_TEMPERATURE` | `float` | `0.1` | `article_classifier_temperature` |
-| `ARTICLE_CLASSIFIER_NUM_PREDICT` | `int` | `300` | `article_classifier_num_predict` |
+| `ARTICLE_CLASSIFIER_TEMPERATURE` | `float` | `0.1` | *(Retired in Phase 3 Laya integration)* |
+| `ARTICLE_CLASSIFIER_NUM_PREDICT` | `int` | `300` | *(Retired in Phase 3 Laya integration)* |
+| `LAYA_CHECKPOINT_PATH` | `str` | `"data/laya/checkpoints/laya_finetuned_v1_16epochs"` | `laya_checkpoint_path` |
+| `LAYA_DEVICE` | `str \| None` | `None` | `laya_device` |
+| `LAYA_TEXT_SAMPLE_MIN_WORD_COUNT` | `int` | `400` | `laya_text_sample_min_word_count` |
+| `LAYA_TEXT_SAMPLE_CHARACTER_LIMIT` | `int` | `8000` | `laya_text_sample_character_limit` |
+| `LAYA_TEXT_SAMPLE_REFERENCE_LINE_PREFIX_LENGTH` | `int` | `80` | `laya_text_sample_reference_line_prefix_length` |
+| `LAYA_TEXT_SAMPLE_INTRODUCTION_PARAGRAPH_COUNT` | `int` | `3` | `laya_text_sample_introduction_paragraph_count` |
+| `LAYA_TEXT_SAMPLE_MIDDLE_PARAGRAPH_COUNT` | `int` | `2` | `laya_text_sample_middle_paragraph_count` |
+| `LAYA_TEXT_SAMPLE_CONCLUSION_PARAGRAPH_LIMIT` | `int` | `3` | `laya_text_sample_conclusion_paragraph_limit` |
+| `LAYA_TEXT_SAMPLE_FALLBACK_TAIL_PARAGRAPH_COUNT` | `int` | `2` | `laya_text_sample_fallback_tail_paragraph_count` |
+| `LAYA_TEXT_SAMPLE_CONCLUSION_HEADER_MARKER` | `str` | `"conclusi"` | `laya_text_sample_conclusion_header_marker` |
 | `ARTICLE_SIZE_SHORT_MIN_CHARS` | `int` | `16000` | `article_size_short_min_chars` |
 | `ARTICLE_SIZE_SHORT_MAX_CHARS` | `int` | `24000` | `article_size_short_max_chars` |
 | `ARTICLE_SIZE_UNDEFINED_MIN_CHARS` | `int` | `24001` | `article_size_undefined_min_chars` |
@@ -373,28 +383,29 @@ The `GrammarChecker` domain service MUST reside in `src/domain/grammar/grammar_c
 
 ### Requirement: AnalyzeDocumentUseCase Orchestrator
 
-`AnalyzeDocumentUseCase` MUST live in `src/application/analyze_document_use_case.py` and coordinate the document analysis steps. It accepts its 10 domain service dependencies via constructor injection:
-- Domain services: `document_content_extractor`, `citation_extractor`, `document_format_inspector`, `grammar_checker`, `apa_validator`, `article_classifier`, `quality_analyzer`, `structure_validator`, `citation_matcher`, `recommendation_builder`.
-(Previously: Accepted 7 ports, 5 domain services, and 1 builder — 13 dependencies total.)
+`AnalyzeDocumentUseCase` MUST live in `src/application/analyze_document_use_case.py` and coordinate the document analysis steps. It accepts its 11 domain service dependencies via constructor injection:
+- Domain services: `document_content_extractor`, `citation_extractor`, `document_format_inspector`, `grammar_checker`, `apa_validator`, `laya_decision_maker`, `article_classifier`, `quality_analyzer`, `structure_validator`, `citation_matcher`, `recommendation_builder`.
+(Previously: Accepted 10 domain services prior to Phase 3 Laya integration; originally 7 ports, 5 domain services, and 1 builder — 13 dependencies total.)
 
 Method `execute(document_path: str) -> ReportInputDTO` MUST be wrapped with `@generic_error_handler` and perform:
 1. Extract content via `document_content_extractor.extract_content(document_path)`.
 2. Extract citations/references via `citation_extractor.extract_citations_and_references(document_path)`.
 3. Validate APA citations via `apa_validator.validate_all_citations(citations, document_content.paragraphs)`.
 4. Grammar check via `grammar_checker.check_grammar(document_content.paragraphs)`.
-5. Classify article via `article_classifier.classify(document_content)`.
-6. Analyze quality via `quality_analyzer.analyze(document_content)`.
-7. Validate structure via `structure_validator.validate_structure(document_content, classification.effective_structure_type, len(references) > 0)`.
-8. Parse references section type to `SectionName`, falling back to `REFERENCES` on `ValueError`.
-9. Match citations via `citation_matcher.match_citations_to_references(citations, references, section_name)`.
-10. Verify format/EUMIC via `document_format_inspector.inspect(document_path, document_content.word_count)`.
-11. Call `recommendation_builder.build(...)` -> `(recommendations, verdict)`.
-12. Return `ReportInputDTO`.
+5. Run Laya decision engine via `laya_decision_maker.decide(document_content)`.
+6. Classify article via `article_classifier.classify(document_content, laya_decision)`.
+7. Analyze quality via `quality_analyzer.analyze(document_content, laya_decision)`.
+8. Validate structure via `structure_validator.validate_structure(document_content, classification.effective_structure_type, len(references) > 0)`.
+9. Parse references section type to `SectionName`, falling back to `REFERENCES` on `ValueError`.
+10. Match citations via `citation_matcher.match_citations_to_references(citations, references, section_name)`.
+11. Verify format/EUMIC via `document_format_inspector.inspect(document_path, document_content.word_count)`.
+12. Call `recommendation_builder.build(...)` -> `(recommendations, verdict)`.
+13. Return `ReportInputDTO`.
 
 #### Scenario: Orchestrator executes all pipeline steps sequentially
 - GIVEN a valid `document_path`
 - WHEN `execute(document_path)` is called
-- THEN each of the 10 domain service dependencies is invoked and a `ReportInputDTO` is returned
+- THEN each of the 11 domain service dependencies is invoked and a `ReportInputDTO` is returned
 
 #### Scenario: Structure validation uses effective structure type
 - GIVEN a scientific article without "IMRyD" in reasoning
@@ -408,7 +419,7 @@ Method `execute(document_path: str) -> ReportInputDTO` MUST be wrapped with `@ge
 `AnalyzeDocumentUseCaseWiring` MUST reside in `src/infrastructure/wirings/analyze_document_use_case_wiring.py`. It MUST follow the private-method wiring pattern where:
 - `create_use_case()` instantiates `EnvConfig` and delegates dependency injection to `_get_xxx()` private methods, injecting the configurations from the `EnvConfig` instance.
 - Port helper methods instantiate and memoize/return infrastructure adapters.
-- Domain service helper methods build the 10 domain services directly, wrapping ports or LLM generator dependencies as required.
+- Domain service helper methods build the 11 domain services directly, wrapping ports or LLM generator dependencies as required.
 - `_get_document_content_extractor()` returns `DocumentContentExtractor(self._get_document_text_port(), self._get_content_extraction_port(), self._get_character_count_port())`.
 - `_get_citation_extractor()` returns `CitationExtractor(self._get_citation_extraction_port(), self._get_reference_extraction_port())`.
 - `_get_document_format_inspector()` returns `DocumentFormatInspector(self._get_document_format_inspection_port())`.
@@ -418,9 +429,13 @@ Method `execute(document_path: str) -> ReportInputDTO` MUST be wrapped with `@ge
 #### Scenario: Wiring constructs correct dependency graph
 - GIVEN the wiring configuration
 - WHEN `AnalyzeDocumentUseCaseWiring().create_use_case()` is called
-- THEN it returns a valid `AnalyzeDocumentUseCase` with all 10 domain service dependencies injected
+- THEN it returns a valid `AnalyzeDocumentUseCase` with all 11 domain service dependencies injected
 
 #### Scenario: Article classifier and quality analyzer share one LLM generator instance
+> **Superseded note (Phase 3 Laya integration)**: In Phase 3, `article_classifier` was refactored
+> to consume `LayaDecisionResultDTO` directly and no longer depends on `LlmGeneratorPort`.
+> `_quality_analyzer` (and its nested `editorial_suitability_analyzer`) remains the sole LLM consumer,
+> requesting narrative feedback on demand from the shared `_get_llm_generator()` instance.
 - GIVEN `AnalyzeDocumentUseCaseWiring().create_use_case()`
 - WHEN `result._article_classifier._llm_generator` and `result._quality_analyzer._llm_generator` are compared
 - THEN they are the exact same object (`is`), not merely equal instances

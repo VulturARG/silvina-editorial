@@ -125,10 +125,11 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
   - **Verification**: Update `src/domain/tests/quality/test_editorial_suitability_analyzer.py` covering positive-verdict (no LLM calls) and negative/partial-verdict (LLM narrative requested) paths.
   - **Outcome**: Laya verdict is authoritative; LLM called for contribution only when verdict != SUSTENTADA, for alignment only when line == NINGUNA; Laya cannot express "PARCIALMENTE ALINEADO" so alignment is ALINEADO/NO ALINEADO; positive alignment has empty justification; LLM verdict discarded; docx skips empty justification.
 
-- [ ] **TASK-19: Update `AnalyzeDocumentUseCaseWiring`**
+- [x] **TASK-19: Update `AnalyzeDocumentUseCaseWiring`**
   - **Route**: direct inline
   - **Scope**: Laya construction already landed in TASK-16; remaining: any QualityAnalyzer/EditorialSuitabilityAnalyzer wiring changes from TASK-17/18. Original scope: In `src/infrastructure/wirings/analyze_document_use_case_wiring.py`, load the agent with `laya.load` (`data/laya/checkpoints/laya_finetuned_v1_16epochs/`), read `decision_questions.json`, build `LayaDecisionAdapter`, inject it into `LayaDecisionMaker` together with `LayaTextSampler` (settings from `EnvConfig.get_laya_text_sample_settings()`), and inject `LayaDecisionMaker` into the use case.
-  - **Verification**: Update `src/infrastructure/tests/wirings/test_analyze_document_use_case_wiring.py`.
+  - **Verification**: Update `src/infrastructure/tests/test_analyze_document_use_case_wiring.py`.
+  - **Outcome**: Wiring verified for `LayaDecisionMaker`, `QualityAnalyzer`, and `EditorialSuitabilityAnalyzer`. Unit tests added in `test_analyze_document_use_case_wiring.py` asserting `_laya_decision_maker` presence among domain services and `EditorialSuitabilityAnalyzer` wiring in `_quality_analyzer`. Living OpenSpec specs (`classify-article/spec.md`, `analyze-document/spec.md`) updated to reflect Laya System 1 integration, 11 domain service orchestrator dependencies, Laya env vars, and retired `ARTICLE_CLASSIFIER_*` env vars.
 
 - [ ] **TASK-21: Validate Laya GPU inference on AMD ROCm (before TASK-19)**
   - **Route**: direct inline
@@ -144,8 +145,8 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
 
 ## 4. Progress & Verification Log
 
-- **Current Status**: Phase 2 Complete (TASK-06 through TASK-11 done; validated checkpoint at `data/laya/checkpoints/laya_finetuned_v1_16epochs/`). Phase 3 planned (TASK-12 through TASK-21 defined below), awaiting explicit user go-ahead to start TASK-12.
-- **Next Step**: TASK-21 (Validate Laya GPU inference on AMD ROCm) / TASK-19 (Update AnalyzeDocumentUseCaseWiring). Smoke run of the fine-tuned checkpoint on CPU: load 11.6 s, one `decide` 25.5 s (see TASK-21 for GPU).
+- **Current Status**: Phase 3 underway (TASK-12 through TASK-19 complete). Living OpenSpec specs and wiring test suite updated.
+- **Next Step**: TASK-21: Validate Laya GPU inference on AMD ROCm (or document Windows 11 / Python 3.14 CPU status).
 - **Data Location Decision**: The `E:\IA\laya` repository is kept clean (frequent upstream updates); all generated datasets and generation scripts were relocated to `data/laya/` inside `silvina-editorial` and are tracked in this repo (~12MB total).
 
 ### Verification History
@@ -207,6 +208,9 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
   - Decision: `expected` is retired as an evaluation yardstick going forward; the teacher's `gold` distribution is the correct reference, since it is what Laya is meant to reproduce.
   - Checkpoint saved locally (not committed — no git-lfs) at `data/laya/checkpoints/laya_finetuned_v1_16epochs/` (~808MB), added to `.gitignore`.
   - Commit: Pending user instruction (held).
+
+- **TASK-19**: Complete.
+  - Verification: Added assertions and new test method `test_quality_analyzer_wires_editorial_suitability_analyzer` in `src/infrastructure/tests/test_analyze_document_use_case_wiring.py`. Updated `openspec/specs/classify-article/spec.md` and `openspec/specs/analyze-document/spec.md` for Laya System 1 integration and retired env vars. Full pytest suite passed (791 passed, 1 warning, 17 subtests passed).
 
 ### Phase 3 Architecture Decision (recorded, not yet implemented)
 - A single `LayaDecisionPort.decide(text_sample) -> LayaDecisionResultDTO` is invoked once per document (one Laya forward pass resolves all 9 questions), and the resulting DTO is threaded down into `ArticleClassifier`, `QualityAnalyzer`, and `EditorialSuitabilityAnalyzer` instead of each service calling Laya independently.
