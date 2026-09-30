@@ -102,29 +102,29 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
   - **Scope**: Create `src/infrastructure/adapters/laya/laya_decision_adapter.py` implementing `LayaDecisionPort` via an injected, already-loaded Laya `Agent` and its question definitions (the wiring calls `laya.load(checkpoint_path)` and reads `src/infrastructure/resources/laya/decision_questions.json`), calling `agent.predict(state, questions)` once and mapping the raw `choice`/`score` answers into `LayaDecisionResultDTO`.
   - **Verification**: Unit tests in `src/infrastructure/tests/adapters/laya/test_laya_decision_adapter.py` with a faked/mocked Laya agent (no real checkpoint load in unit tests).
 
-- [ ] **TASK-15: Refactor `AnalyzeDocumentUseCase` to call Laya once**
+- [x] **TASK-15: Implement the `LayaDecisionMaker` domain service**
   - **Route**: direct inline
-  - **Scope**: Update `src/application/analyze_document_use_case.py` to build the Laya `state` once, invoke `LayaDecisionPort.decide()` a single time per document, and pass the resulting `LayaDecisionResultDTO` down into `ArticleClassifier`, `QualityAnalyzer`, and `EditorialSuitabilityAnalyzer`.
-  - **Verification**: Update `src/application/tests/test_analyze_document_use_case.py` with a fake `LayaDecisionPort` double.
+  - **Scope**: Create `src/domain/laya/laya_decision_maker.py` injecting `LayaTextSampler` and `LayaDecisionPort`, exposing `decide(document_content: DocumentContentDTO) -> LayaDecisionResultDTO` (build the `state` once, call the port once). Per the clean-architecture skill the use case must never call a port directly, so the use case orchestrates this domain service instead. The use-case integration happens incrementally in TASK-16 to TASK-18 so the suite stays green after each task.
+  - **Verification**: Unit tests in `src/domain/tests/laya/test_laya_decision_maker.py` with `FakeLayaDecisionPort`.
 
 - [ ] **TASK-16: Refactor `ArticleClassifier` to consume `LayaDecisionResultDTO`**
   - **Route**: direct inline
-  - **Scope**: Replace the `ResearchIntentDetectorPort` dependency in `src/domain/classification/article_classifier.py` with a read of `s4_research_intent`/`s5_empirical_evidence`/`s6_theoretical_framework` from the injected `LayaDecisionResultDTO`. Retire `ResearchIntentDetectorPort` and `OllamaResearchIntentAdapter` once no longer referenced.
-  - **Verification**: Update `src/domain/tests/classification/test_article_classifier.py`.
+  - **Scope**: Make `AnalyzeDocumentUseCase` call `LayaDecisionMaker.decide()` once per document and pass the resulting `LayaDecisionResultDTO` into `ArticleClassifier.classify()`. Replace the `ResearchIntentDetectorPort` dependency in `src/domain/classification/article_classifier.py` with a read of `s4_research_intent`/`s5_empirical_evidence`/`s6_theoretical_framework` from the injected `LayaDecisionResultDTO`. Retire `ResearchIntentDetectorPort` and `OllamaResearchIntentAdapter` once no longer referenced.
+  - **Verification**: Update `src/domain/tests/classification/test_article_classifier.py` and `src/application/tests/test_analyze_document_use_case.py`.
 
 - [ ] **TASK-17: Refactor `QualityAnalyzer` to consume Laya scores, Ollama feedback on demand**
   - **Route**: direct inline
-  - **Scope**: Update `src/domain/quality/quality_analyzer.py` to take the 4 dimension scores directly from `LayaDecisionResultDTO`; call the LLM narrative prompts only for dimensions scoring below `QualityLevel.GOOD.min_threshold` (7.0).
+  - **Scope**: Make `AnalyzeDocumentUseCase` pass the same `LayaDecisionResultDTO` into `QualityAnalyzer.analyze()`. Update `src/domain/quality/quality_analyzer.py` to take the 4 dimension scores directly from `LayaDecisionResultDTO`; call the LLM narrative prompts only for dimensions scoring below `QualityLevel.GOOD.min_threshold` (7.0).
   - **Verification**: Update `src/domain/tests/quality/test_quality_analyzer.py` covering both the all-above-threshold (no LLM calls) and below-threshold (LLM feedback requested) paths.
 
 - [ ] **TASK-18: Refactor `EditorialSuitabilityAnalyzer` to consume Laya verdicts, Ollama narrative on demand**
   - **Route**: direct inline
-  - **Scope**: Update `src/domain/quality/editorial_suitability_analyzer.py` to take `editorial_verdict`/`research_line` from `LayaDecisionResultDTO`; call the contribution/alignment LLM prompts only when the verdict is not the positive one (`SUSTENTADA` / aligned).
+  - **Scope**: `QualityAnalyzer` (not the use case) calls `EditorialSuitabilityAnalyzer`, so it forwards the `LayaDecisionResultDTO` it receives. Update `src/domain/quality/editorial_suitability_analyzer.py` to take `editorial_verdict`/`research_line` from `LayaDecisionResultDTO`; call the contribution/alignment LLM prompts only when the verdict is not the positive one (`SUSTENTADA` / aligned).
   - **Verification**: Update `src/domain/tests/quality/test_editorial_suitability_analyzer.py` covering positive-verdict (no LLM calls) and negative/partial-verdict (LLM narrative requested) paths.
 
 - [ ] **TASK-19: Update `AnalyzeDocumentUseCaseWiring`**
   - **Route**: direct inline
-  - **Scope**: Instantiate `LayaDecisionAdapter` (loading `data/laya/checkpoints/laya_finetuned_v1_16epochs/`) in `src/infrastructure/wirings/analyze_document_use_case_wiring.py` and inject it into the use case and refactored domain services.
+  - **Scope**: In `src/infrastructure/wirings/analyze_document_use_case_wiring.py`, load the agent with `laya.load` (`data/laya/checkpoints/laya_finetuned_v1_16epochs/`), read `decision_questions.json`, build `LayaDecisionAdapter`, inject it into `LayaDecisionMaker` together with `LayaTextSampler` (settings from `EnvConfig.get_laya_text_sample_settings()`), and inject `LayaDecisionMaker` into the use case.
   - **Verification**: Update `src/infrastructure/tests/wirings/test_analyze_document_use_case_wiring.py`.
 
 - [ ] **TASK-21: Validate Laya GPU inference on AMD ROCm (before TASK-19)**
@@ -142,7 +142,7 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
 ## 4. Progress & Verification Log
 
 - **Current Status**: Phase 2 Complete (TASK-06 through TASK-11 done; validated checkpoint at `data/laya/checkpoints/laya_finetuned_v1_16epochs/`). Phase 3 planned (TASK-12 through TASK-21 defined below), awaiting explicit user go-ahead to start TASK-12.
-- **Next Step**: TASK-15 — refactor `AnalyzeDocumentUseCase` to call Laya once. Smoke run of the fine-tuned checkpoint on CPU: load 11.6 s, one `decide` 25.5 s (see TASK-21 for GPU).
+- **Next Step**: TASK-16 — `ArticleClassifier` consumes `LayaDecisionResultDTO`; use case calls `LayaDecisionMaker` once. Smoke run of the fine-tuned checkpoint on CPU: load 11.6 s, one `decide` 25.5 s (see TASK-21 for GPU).
 - **Data Location Decision**: The `E:\IA\laya` repository is kept clean (frequent upstream updates); all generated datasets and generation scripts were relocated to `data/laya/` inside `silvina-editorial` and are tracked in this repo (~12MB total).
 
 ### Verification History
