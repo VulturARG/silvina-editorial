@@ -79,15 +79,23 @@ This feature introduces a 100% self-contained, open-source, and free observabili
   - **Verification**: Unit tests in `src/infrastructure/tests/test_logging_config.py` and `src/infrastructure/tests/test_analysis_context_log_filter.py` (12 passed).
   - **Outcome**: Until now the project called `getLogger` in several modules but no handler was configured anywhere; this task provides the single configuration point. Full test suite: 763 passed.
 
+- [ ] **TASK-10: Privacy mode `APP_MODE` (DEBUG | PROD) for AI payload auditing** (inserted; must be done BEFORE TASK-07)
+  - **Origin**: `silvina-doc/prd.md:22` requires data privacy (100% local flow, unpublished manuscripts). The audit stores full prompts/responses (manuscript text) in `data/metrics.db`, which must not happen in production. User decision: an `.env` parameter `APP_MODE` with values `DEBUG` or `PROD`; in `DEBUG` privacy rules are not applied (full prompts and responses are needed to diagnose the LLM), in `PROD` they are.
+  - **Route**: subagent delegation (`gentle-ai-worker`)
+  - **Scope**: Domain enum `AppMode` (`DEBUG`, `PROD`) in `src/domain/enums/`. Domain service `AuditPayloadPolicy(app_mode)` in `src/domain/metrics/` with a single method that receives a raw payload and returns the payload to persist: in `DEBUG` the payload unchanged; in `PROD` the marker `[REDACTED chars=N sha256=<hex>]` (no content, size and hash kept for traceability). Latency, model, provider, purpose and status are always persisted. `EnvConfig.app_mode` read from `APP_MODE`, default `PROD` (fails closed on privacy), case-insensitive, any other value fails fast. `AuditedLlmGeneratorAdapter` receives the policy by constructor and applies it to `input_payload` and to `output_payload` (also the error text, which may echo content). The future audited Laya adapter (TASK-05) must use the same policy. The user adds `APP_MODE` to `.env`/`.env.example` by hand (security policy blocks reading `.env*`).
+  - **Out of scope**: the request middleware (TASK-08) never logs query string, headers or body in any mode.
+  - **Verification**: Unit tests for the enum, the policy (both modes, unicode, empty payload, hash determinism), `EnvConfig.app_mode` (default, case-insensitive, invalid value) and the updated audited adapter tests.
+
 - [ ] **TASK-07: Integrate Metrics and Audited Adapters into Pipeline & Wiring**
   - **Route**: direct inline
   - **Scope**: In `AnalyzeDocumentUseCase`, initialize analysis context and record stage latencies. In `AnalyzeDocumentUseCaseWiring`, wire `SqliteAnalysisMetricsAdapter` and wrap Laya/Ollama adapters with audited decorators. Ensure `AnalyzeDocumentUseCaseWiringForTest` uses `FakeAnalysisMetricsPort`.
   - **Verification**: Unit tests in `src/infrastructure/tests/test_analyze_document_use_case_wiring.py` and `src/application/tests/test_analyze_document_use_case.py`.
 
-- [ ] **TASK-08: Add FastAPI Request-Timing & Logging Middleware**
-  - **Route**: direct inline
-  - **Scope**: Add middleware in `src/infrastructure/fastapi/fastapi_app.py` recording HTTP request method, path, status, and duration in `logs/silvina.log`.
-  - **Verification**: Tests in `src/infrastructure/fastapi/tests/test_middleware.py`.
+- [x] **TASK-08: Add FastAPI Request-Timing & Logging Middleware**
+  - **Route**: subagent delegation (`gentle-ai-worker`)
+  - **Scope**: `RequestTimingMiddleware` in `src/infrastructure/fastapi/src/middleware/request_timing_middleware.py`, a pure ASGI middleware (not `BaseHTTPMiddleware`, so streamed report downloads stay unbuffered), registered in `create_app` right after `register_exception_handlers`. It emits one INFO record per HTTP request: `request method=... path=... status=... duration_ms=...`; an exception from the app is logged as 500 and re-raised untouched; lifespan/websocket scopes pass through. Query string, headers and body are never logged. Records reach `logs/silvina.log` once `LoggingConfig` is invoked from the entry points (TASK-07). `/static/...` requests are logged too (may be lowered to DEBUG if noisy).
+  - **Verification**: Tests in `src/infrastructure/fastapi/tests/test_middleware.py` (10 passed).
+  - **Outcome**: Full test suite: 773 passed.
 
 - [ ] **TASK-09: End-to-End Verification & Work-Unit Commit**
   - **Route**: direct inline
@@ -98,10 +106,14 @@ This feature introduces a 100% self-contained, open-source, and free observabili
 
 ## 4. Progress & Verification Log
 
-- **Current Status**: TASK-02 (`80aabbb`), TASK-03 (`07f50e3`) and TASK-04 (`e63af3a`) committed and pushed to `origin/feat/internal-metrics-and-ai-audit`. TASK-05 deferred (needs Laya). TASK-06 complete and uncommitted. Standing by for explicit user authorization to commit or proceed.
-- **Next Step**: TASK-08 (request-timing middleware), then the non-Laya part of TASK-07. Open items for TASK-07: fail-safe wrapper so metrics persistence errors never break an analysis; decide root log level (INFO also surfaces `httpx`/`ollama` records).
+- **Current Status**: TASK-02 (`80aabbb`), TASK-03 (`07f50e3`), TASK-04 (`e63af3a`) and TASK-06 (`bac1372`) committed and pushed to `origin/feat/internal-metrics-and-ai-audit`. TASK-05 deferred (needs Laya). TASK-08 complete and uncommitted. TASK-10 (`APP_MODE` privacy) registered and next. Standing by for explicit user authorization to commit.
+- **Next Step**: TASK-10 (before TASK-07), then the non-Laya part of TASK-07. Open items for TASK-07: fail-safe wrapper so metrics persistence errors never break an analysis; decide root log level (INFO also surfaces `httpx`/`ollama` records); `.env.example` already carries `APP_MODE=DEBUG` (user edit) while the code default must be `PROD`.
 
 ### Verification History
+- **TASK-08**: Complete (uncommitted).
+  - RED: `.venv/Scripts/python -m pytest src/infrastructure/fastapi/tests/test_middleware.py` failed with `ModuleNotFoundError: No module named 'src.infrastructure.fastapi.src.middleware'`.
+  - GREEN: Implemented `RequestTimingMiddleware` and registered it in `create_app`. 10 tests passed. Full test suite: 773 passed. `ruff check` and `ruff format --check` clean.
+  - Verification: pure ASGI, one class per file, no inline comments, PEP 257 docstrings, query string never logged, downstream exceptions propagate.
 - **TASK-06**: Complete (uncommitted).
   - RED: `.venv/Scripts/python -m pytest src/infrastructure/tests/test_logging_config.py src/infrastructure/tests/test_analysis_context_log_filter.py` failed with `ModuleNotFoundError: No module named 'src.infrastructure.config.logging_config'`.
   - GREEN: Implemented `LoggingConfig` and `AnalysisContextLogFilter`. 12 tests passed. Full test suite: 763 passed. `ruff check` and `ruff format --check` clean.
