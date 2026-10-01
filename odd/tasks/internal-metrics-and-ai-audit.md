@@ -16,7 +16,7 @@
 This feature introduces a 100% self-contained, open-source, and free observability and telemetry subsystem based on:
 1. **Local SQLite (`data/metrics.db`) with WAL mode** to record document analysis summaries (master) and full AI interactions (detail: prompts, questions, text samples, raw model outputs, and latencies).
 2. **Infrastructure Decorators** wrapping `LlmGeneratorPort` and `LayaDecisionPort` to intercept inputs and outputs cleanly without polluting domain services.
-3. **Correlation ID context (`AnalysisContext`)** using Python's standard `contextvars` to link AI interactions to the specific document analysis without changing domain method signatures.
+3. **Correlation ID context (`AnalysisContextPort` + `AnalysisContextAdapter`)** using Python's standard `contextvars` to link AI interactions to the specific document analysis without changing domain method signatures.
 4. **Structured rotating file logging** (`logs/silvina.log`) and a FastAPI request-timing middleware to track API traffic and system events.
 
 ---
@@ -25,7 +25,7 @@ This feature introduces a 100% self-contained, open-source, and free observabili
 
 ### In Scope
 - Define `AnalysisMetricsPort` in the domain/application layer and a test double `FakeAnalysisMetricsPort`.
-- Implement `AnalysisContext` using `contextvars` to manage execution/analysis IDs.
+- Define `AnalysisContextPort` in the domain and implement `AnalysisContextAdapter` in infrastructure using `contextvars` to manage execution/analysis IDs.
 - Implement `SqliteAnalysisMetricsAdapter` in infrastructure with SQLite WAL mode and relational tables: `analyses` (master) and `ai_interactions` (detail).
 - Implement `AuditedLlmGeneratorAdapter` wrapping `LlmGeneratorPort` to capture Ollama prompts, raw responses, and latencies.
 - Implement `AuditedLayaDecisionAdapter` wrapping `LayaDecisionPort` to capture Laya text samples, questions, raw decision dictionaries, and latencies.
@@ -49,10 +49,11 @@ This feature introduces a 100% self-contained, open-source, and free observabili
   - **Verification**: Unit tests in `src/domain/tests/dtos/` (12 passed) and `src/domain/tests/metrics/` (10 passed) — 22 passed total.
   - **Outcome**: Created all DTOs and interfaces with single-parameter contracts, strictly complying with Clean Architecture and parameter-object conventions. Full test suite: 770 passed in 9.18s.
 
-- [ ] **TASK-02: Implement `AnalysisContext` using `contextvars`**
-  - **Route**: direct inline
-  - **Scope**: Create `src/application/analysis_context.py` exposing helper functions to get/set/clear the active `analysis_id` via Python's native `contextvars.ContextVar`.
-  - **Verification**: Unit tests in `src/application/tests/test_analysis_context.py`.
+- [x] **TASK-02: Implement `AnalysisContextPort` and `AnalysisContextAdapter` using `contextvars`**
+  - **Route**: subagent delegation (`gentle-ai-worker`)
+  - **Scope**: Under `src/domain/metrics/`, create `AnalysisContextPort(ABC)` with `get_analysis_id() -> str | None`, `set_analysis_id(analysis_id: str)` and `clear_analysis_id()`. Under `src/infrastructure/adapters/metrics/`, create `AnalysisContextAdapter` backed by a class-level `contextvars.ContextVar` shared by all instances. Create test double `src/domain/tests/metrics/fake_analysis_context_port.py`. Consumers (audited adapters, recorder, use case) receive the port through their constructors instead of calling global functions.
+  - **Verification**: Unit tests in `src/domain/tests/metrics/test_analysis_context_port.py` (7 passed) and `src/infrastructure/tests/adapters/metrics/test_analysis_context_adapter.py` (9 passed).
+  - **Outcome**: Initial attempt used module-level functions with global state in `src/application/`; it was discarded because it did not fit the clean-architecture skill (everything is a class, collaborators are injected). Replaced with port + adapter + fake. Full test suite: 723 passed.
 
 - [ ] **TASK-03: Implement `SqliteAnalysisMetricsAdapter`**
   - **Route**: direct inline
@@ -93,10 +94,15 @@ This feature introduces a 100% self-contained, open-source, and free observabili
 
 ## 4. Progress & Verification Log
 
-- **Current Status**: TASK-01 complete. Standing by for user authorization to proceed to TASK-02 or commit.
-- **Next Step**: TASK-02 (Implement `AnalysisContext` using `contextvars`).
+- **Current Status**: TASK-02 complete and uncommitted (port + adapter redesign). Standing by for explicit user authorization to commit or proceed to TASK-03.
+- **Next Step**: TASK-03 (Implement `SqliteAnalysisMetricsAdapter`).
 
 ### Verification History
+- **TASK-02**: Complete (uncommitted).
+  - Redesign: the first implementation (module-level functions in `src/application/analysis_context.py`, 714 tests passing) was replaced because it held global state outside any injectable class and violated the clean-architecture skill.
+  - RED: `.venv/Scripts/python -m pytest src/domain/tests/metrics/test_analysis_context_port.py src/infrastructure/tests/adapters/metrics/test_analysis_context_adapter.py` failed with `ModuleNotFoundError: No module named 'src.domain.metrics.analysis_context_port'`.
+  - GREEN: Implemented `AnalysisContextPort`, `AnalysisContextAdapter` and `FakeAnalysisContextPort`. 16 tests passed. Full test suite: 723 passed.
+  - Verification: `unittest.TestCase`, no inline comments, PEP 257 docstrings, domain imports only stdlib, infrastructure imports domain, shared context across adapter instances and isolation through `copy_context()` covered.
 - **TASK-01**: Complete.
   - RED: `.venv/Scripts/python -m pytest src/domain/tests/metrics/` failed with `ModuleNotFoundError: No module named 'src.domain.metrics'`.
   - GREEN: Implemented `AnalysisMetricsPort(ABC)`, `AnalysisMetricsRecorder`, and `FakeAnalysisMetricsPort`. 10 tests passed in `src/domain/tests/metrics/`. Full test suite: 758 passed in 19.44s.
