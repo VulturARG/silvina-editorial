@@ -55,10 +55,11 @@ This feature introduces a 100% self-contained, open-source, and free observabili
   - **Verification**: Unit tests in `src/domain/tests/metrics/test_analysis_context_port.py` (7 passed) and `src/infrastructure/tests/adapters/metrics/test_analysis_context_adapter.py` (9 passed).
   - **Outcome**: Initial attempt used module-level functions with global state in `src/application/`; it was discarded because it did not fit the clean-architecture skill (everything is a class, collaborators are injected). Replaced with port + adapter + fake. Full test suite: 723 passed.
 
-- [ ] **TASK-03: Implement `SqliteAnalysisMetricsAdapter`**
-  - **Route**: direct inline
-  - **Scope**: Create `src/infrastructure/adapters/metrics/sqlite_analysis_metrics_adapter.py` fulfilling `AnalysisMetricsPort`. Configure `PRAGMA journal_mode = WAL;`. Create tables `analyses` and `ai_interactions` on init. Implement parameterized synchronous SQL inserts.
-  - **Verification**: Unit tests in `src/infrastructure/tests/adapters/metrics/test_sqlite_analysis_metrics_adapter.py` verifying schema creation, WAL pragma, and transactional inserts.
+- [x] **TASK-03: Implement `SqliteAnalysisMetricsAdapter`**
+  - **Route**: subagent delegation (`gentle-ai-worker`)
+  - **Scope**: Create `src/infrastructure/adapters/metrics/sqlite_analysis_metrics_adapter.py` fulfilling `AnalysisMetricsPort`. Configure `PRAGMA journal_mode = WAL;`. Create tables `analyses`, `stage_durations` and `ai_interactions` on init (`stage_durations` added because `StageDurationDTO` needs a persistence target). Implement parameterized synchronous SQL inserts, one short-lived connection per operation (FastAPI serves requests from threads), no foreign keys so telemetry ordering problems cannot break an analysis. The constructor receives `database_path`; the default `data/metrics.db` and `EnvConfig` entry are wired in TASK-07.
+  - **Verification**: Unit tests in `src/infrastructure/tests/adapters/metrics/test_sqlite_analysis_metrics_adapter.py` (14 passed) verifying schema creation, WAL pragma, idempotent init, upsert on completion, parameterization against SQL injection, large unicode payloads, insertion order and committed visibility.
+  - **Outcome**: Completion is an UPSERT that preserves the original `started_at` when the start was recorded and fills it when it was not. Duplicate `analysis_id` on start raises `sqlite3.IntegrityError` (propagates). Full test suite: 737 passed.
 
 - [ ] **TASK-04: Implement `AuditedLlmGeneratorAdapter`**
   - **Route**: direct inline
@@ -94,10 +95,14 @@ This feature introduces a 100% self-contained, open-source, and free observabili
 
 ## 4. Progress & Verification Log
 
-- **Current Status**: TASK-02 complete and uncommitted (port + adapter redesign). Standing by for explicit user authorization to commit or proceed to TASK-03.
-- **Next Step**: TASK-03 (Implement `SqliteAnalysisMetricsAdapter`).
+- **Current Status**: TASK-03 complete and uncommitted. TASK-02 committed and pushed (`80aabbb`). Standing by for explicit user authorization to commit or proceed to TASK-04.
+- **Next Step**: TASK-04 (Implement `AuditedLlmGeneratorAdapter`).
 
 ### Verification History
+- **TASK-03**: Complete (uncommitted).
+  - RED: `.venv/Scripts/python -m pytest src/infrastructure/tests/adapters/metrics/test_sqlite_analysis_metrics_adapter.py` failed with `ModuleNotFoundError: No module named 'src.infrastructure.adapters.metrics.sqlite_analysis_metrics_adapter'`.
+  - GREEN: Implemented `SqliteAnalysisMetricsAdapter`. 14 tests passed. Full test suite: 737 passed. `ruff check` and `ruff format --check` clean.
+  - Verification: `unittest.TestCase`, no inline comments, PEP 257 docstrings, parameterized queries only, no `@generic_error_handler` on the adapter, infrastructure imports domain only.
 - **TASK-02**: Complete (uncommitted).
   - Redesign: the first implementation (module-level functions in `src/application/analysis_context.py`, 714 tests passing) was replaced because it held global state outside any injectable class and violated the clean-architecture skill.
   - RED: `.venv/Scripts/python -m pytest src/domain/tests/metrics/test_analysis_context_port.py src/infrastructure/tests/adapters/metrics/test_analysis_context_adapter.py` failed with `ModuleNotFoundError: No module named 'src.domain.metrics.analysis_context_port'`.
