@@ -231,6 +231,12 @@ class AnalyzeDocumentUseCaseWiring:
         return QualityTextSampler(
             min_sample_word_count=env_config.quality_min_sample_word_count,
             text_sample_character_limit=env_config.quality_text_sample_character_limit,
+            reference_line_prefix_length=env_config.quality_text_sample_reference_line_prefix_length,
+            introduction_paragraph_count=env_config.quality_text_sample_introduction_paragraph_count,
+            middle_paragraph_count=env_config.quality_text_sample_middle_paragraph_count,
+            conclusion_paragraph_limit=env_config.quality_text_sample_conclusion_paragraph_limit,
+            fallback_tail_paragraph_count=env_config.quality_text_sample_fallback_tail_paragraph_count,
+            conclusion_header_marker=env_config.quality_text_sample_conclusion_header_marker,
         )
 
     def _get_llm_generator(self) -> LlmGeneratorPort:

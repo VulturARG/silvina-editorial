@@ -47,11 +47,39 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         self.assertIsInstance(result._laya_decision_maker, LayaDecisionMaker)
         self.assertIsInstance(result._laya_decision_maker._text_sampler, LayaTextSampler)
 
-    def test_laya_text_sampler_uses_env_settings(self):
-        with patch.dict(environ, {"LAYA_TEXT_SAMPLE_CHARACTER_LIMIT": "7000"}):
+    def test_laya_text_sampler_reuses_quality_sample_env_settings(self):
+        overrides = {
+            "QUALITY_TEXT_SAMPLE_CHARACTER_LIMIT": "7000",
+            "QUALITY_TEXT_SAMPLE_CONCLUSION_HEADER_MARKER": "cierre",
+        }
+        with patch.dict(environ, overrides):
             result = AnalyzeDocumentUseCaseWiringForTest().create_use_case()
         text_sampler = result._laya_decision_maker._text_sampler
         self.assertEqual(text_sampler._text_sample_settings.text_sample_character_limit, 7000)
+        self.assertEqual(text_sampler._text_sample_settings.conclusion_header_marker, "cierre")
+
+    def test_quality_text_sampler_wires_all_env_settings(self):
+        overrides = {
+            "QUALITY_MIN_SAMPLE_WORD_COUNT": "350",
+            "QUALITY_TEXT_SAMPLE_CHARACTER_LIMIT": "6500",
+            "QUALITY_TEXT_SAMPLE_REFERENCE_LINE_PREFIX_LENGTH": "75",
+            "QUALITY_TEXT_SAMPLE_INTRODUCTION_PARAGRAPH_COUNT": "4",
+            "QUALITY_TEXT_SAMPLE_MIDDLE_PARAGRAPH_COUNT": "3",
+            "QUALITY_TEXT_SAMPLE_CONCLUSION_PARAGRAPH_LIMIT": "5",
+            "QUALITY_TEXT_SAMPLE_FALLBACK_TAIL_PARAGRAPH_COUNT": "4",
+            "QUALITY_TEXT_SAMPLE_CONCLUSION_HEADER_MARKER": "cierre",
+        }
+        with patch.dict(environ, overrides):
+            result = AnalyzeDocumentUseCaseWiringForTest().create_use_case()
+        text_sampler = result._quality_analyzer._text_sampler
+        self.assertEqual(text_sampler._min_sample_word_count, 350)
+        self.assertEqual(text_sampler._text_sample_character_limit, 6500)
+        self.assertEqual(text_sampler._reference_line_prefix_length, 75)
+        self.assertEqual(text_sampler._introduction_paragraph_count, 4)
+        self.assertEqual(text_sampler._middle_paragraph_count, 3)
+        self.assertEqual(text_sampler._conclusion_paragraph_limit, 5)
+        self.assertEqual(text_sampler._fallback_tail_paragraph_count, 4)
+        self.assertEqual(text_sampler._conclusion_header_marker, "cierre")
 
     def test_laya_decision_port_loads_configured_checkpoint_and_questions(self):
         fake_agent = FakeLayaAgent(answers={})

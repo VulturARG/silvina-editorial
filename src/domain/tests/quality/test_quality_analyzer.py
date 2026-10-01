@@ -87,6 +87,19 @@ SUITABILITY_ALIGNMENT_RESPONSE = (
 )
 
 
+def build_quality_text_sampler() -> QualityTextSampler:
+    return QualityTextSampler(
+        min_sample_word_count=400,
+        text_sample_character_limit=8000,
+        reference_line_prefix_length=80,
+        introduction_paragraph_count=3,
+        middle_paragraph_count=2,
+        conclusion_paragraph_limit=3,
+        fallback_tail_paragraph_count=2,
+        conclusion_header_marker="conclusi",
+    )
+
+
 def build_analyzer(fake_adapter: FakeLlmGeneratorAdapter) -> QualityAnalyzer:
     suitability_adapter = FakeLlmGeneratorAdapter(
         [SUITABILITY_CONTRIBUTION_RESPONSE, SUITABILITY_ALIGNMENT_RESPONSE]
@@ -100,7 +113,7 @@ def build_analyzer(fake_adapter: FakeLlmGeneratorAdapter) -> QualityAnalyzer:
     )
     return QualityAnalyzer(
         llm_generator=fake_adapter,
-        text_sampler=QualityTextSampler(),
+        text_sampler=build_quality_text_sampler(),
         response_parser=QualityResponseParser(),
         clarity_coherence_prompt_template=CLARITY_COHERENCE_PROMPT_TEMPLATE,
         argumentation_conclusions_prompt_template=ARGUMENTATION_CONCLUSIONS_PROMPT_TEMPLATE,
@@ -227,7 +240,7 @@ class TestQualityAnalyzer(TestCase):
 
         analyzer.analyze(self.document_content, build_laya_decision(4.0, 8.0, 8.0, 8.0))
 
-        text_sample = QualityTextSampler().build_sample(self.document_content)
+        text_sample = build_quality_text_sampler().build_sample(self.document_content)
         self.assertIn(
             "Eres un revisor editorial académico experto.", fake_adapter.received_prompts[0]
         )

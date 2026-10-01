@@ -1,5 +1,3 @@
-import re
-
 from src.domain.dtos.document_content_dto import DocumentContentDTO
 from src.domain.enums.reference_line_marker import ReferenceLineMarker
 
@@ -7,17 +5,16 @@ from src.domain.enums.reference_line_marker import ReferenceLineMarker
 class QualityTextSampler:
     """Builds a strategic text excerpt for LLM-based quality analysis."""
 
-    _CONCLUSION_HEADER_PATTERN = re.compile(r"conclusi", re.IGNORECASE)
-
     def __init__(
         self,
-        min_sample_word_count: int = 400,
-        text_sample_character_limit: int = 8000,
-        reference_line_prefix_length: int = 80,
-        introduction_paragraph_count: int = 3,
-        middle_paragraph_count: int = 2,
-        conclusion_paragraph_limit: int = 3,
-        fallback_tail_paragraph_count: int = 2,
+        min_sample_word_count: int,
+        text_sample_character_limit: int,
+        reference_line_prefix_length: int,
+        introduction_paragraph_count: int,
+        middle_paragraph_count: int,
+        conclusion_paragraph_limit: int,
+        fallback_tail_paragraph_count: int,
+        conclusion_header_marker: str,
     ) -> None:
         self._min_sample_word_count = min_sample_word_count
         self._text_sample_character_limit = text_sample_character_limit
@@ -26,6 +23,7 @@ class QualityTextSampler:
         self._middle_paragraph_count = middle_paragraph_count
         self._conclusion_paragraph_limit = conclusion_paragraph_limit
         self._fallback_tail_paragraph_count = fallback_tail_paragraph_count
+        self._conclusion_header_marker = conclusion_header_marker.lower()
 
     def build_sample(self, document_content: DocumentContentDTO) -> str:
         """Return a strategic excerpt of the document, or its full text if too short."""
@@ -55,7 +53,7 @@ class QualityTextSampler:
         conclusion_paragraphs = []
         in_conclusion = False
         for paragraph in paragraphs:
-            if self._CONCLUSION_HEADER_PATTERN.search(paragraph):
+            if self._conclusion_header_marker in paragraph.lower():
                 in_conclusion = True
             if in_conclusion and not self._is_reference_like(paragraph):
                 conclusion_paragraphs.append(paragraph)

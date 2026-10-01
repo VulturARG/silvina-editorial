@@ -31,14 +31,12 @@ class TestEnvConfig(TestCase):
         self.assertAlmostEqual(config.quality_level_needs_improvement_threshold, 3.0)
         self.assertEqual(config.quality_min_sample_word_count, 400)
         self.assertEqual(config.quality_text_sample_character_limit, 8000)
-        self.assertEqual(config.laya_text_sample_min_word_count, 400)
-        self.assertEqual(config.laya_text_sample_character_limit, 8000)
-        self.assertEqual(config.laya_text_sample_reference_line_prefix_length, 80)
-        self.assertEqual(config.laya_text_sample_introduction_paragraph_count, 3)
-        self.assertEqual(config.laya_text_sample_middle_paragraph_count, 2)
-        self.assertEqual(config.laya_text_sample_conclusion_paragraph_limit, 3)
-        self.assertEqual(config.laya_text_sample_fallback_tail_paragraph_count, 2)
-        self.assertEqual(config.laya_text_sample_conclusion_header_marker, "conclusi")
+        self.assertEqual(config.quality_text_sample_reference_line_prefix_length, 80)
+        self.assertEqual(config.quality_text_sample_introduction_paragraph_count, 3)
+        self.assertEqual(config.quality_text_sample_middle_paragraph_count, 2)
+        self.assertEqual(config.quality_text_sample_conclusion_paragraph_limit, 3)
+        self.assertEqual(config.quality_text_sample_fallback_tail_paragraph_count, 2)
+        self.assertEqual(config.quality_text_sample_conclusion_header_marker, "conclusi")
         self.assertEqual(
             config.ollama_model_name, "hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:UD-IQ4_XS"
         )
@@ -151,28 +149,24 @@ class TestEnvConfig(TestCase):
             config = EnvConfig()
         self.assertEqual(config.upload_max_size_bytes, 52428800)
 
-    def test_env_vars_override_laya_text_sample_settings(self):
+    def test_env_vars_override_quality_text_sample_settings(self):
         overrides = {
-            "LAYA_TEXT_SAMPLE_MIN_WORD_COUNT": "300",
-            "LAYA_TEXT_SAMPLE_CHARACTER_LIMIT": "7000",
-            "LAYA_TEXT_SAMPLE_REFERENCE_LINE_PREFIX_LENGTH": "60",
-            "LAYA_TEXT_SAMPLE_INTRODUCTION_PARAGRAPH_COUNT": "4",
-            "LAYA_TEXT_SAMPLE_MIDDLE_PARAGRAPH_COUNT": "1",
-            "LAYA_TEXT_SAMPLE_CONCLUSION_PARAGRAPH_LIMIT": "5",
-            "LAYA_TEXT_SAMPLE_FALLBACK_TAIL_PARAGRAPH_COUNT": "3",
-            "LAYA_TEXT_SAMPLE_CONCLUSION_HEADER_MARKER": "cierre",
+            "QUALITY_TEXT_SAMPLE_REFERENCE_LINE_PREFIX_LENGTH": "60",
+            "QUALITY_TEXT_SAMPLE_INTRODUCTION_PARAGRAPH_COUNT": "4",
+            "QUALITY_TEXT_SAMPLE_MIDDLE_PARAGRAPH_COUNT": "1",
+            "QUALITY_TEXT_SAMPLE_CONCLUSION_PARAGRAPH_LIMIT": "5",
+            "QUALITY_TEXT_SAMPLE_FALLBACK_TAIL_PARAGRAPH_COUNT": "3",
+            "QUALITY_TEXT_SAMPLE_CONCLUSION_HEADER_MARKER": "cierre",
         }
         with patch.dict(environ, overrides):
             config = EnvConfig()
 
-        self.assertEqual(config.laya_text_sample_min_word_count, 300)
-        self.assertEqual(config.laya_text_sample_character_limit, 7000)
-        self.assertEqual(config.laya_text_sample_reference_line_prefix_length, 60)
-        self.assertEqual(config.laya_text_sample_introduction_paragraph_count, 4)
-        self.assertEqual(config.laya_text_sample_middle_paragraph_count, 1)
-        self.assertEqual(config.laya_text_sample_conclusion_paragraph_limit, 5)
-        self.assertEqual(config.laya_text_sample_fallback_tail_paragraph_count, 3)
-        self.assertEqual(config.laya_text_sample_conclusion_header_marker, "cierre")
+        self.assertEqual(config.quality_text_sample_reference_line_prefix_length, 60)
+        self.assertEqual(config.quality_text_sample_introduction_paragraph_count, 4)
+        self.assertEqual(config.quality_text_sample_middle_paragraph_count, 1)
+        self.assertEqual(config.quality_text_sample_conclusion_paragraph_limit, 5)
+        self.assertEqual(config.quality_text_sample_fallback_tail_paragraph_count, 3)
+        self.assertEqual(config.quality_text_sample_conclusion_header_marker, "cierre")
 
     def test_int_env_vars_are_cast_to_int(self):
         with patch.dict(environ, {"REPORT_MAX_REPLACEMENTS": "9"}):
@@ -186,21 +180,31 @@ class TestEnvConfig(TestCase):
         self.assertIsInstance(config.dimension_threshold, float)
         self.assertAlmostEqual(config.dimension_threshold, 5.0)
 
-    def test_get_laya_text_sample_settings_returns_dto_from_config(self):
-        with patch.dict(environ, {"LAYA_TEXT_SAMPLE_CHARACTER_LIMIT": "7000"}, clear=True):
+    def test_get_laya_text_sample_settings_reuses_quality_sample_settings(self):
+        environment = {
+            "QUALITY_MIN_SAMPLE_WORD_COUNT": "300",
+            "QUALITY_TEXT_SAMPLE_CHARACTER_LIMIT": "7000",
+            "QUALITY_TEXT_SAMPLE_REFERENCE_LINE_PREFIX_LENGTH": "60",
+            "QUALITY_TEXT_SAMPLE_INTRODUCTION_PARAGRAPH_COUNT": "4",
+            "QUALITY_TEXT_SAMPLE_MIDDLE_PARAGRAPH_COUNT": "1",
+            "QUALITY_TEXT_SAMPLE_CONCLUSION_PARAGRAPH_LIMIT": "5",
+            "QUALITY_TEXT_SAMPLE_FALLBACK_TAIL_PARAGRAPH_COUNT": "3",
+            "QUALITY_TEXT_SAMPLE_CONCLUSION_HEADER_MARKER": "cierre",
+        }
+        with patch.dict(environ, environment, clear=True):
             settings = EnvConfig().get_laya_text_sample_settings()
 
         self.assertEqual(
             settings,
             LayaTextSampleSettingsDTO(
-                min_sample_word_count=400,
+                min_sample_word_count=300,
                 text_sample_character_limit=7000,
-                reference_line_prefix_length=80,
-                introduction_paragraph_count=3,
-                middle_paragraph_count=2,
-                conclusion_paragraph_limit=3,
-                fallback_tail_paragraph_count=2,
-                conclusion_header_marker="conclusi",
+                reference_line_prefix_length=60,
+                introduction_paragraph_count=4,
+                middle_paragraph_count=1,
+                conclusion_paragraph_limit=5,
+                fallback_tail_paragraph_count=3,
+                conclusion_header_marker="cierre",
             ),
         )
 

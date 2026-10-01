@@ -147,14 +147,6 @@ The application version attribute (`silvina_version`) MUST be resolved dynamical
 | `ARTICLE_CLASSIFIER_NUM_PREDICT` | `int` | `300` | *(Retired in Phase 3 Laya integration)* |
 | `LAYA_CHECKPOINT_PATH` | `str` | `"data/laya/checkpoints/laya_finetuned_v2_16epochs"` | `laya_checkpoint_path` |
 | `LAYA_DEVICE` | `str \| None` | `None` | `laya_device` |
-| `LAYA_TEXT_SAMPLE_MIN_WORD_COUNT` | `int` | `400` | `laya_text_sample_min_word_count` |
-| `LAYA_TEXT_SAMPLE_CHARACTER_LIMIT` | `int` | `8000` | `laya_text_sample_character_limit` |
-| `LAYA_TEXT_SAMPLE_REFERENCE_LINE_PREFIX_LENGTH` | `int` | `80` | `laya_text_sample_reference_line_prefix_length` |
-| `LAYA_TEXT_SAMPLE_INTRODUCTION_PARAGRAPH_COUNT` | `int` | `3` | `laya_text_sample_introduction_paragraph_count` |
-| `LAYA_TEXT_SAMPLE_MIDDLE_PARAGRAPH_COUNT` | `int` | `2` | `laya_text_sample_middle_paragraph_count` |
-| `LAYA_TEXT_SAMPLE_CONCLUSION_PARAGRAPH_LIMIT` | `int` | `3` | `laya_text_sample_conclusion_paragraph_limit` |
-| `LAYA_TEXT_SAMPLE_FALLBACK_TAIL_PARAGRAPH_COUNT` | `int` | `2` | `laya_text_sample_fallback_tail_paragraph_count` |
-| `LAYA_TEXT_SAMPLE_CONCLUSION_HEADER_MARKER` | `str` | `"conclusi"` | `laya_text_sample_conclusion_header_marker` |
 | `ARTICLE_SIZE_SHORT_MIN_CHARS` | `int` | `16000` | `article_size_short_min_chars` |
 | `ARTICLE_SIZE_SHORT_MAX_CHARS` | `int` | `24000` | `article_size_short_max_chars` |
 | `ARTICLE_SIZE_UNDEFINED_MIN_CHARS` | `int` | `24001` | `article_size_undefined_min_chars` |
@@ -167,6 +159,12 @@ The application version attribute (`silvina_version`) MUST be resolved dynamical
 | `QUALITY_LEVEL_NEEDS_IMPROVEMENT_THRESHOLD` | `float` | `3.0` | `quality_level_needs_improvement_threshold` |
 | `QUALITY_MIN_SAMPLE_WORD_COUNT` | `int` | `400` | `quality_min_sample_word_count` |
 | `QUALITY_TEXT_SAMPLE_CHARACTER_LIMIT` | `int` | `8000` | `quality_text_sample_character_limit` |
+| `QUALITY_TEXT_SAMPLE_REFERENCE_LINE_PREFIX_LENGTH` | `int` | `80` | `quality_text_sample_reference_line_prefix_length` |
+| `QUALITY_TEXT_SAMPLE_INTRODUCTION_PARAGRAPH_COUNT` | `int` | `3` | `quality_text_sample_introduction_paragraph_count` |
+| `QUALITY_TEXT_SAMPLE_MIDDLE_PARAGRAPH_COUNT` | `int` | `2` | `quality_text_sample_middle_paragraph_count` |
+| `QUALITY_TEXT_SAMPLE_CONCLUSION_PARAGRAPH_LIMIT` | `int` | `3` | `quality_text_sample_conclusion_paragraph_limit` |
+| `QUALITY_TEXT_SAMPLE_FALLBACK_TAIL_PARAGRAPH_COUNT` | `int` | `2` | `quality_text_sample_fallback_tail_paragraph_count` |
+| `QUALITY_TEXT_SAMPLE_CONCLUSION_HEADER_MARKER` | `str` | `"conclusi"` | `quality_text_sample_conclusion_header_marker` |
 | `OLLAMA_MODEL_NAME` | `str` | `"hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:UD-IQ4_XS"` | `ollama_model_name` |
 | `OLLAMA_BASE_URL` | `str` | `"http://localhost:11434"` | `ollama_base_url` |
 | `PUBLISH_THRESHOLD` | `float` | `7.0` | `publish_threshold` |
