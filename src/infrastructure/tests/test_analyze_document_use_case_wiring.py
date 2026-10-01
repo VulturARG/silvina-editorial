@@ -4,6 +4,11 @@ from unittest.mock import patch
 
 from src.application.analyze_document_use_case import AnalyzeDocumentUseCase
 from src.domain.dtos.recommendation_settings_dto import RecommendationSettingsDTO
+from src.infrastructure.adapters.document.docx_citation_adapter import DocxCitationAdapter
+from src.infrastructure.adapters.grammar.language_tool_adapter import LanguageToolAdapter
+from src.infrastructure.adapters.llm_generator.ollama_generator_adapter import (
+    OllamaGeneratorAdapter,
+)
 from src.infrastructure.wirings.analyze_document_use_case_wiring import AnalyzeDocumentUseCaseWiring
 
 
@@ -101,6 +106,7 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         with patch.dict(environ, {"CITATION_MAX_AUTHOR_NAME_LENGTH": "5"}):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
         port = result._citation_extractor._citation_extraction_port
+        assert isinstance(port, DocxCitationAdapter)
         self.assertEqual(port._max_author_name_length, 5)
 
     def test_default_citation_max_author_name_length_when_env_var_absent(self):
@@ -108,12 +114,14 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         with patch.dict(environ, env_without, clear=True):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
         port = result._citation_extractor._citation_extraction_port
+        assert isinstance(port, DocxCitationAdapter)
         self.assertEqual(port._max_author_name_length, 100)
 
     def test_env_var_overrides_grammar_max_replacements(self):
         with patch.dict(environ, {"GRAMMAR_MAX_REPLACEMENTS": "2"}):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
         port = result._grammar_checker._grammar_check_port
+        assert isinstance(port, LanguageToolAdapter)
         self.assertEqual(port._max_replacements, 2)
 
     def test_default_grammar_max_replacements_when_env_var_absent(self):
@@ -121,4 +129,20 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         with patch.dict(environ, env_without, clear=True):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
         port = result._grammar_checker._grammar_check_port
+        assert isinstance(port, LanguageToolAdapter)
         self.assertEqual(port._max_replacements, 3)
+
+    def test_default_ollama_think_when_env_var_absent(self):
+        env_without = {k: v for k, v in environ.items() if k != "OLLAMA_THINK"}
+        with patch.dict(environ, env_without, clear=True):
+            result = AnalyzeDocumentUseCaseWiring().create_use_case()
+        generator = result._article_classifier._llm_generator
+        assert isinstance(generator, OllamaGeneratorAdapter)
+        self.assertFalse(generator._think)
+
+    def test_env_var_overrides_ollama_think(self):
+        with patch.dict(environ, {"OLLAMA_THINK": "true"}):
+            result = AnalyzeDocumentUseCaseWiring().create_use_case()
+        generator = result._article_classifier._llm_generator
+        assert isinstance(generator, OllamaGeneratorAdapter)
+        self.assertTrue(generator._think)
