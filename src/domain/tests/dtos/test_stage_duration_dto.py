@@ -3,6 +3,7 @@ from unittest import TestCase
 
 from src.domain.dtos.base_dto import BaseDTO
 from src.domain.dtos.stage_duration_dto import StageDurationDTO
+from src.domain.enums.analysis_stage import AnalysisStage
 
 
 class TestStageDurationDTO(TestCase):
@@ -12,7 +13,7 @@ class TestStageDurationDTO(TestCase):
     def test_frozen_raises_on_mutation(self):
         stage_duration = StageDurationDTO(
             analysis_id="analysis-123",
-            stage_name="content_extraction",
+            stage_name=AnalysisStage.EXTRACT_CONTENT,
             duration_ms=150.5,
         )
         field_name = "duration_ms"
@@ -22,9 +23,9 @@ class TestStageDurationDTO(TestCase):
     def test_holds_expected_attributes(self):
         stage_duration = StageDurationDTO(
             analysis_id="analysis-123",
-            stage_name="content_extraction",
+            stage_name=AnalysisStage.EXTRACT_CONTENT,
             duration_ms=150.5,
         )
         self.assertEqual(stage_duration.analysis_id, "analysis-123")
-        self.assertEqual(stage_duration.stage_name, "content_extraction")
+        self.assertEqual(stage_duration.stage_name, AnalysisStage.EXTRACT_CONTENT)
         self.assertEqual(stage_duration.duration_ms, 150.5)

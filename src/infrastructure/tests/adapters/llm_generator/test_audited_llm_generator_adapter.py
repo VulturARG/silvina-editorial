@@ -1,5 +1,7 @@
 from unittest import TestCase
 
+from src.domain.enums.ai_provider import AiProvider
+from src.domain.enums.ai_purpose import AiPurpose
 from src.domain.enums.app_mode import AppMode
 from src.domain.enums.execution_status import ExecutionStatus
 from src.domain.metrics.audit_payload_policy import AuditPayloadPolicy
@@ -25,9 +27,9 @@ class TestAuditedLlmGeneratorAdapter(TestCase):
         self.metrics_port = FakeAnalysisMetricsPort()
         self.context_port = FakeAnalysisContextPort()
         self.context_port.set_analysis_id("analysis-test-identifier")
-        self.provider = "ollama"
+        self.provider = AiProvider.OLLAMA
         self.model_name = "test-model"
-        self.purpose = "classification"
+        self.purpose = AiPurpose.ARTICLE_CLASSIFICATION
 
     def _create_adapter(
         self,

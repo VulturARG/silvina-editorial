@@ -3,6 +3,8 @@ from unittest import TestCase
 
 from src.domain.dtos.ai_interaction_dto import AiInteractionDTO
 from src.domain.dtos.base_dto import BaseDTO
+from src.domain.enums.ai_provider import AiProvider
+from src.domain.enums.ai_purpose import AiPurpose
 from src.domain.enums.execution_status import ExecutionStatus
 
 
@@ -13,8 +15,8 @@ class TestAiInteractionDTO(TestCase):
     def test_frozen_raises_on_mutation(self):
         ai_interaction = AiInteractionDTO(
             analysis_id="analysis-123",
-            provider="ollama",
-            purpose="classification",
+            provider=AiProvider.OLLAMA,
+            purpose=AiPurpose.ARTICLE_CLASSIFICATION,
             model_name="mistral",
             input_payload="prompt text",
             output_payload="response text",
@@ -28,8 +30,8 @@ class TestAiInteractionDTO(TestCase):
     def test_holds_expected_attributes(self):
         ai_interaction = AiInteractionDTO(
             analysis_id="analysis-123",
-            provider="ollama",
-            purpose="classification",
+            provider=AiProvider.OLLAMA,
+            purpose=AiPurpose.ARTICLE_CLASSIFICATION,
             model_name="mistral",
             input_payload="prompt text",
             output_payload="response text",
@@ -37,8 +39,8 @@ class TestAiInteractionDTO(TestCase):
             status=ExecutionStatus.SUCCESS,
         )
         self.assertEqual(ai_interaction.analysis_id, "analysis-123")
-        self.assertEqual(ai_interaction.provider, "ollama")
-        self.assertEqual(ai_interaction.purpose, "classification")
+        self.assertEqual(ai_interaction.provider, AiProvider.OLLAMA)
+        self.assertEqual(ai_interaction.purpose, AiPurpose.ARTICLE_CLASSIFICATION)
         self.assertEqual(ai_interaction.model_name, "mistral")
         self.assertEqual(ai_interaction.input_payload, "prompt text")
         self.assertEqual(ai_interaction.output_payload, "response text")

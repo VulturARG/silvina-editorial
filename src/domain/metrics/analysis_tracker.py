@@ -8,6 +8,7 @@ from src.domain.dtos.analysis_completion_dto import AnalysisCompletionDTO
 from src.domain.dtos.analysis_start_dto import AnalysisStartDTO
 from src.domain.dtos.report_input_dto import ReportInputDTO
 from src.domain.dtos.stage_duration_dto import StageDurationDTO
+from src.domain.enums.analysis_stage import AnalysisStage
 from src.domain.enums.execution_status import ExecutionStatus
 from src.domain.metrics.analysis_context_port import AnalysisContextPort
 from src.domain.metrics.analysis_metrics_recorder import AnalysisMetricsRecorder
@@ -64,7 +65,7 @@ class AnalysisTracker:
             self._analysis_context_port.clear_analysis_id()
 
     @contextmanager
-    def measure_stage(self, stage_name: str) -> Iterator[None]:
+    def measure_stage(self, stage_name: AnalysisStage) -> Iterator[None]:
         """Measure the execution time of an analysis stage and record it if an analysis is active."""
         analysis_id = self._analysis_context_port.get_analysis_id()
         start_time = perf_counter()

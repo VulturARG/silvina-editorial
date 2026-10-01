@@ -1,6 +1,8 @@
 from time import perf_counter
 
 from src.domain.dtos.ai_interaction_dto import AiInteractionDTO
+from src.domain.enums.ai_provider import AiProvider
+from src.domain.enums.ai_purpose import AiPurpose
 from src.domain.enums.execution_status import ExecutionStatus
 from src.domain.metrics.analysis_context_port import AnalysisContextPort
 from src.domain.metrics.analysis_metrics_port import AnalysisMetricsPort
@@ -18,9 +20,9 @@ class AuditedLlmGeneratorAdapter(LlmGeneratorPort):
         generator: LlmGeneratorPort,
         metrics_port: AnalysisMetricsPort,
         analysis_context_port: AnalysisContextPort,
-        provider: str,
+        provider: AiProvider,
         model_name: str,
-        purpose: str,
+        purpose: AiPurpose,
         audit_payload_policy: AuditPayloadPolicy,
     ) -> None:
         self._generator = generator

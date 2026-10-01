@@ -4,6 +4,9 @@ from src.domain.dtos.ai_interaction_dto import AiInteractionDTO
 from src.domain.dtos.analysis_completion_dto import AnalysisCompletionDTO
 from src.domain.dtos.analysis_start_dto import AnalysisStartDTO
 from src.domain.dtos.stage_duration_dto import StageDurationDTO
+from src.domain.enums.ai_provider import AiProvider
+from src.domain.enums.ai_purpose import AiPurpose
+from src.domain.enums.analysis_stage import AnalysisStage
 from src.domain.enums.article_type import ArticleType
 from src.domain.enums.execution_status import ExecutionStatus
 from src.domain.enums.publication_verdict import PublicationVerdict
@@ -27,7 +30,7 @@ class TestAnalysisMetricsRecorder(TestCase):
         recorder = AnalysisMetricsRecorder(metrics_port=fake_port)
         stage_duration = StageDurationDTO(
             analysis_id="analysis-123",
-            stage_name="content_extraction",
+            stage_name=AnalysisStage.EXTRACT_CONTENT,
             duration_ms=125.4,
         )
         recorder.record_stage_duration(stage_duration=stage_duration)
@@ -38,8 +41,8 @@ class TestAnalysisMetricsRecorder(TestCase):
         recorder = AnalysisMetricsRecorder(metrics_port=fake_port)
         ai_interaction = AiInteractionDTO(
             analysis_id="analysis-123",
-            provider="ollama",
-            purpose="classification",
+            provider=AiProvider.OLLAMA,
+            purpose=AiPurpose.ARTICLE_CLASSIFICATION,
             model_name="mistral",
             input_payload="prompt text",
             output_payload="response text",

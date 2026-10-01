@@ -3,6 +3,7 @@ from unittest import TestCase
 from unittest.mock import MagicMock
 
 from src.domain.dtos.report_input_dto import ReportInputDTO
+from src.domain.enums.analysis_stage import AnalysisStage
 from src.domain.enums.article_type import ArticleType
 from src.domain.enums.execution_status import ExecutionStatus
 from src.domain.enums.publication_verdict import PublicationVerdict
@@ -244,13 +245,13 @@ class TestAnalysisTracker(TestCase):
             analysis_context_port=context_port,
         )
 
-        with tracker.measure_stage("content_extraction"):
+        with tracker.measure_stage(AnalysisStage.EXTRACT_CONTENT):
             sleep(0.01)
 
         self.assertEqual(len(fake_metrics_port.recorded_stage_durations), 1)
         stage = fake_metrics_port.recorded_stage_durations[0]
         self.assertEqual(stage.analysis_id, "active-analysis-123")
-        self.assertEqual(stage.stage_name, "content_extraction")
+        self.assertEqual(stage.stage_name, AnalysisStage.EXTRACT_CONTENT)
         self.assertGreaterEqual(stage.duration_ms, 0.0)
 
     def test_measure_stage_records_duration_when_stage_body_raises_exception(self):
@@ -265,14 +266,14 @@ class TestAnalysisTracker(TestCase):
         expected_exception = ValueError("stage body raised")
 
         with self.assertRaises(ValueError) as caught:
-            with tracker.measure_stage("failing_stage"):
+            with tracker.measure_stage(AnalysisStage.CHECK_GRAMMAR):
                 raise expected_exception
 
         self.assertIs(caught.exception, expected_exception)
         self.assertEqual(len(fake_metrics_port.recorded_stage_durations), 1)
         stage = fake_metrics_port.recorded_stage_durations[0]
         self.assertEqual(stage.analysis_id, "active-analysis-123")
-        self.assertEqual(stage.stage_name, "failing_stage")
+        self.assertEqual(stage.stage_name, AnalysisStage.CHECK_GRAMMAR)
         self.assertGreaterEqual(stage.duration_ms, 0.0)
 
     def test_measure_stage_does_not_record_when_no_active_analysis_id(self):
@@ -285,7 +286,7 @@ class TestAnalysisTracker(TestCase):
         )
         executed = False
 
-        with tracker.measure_stage("untracked_stage"):
+        with tracker.measure_stage(AnalysisStage.VALIDATE_APA):
             executed = True
 
         self.assertTrue(executed)
@@ -301,9 +302,9 @@ class TestAnalysisTracker(TestCase):
         )
 
         def staged_pipeline() -> ReportInputDTO:
-            with tracker.measure_stage("stage_alpha"):
+            with tracker.measure_stage(AnalysisStage.VALIDATE_STRUCTURE):
                 pass
-            with tracker.measure_stage("stage_beta"):
+            with tracker.measure_stage(AnalysisStage.ANALYZE_QUALITY):
                 pass
             return _make_report_input_dto()
 
@@ -317,6 +318,12 @@ class TestAnalysisTracker(TestCase):
         self.assertEqual(start_id, completion_id)
         self.assertEqual(len(fake_metrics_port.recorded_stage_durations), 2)
         self.assertEqual(fake_metrics_port.recorded_stage_durations[0].analysis_id, start_id)
-        self.assertEqual(fake_metrics_port.recorded_stage_durations[0].stage_name, "stage_alpha")
+        self.assertEqual(
+            fake_metrics_port.recorded_stage_durations[0].stage_name,
+            AnalysisStage.VALIDATE_STRUCTURE,
+        )
         self.assertEqual(fake_metrics_port.recorded_stage_durations[1].analysis_id, start_id)
-        self.assertEqual(fake_metrics_port.recorded_stage_durations[1].stage_name, "stage_beta")
+        self.assertEqual(
+            fake_metrics_port.recorded_stage_durations[1].stage_name,
+            AnalysisStage.ANALYZE_QUALITY,
+        )

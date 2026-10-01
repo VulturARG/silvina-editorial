@@ -8,6 +8,9 @@ from src.domain.dtos.ai_interaction_dto import AiInteractionDTO
 from src.domain.dtos.analysis_completion_dto import AnalysisCompletionDTO
 from src.domain.dtos.analysis_start_dto import AnalysisStartDTO
 from src.domain.dtos.stage_duration_dto import StageDurationDTO
+from src.domain.enums.ai_provider import AiProvider
+from src.domain.enums.ai_purpose import AiPurpose
+from src.domain.enums.analysis_stage import AnalysisStage
 from src.domain.enums.article_type import ArticleType
 from src.domain.enums.execution_status import ExecutionStatus
 from src.domain.enums.publication_verdict import PublicationVerdict
@@ -193,7 +196,7 @@ class TestSqliteAnalysisMetricsAdapter(TestCase):
         adapter = SqliteAnalysisMetricsAdapter(self.database_path)
         stage_dto = StageDurationDTO(
             analysis_id="analysis-stage-1",
-            stage_name="orthographic_inspection",
+            stage_name=AnalysisStage.INSPECT_FORMAT,
             duration_ms=134.8,
         )
         adapter.record_stage_duration(stage_dto)
@@ -206,7 +209,7 @@ class TestSqliteAnalysisMetricsAdapter(TestCase):
             row = cursor.fetchone()
             self.assertIsNotNone(row)
             self.assertEqual(row[0], "analysis-stage-1")
-            self.assertEqual(row[1], "orthographic_inspection")
+            self.assertEqual(row[1], AnalysisStage.INSPECT_FORMAT.value)
             self.assertEqual(row[2], 134.8)
             self.assertTrue(len(row[3]) > 0)
             self.assertIn("T", row[3])
@@ -222,8 +225,8 @@ class TestSqliteAnalysisMetricsAdapter(TestCase):
         multiline_output = '{\n  "verdict": "valid",\n  "details": "Línea con puntuación y caracteres especiales"\n}'
         interaction_dto = AiInteractionDTO(
             analysis_id="analysis-ai-1",
-            provider="ollama",
-            purpose="style_analysis",
+            provider=AiProvider.OLLAMA,
+            purpose=AiPurpose.QUALITY_ANALYSIS,
             model_name="llama3.1:8b",
             input_payload=large_unicode_input,
             output_payload=multiline_output,
@@ -240,8 +243,8 @@ class TestSqliteAnalysisMetricsAdapter(TestCase):
             row = cursor.fetchone()
             self.assertIsNotNone(row)
             self.assertEqual(row[0], "analysis-ai-1")
-            self.assertEqual(row[1], "ollama")
-            self.assertEqual(row[2], "style_analysis")
+            self.assertEqual(row[1], AiProvider.OLLAMA.value)
+            self.assertEqual(row[2], AiPurpose.QUALITY_ANALYSIS.value)
             self.assertEqual(row[3], "llama3.1:8b")
             self.assertEqual(row[4], large_unicode_input)
             self.assertEqual(row[5], multiline_output)
@@ -256,8 +259,8 @@ class TestSqliteAnalysisMetricsAdapter(TestCase):
         sql_injection_payload = "'); DROP TABLE analyses; --"
         interaction_dto = AiInteractionDTO(
             analysis_id="analysis-sql-injection-1",
-            provider="laya",
-            purpose="decision_gate",
+            provider=AiProvider.OLLAMA,
+            purpose=AiPurpose.EDITORIAL_SUITABILITY,
             model_name="laya-ensemble-v1",
             input_payload=sql_injection_payload,
             output_payload=sql_injection_payload,
@@ -280,12 +283,19 @@ class TestSqliteAnalysisMetricsAdapter(TestCase):
 
     def test_multiple_ai_interactions_for_same_analysis_are_stored_in_insertion_order(self) -> None:
         adapter = SqliteAnalysisMetricsAdapter(self.database_path)
-        for index in range(5):
+        purposes = [
+            AiPurpose.ARTICLE_CLASSIFICATION,
+            AiPurpose.QUALITY_ANALYSIS,
+            AiPurpose.EDITORIAL_SUITABILITY,
+            AiPurpose.ARTICLE_CLASSIFICATION,
+            AiPurpose.QUALITY_ANALYSIS,
+        ]
+        for index, purpose in enumerate(purposes):
             adapter.record_ai_interaction(
                 AiInteractionDTO(
                     analysis_id="analysis-multiple-interactions",
-                    provider="ollama",
-                    purpose=f"stage_step_{index}",
+                    provider=AiProvider.OLLAMA,
+                    purpose=purpose,
                     model_name="llama3.1:8b",
                     input_payload=f"input_{index}",
                     output_payload=f"output_{index}",
@@ -302,7 +312,7 @@ class TestSqliteAnalysisMetricsAdapter(TestCase):
             rows = cursor.fetchall()
             self.assertEqual(len(rows), 5)
             for index, row in enumerate(rows):
-                self.assertEqual(row[0], f"stage_step_{index}")
+                self.assertEqual(row[0], purposes[index].value)
                 self.assertEqual(row[1], f"input_{index}")
                 self.assertEqual(row[2], float(index * 10))
 
@@ -363,3 +373,41 @@ class TestSqliteAnalysisMetricsAdapter(TestCase):
             self.assertIsNone(row[5])
             self.assertIsNone(row[6])
             self.assertEqual(row[7], 125.0)
+
+    def test_records_stage_name_provider_and_purpose_stored_as_enum_values(self) -> None:
+        adapter = SqliteAnalysisMetricsAdapter(self.database_path)
+        stage_dto = StageDurationDTO(
+            analysis_id="analysis-enum-test",
+            stage_name=AnalysisStage.BUILD_RECOMMENDATIONS,
+            duration_ms=88.5,
+        )
+        interaction_dto = AiInteractionDTO(
+            analysis_id="analysis-enum-test",
+            provider=AiProvider.OLLAMA,
+            purpose=AiPurpose.EDITORIAL_SUITABILITY,
+            model_name="llama3.1:8b",
+            input_payload="input prompt",
+            output_payload="output response",
+            duration_ms=250.0,
+            status=ExecutionStatus.SUCCESS,
+        )
+        adapter.record_stage_duration(stage_dto)
+        adapter.record_ai_interaction(interaction_dto)
+        with closing(connect(self.database_path)) as connection:
+            cursor = connection.cursor()
+            cursor.execute(
+                "SELECT stage_name FROM stage_durations WHERE analysis_id = ?;",
+                ("analysis-enum-test",),
+            )
+            stage_row = cursor.fetchone()
+            self.assertIsNotNone(stage_row)
+            self.assertEqual(stage_row[0], AnalysisStage.BUILD_RECOMMENDATIONS.value)
+
+            cursor.execute(
+                "SELECT provider, purpose FROM ai_interactions WHERE analysis_id = ?;",
+                ("analysis-enum-test",),
+            )
+            ai_row = cursor.fetchone()
+            self.assertIsNotNone(ai_row)
+            self.assertEqual(ai_row[0], AiProvider.OLLAMA.value)
+            self.assertEqual(ai_row[1], AiPurpose.EDITORIAL_SUITABILITY.value)

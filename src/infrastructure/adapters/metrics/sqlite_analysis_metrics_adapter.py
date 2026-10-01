@@ -117,7 +117,7 @@ class SqliteAnalysisMetricsAdapter(AnalysisMetricsPort):
                     """,
                     (
                         stage_duration.analysis_id,
-                        stage_duration.stage_name,
+                        self._enum_value(stage_duration.stage_name),
                         stage_duration.duration_ms,
                         recorded_at,
                     ),
@@ -144,8 +144,8 @@ class SqliteAnalysisMetricsAdapter(AnalysisMetricsPort):
                     """,
                     (
                         ai_interaction.analysis_id,
-                        ai_interaction.provider,
-                        ai_interaction.purpose,
+                        self._enum_value(ai_interaction.provider),
+                        self._enum_value(ai_interaction.purpose),
                         ai_interaction.model_name,
                         ai_interaction.input_payload,
                         ai_interaction.output_payload,

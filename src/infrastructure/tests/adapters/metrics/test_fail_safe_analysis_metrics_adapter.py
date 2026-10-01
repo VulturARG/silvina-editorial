@@ -5,6 +5,9 @@ from src.domain.dtos.ai_interaction_dto import AiInteractionDTO
 from src.domain.dtos.analysis_completion_dto import AnalysisCompletionDTO
 from src.domain.dtos.analysis_start_dto import AnalysisStartDTO
 from src.domain.dtos.stage_duration_dto import StageDurationDTO
+from src.domain.enums.ai_provider import AiProvider
+from src.domain.enums.ai_purpose import AiPurpose
+from src.domain.enums.analysis_stage import AnalysisStage
 from src.domain.enums.article_type import ArticleType
 from src.domain.enums.execution_status import ExecutionStatus
 from src.domain.enums.publication_verdict import PublicationVerdict
@@ -44,7 +47,7 @@ class TestFailSafeAnalysisMetricsAdapter(TestCase):
         adapter = FailSafeAnalysisMetricsAdapter(analysis_metrics_port=fake_port)
         stage_duration = StageDurationDTO(
             analysis_id="analysis-123",
-            stage_name="quality_check",
+            stage_name=AnalysisStage.ANALYZE_QUALITY,
             duration_ms=45.2,
         )
 
@@ -57,8 +60,8 @@ class TestFailSafeAnalysisMetricsAdapter(TestCase):
         adapter = FailSafeAnalysisMetricsAdapter(analysis_metrics_port=fake_port)
         ai_interaction = AiInteractionDTO(
             analysis_id="analysis-123",
-            provider="ollama",
-            purpose="classification",
+            provider=AiProvider.OLLAMA,
+            purpose=AiPurpose.ARTICLE_CLASSIFICATION,
             model_name="mistral",
             input_payload="analysis prompt text",
             output_payload="classification output text",
@@ -109,7 +112,7 @@ class TestFailSafeAnalysisMetricsAdapter(TestCase):
         adapter = FailSafeAnalysisMetricsAdapter(analysis_metrics_port=failing_port)
         stage_duration = StageDurationDTO(
             analysis_id="analysis-123",
-            stage_name="secret_stage_evaluation",
+            stage_name=AnalysisStage.CHECK_GRAMMAR,
             duration_ms=12.5,
         )
 
@@ -123,8 +126,8 @@ class TestFailSafeAnalysisMetricsAdapter(TestCase):
         adapter = FailSafeAnalysisMetricsAdapter(analysis_metrics_port=failing_port)
         ai_interaction = AiInteractionDTO(
             analysis_id="analysis-123",
-            provider="ollama",
-            purpose="classification",
+            provider=AiProvider.OLLAMA,
+            purpose=AiPurpose.ARTICLE_CLASSIFICATION,
             model_name="mistral",
             input_payload="ultra_secret_prompt_payload",
             output_payload="ultra_secret_output_payload",
