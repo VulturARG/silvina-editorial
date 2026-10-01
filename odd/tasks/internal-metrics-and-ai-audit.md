@@ -61,10 +61,11 @@ This feature introduces a 100% self-contained, open-source, and free observabili
   - **Verification**: Unit tests in `src/infrastructure/tests/adapters/metrics/test_sqlite_analysis_metrics_adapter.py` (14 passed) verifying schema creation, WAL pragma, idempotent init, upsert on completion, parameterization against SQL injection, large unicode payloads, insertion order and committed visibility.
   - **Outcome**: Completion is an UPSERT that preserves the original `started_at` when the start was recorded and fills it when it was not. Duplicate `analysis_id` on start raises `sqlite3.IntegrityError` (propagates). Full test suite: 737 passed.
 
-- [ ] **TASK-04: Implement `AuditedLlmGeneratorAdapter`**
-  - **Route**: direct inline
-  - **Scope**: Create `src/infrastructure/adapters/llm_generator/audited_llm_generator_adapter.py` wrapping `LlmGeneratorPort`. Intercept `generate()`, measure latency, audit prompt and raw response via `AnalysisMetricsPort`, and re-raise/record exceptions.
-  - **Verification**: Unit tests in `src/infrastructure/tests/adapters/llm_generator/test_audited_llm_generator_adapter.py`.
+- [x] **TASK-04: Implement `AuditedLlmGeneratorAdapter`**
+  - **Route**: subagent delegation (`gentle-ai-worker`)
+  - **Scope**: Create `src/infrastructure/adapters/llm_generator/audited_llm_generator_adapter.py` wrapping `LlmGeneratorPort`. Constructor receives `generator`, `metrics_port: AnalysisMetricsPort`, `analysis_context_port: AnalysisContextPort`, `provider`, `model_name` and `purpose` (the domain port cannot tell who is calling, so TASK-07 builds one audited instance per consumer with its own `purpose`). Intercept `generate()`, measure latency, record prompt as `input_payload` and the raw response as `output_payload` via `AnalysisMetricsPort`; when the wrapped generator fails, record `status="error"` with `ExceptionType: message` and re-raise the same exception object. Without an active analysis id the interaction is recorded under `unassigned`. Failures of the metrics port itself propagate (a fail-safe metrics wrapper is planned for TASK-07). Test doubles `FailingLlmGeneratorAdapter` and `SlowLlmGeneratorAdapter` live in `src/infrastructure/tests/test_doubles/`.
+  - **Verification**: Unit tests in `src/infrastructure/tests/adapters/llm_generator/test_audited_llm_generator_adapter.py` (14 passed).
+  - **Outcome**: Decorator records one `AiInteractionDTO` per call (success or error) and leaves the wrapped behavior untouched. Full test suite: 751 passed.
 
 - [ ] **TASK-05: Implement `AuditedLayaDecisionAdapter`**
   - **Route**: direct inline
@@ -95,10 +96,14 @@ This feature introduces a 100% self-contained, open-source, and free observabili
 
 ## 4. Progress & Verification Log
 
-- **Current Status**: TASK-03 complete and uncommitted. TASK-02 committed and pushed (`80aabbb`). Standing by for explicit user authorization to commit or proceed to TASK-04.
-- **Next Step**: TASK-04 (Implement `AuditedLlmGeneratorAdapter`).
+- **Current Status**: TASK-04 complete and uncommitted. TASK-02 (`80aabbb`) and TASK-03 (`07f50e3`) committed and pushed. Standing by for explicit user authorization to commit or proceed to TASK-05.
+- **Next Step**: TASK-05 (Implement `AuditedLayaDecisionAdapter`). Open item for TASK-07: fail-safe wrapper so metrics persistence errors never break an analysis.
 
 ### Verification History
+- **TASK-04**: Complete (uncommitted).
+  - RED: `.venv/Scripts/python -m pytest src/infrastructure/tests/adapters/llm_generator/test_audited_llm_generator_adapter.py` failed with `ModuleNotFoundError: No module named 'src.infrastructure.adapters.llm_generator.audited_llm_generator_adapter'`.
+  - GREEN: Implemented `AuditedLlmGeneratorAdapter`. 14 tests passed. Full test suite: 751 passed. `ruff check` and `ruff format --check` clean.
+  - Verification: `unittest.TestCase`, no inline comments, PEP 257 docstrings, no `@generic_error_handler`, original exception re-raised untouched, `_ms` suffix kept for durations.
 - **TASK-03**: Complete (uncommitted).
   - RED: `.venv/Scripts/python -m pytest src/infrastructure/tests/adapters/metrics/test_sqlite_analysis_metrics_adapter.py` failed with `ModuleNotFoundError: No module named 'src.infrastructure.adapters.metrics.sqlite_analysis_metrics_adapter'`.
   - GREEN: Implemented `SqliteAnalysisMetricsAdapter`. 14 tests passed. Full test suite: 737 passed. `ruff check` and `ruff format --check` clean.
