@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from src.domain.dtos.base_dto import BaseDTO
+from src.domain.enums.execution_status import ExecutionStatus
 
 
 @dataclass(frozen=True)
@@ -14,4 +15,4 @@ class AiInteractionDTO(BaseDTO):
     input_payload: str
     output_payload: str
     duration_ms: float
-    status: str
+    status: ExecutionStatus

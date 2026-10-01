@@ -8,6 +8,9 @@ from src.domain.dtos.ai_interaction_dto import AiInteractionDTO
 from src.domain.dtos.analysis_completion_dto import AnalysisCompletionDTO
 from src.domain.dtos.analysis_start_dto import AnalysisStartDTO
 from src.domain.dtos.stage_duration_dto import StageDurationDTO
+from src.domain.enums.article_type import ArticleType
+from src.domain.enums.execution_status import ExecutionStatus
+from src.domain.enums.publication_verdict import PublicationVerdict
 from src.domain.metrics.analysis_metrics_port import AnalysisMetricsPort
 from src.infrastructure.adapters.metrics.sqlite_analysis_metrics_adapter import (
     SqliteAnalysisMetricsAdapter,
@@ -92,7 +95,7 @@ class TestSqliteAnalysisMetricsAdapter(TestCase):
             self.assertIsNotNone(row)
             self.assertEqual(row[0], "analysis-start-1")
             self.assertEqual(row[1], "editorial_article.docx")
-            self.assertEqual(row[2], "running")
+            self.assertEqual(row[2], ExecutionStatus.RUNNING.value)
             self.assertTrue(len(row[3]) > 0)
             self.assertIn("T", row[3])
             self.assertIsNone(row[4])
@@ -126,10 +129,10 @@ class TestSqliteAnalysisMetricsAdapter(TestCase):
             document_name="updated_name.docx",
             word_count=1500,
             char_count=9800,
-            article_type="investigative_journalism",
-            verdict="approved",
+            article_type=ArticleType.SCIENTIFIC,
+            verdict=PublicationVerdict.APPROVED,
             total_duration_ms=4520.5,
-            status="completed",
+            status=ExecutionStatus.SUCCESS,
         )
         adapter.record_analysis_completion(completion_dto)
 
@@ -143,14 +146,14 @@ class TestSqliteAnalysisMetricsAdapter(TestCase):
             self.assertIsNotNone(row)
             self.assertEqual(row[0], "analysis-update-1")
             self.assertEqual(row[1], "updated_name.docx")
-            self.assertEqual(row[2], "completed")
+            self.assertEqual(row[2], ExecutionStatus.SUCCESS.value)
             self.assertEqual(row[3], original_started_at)
             self.assertIsNotNone(row[4])
             self.assertTrue(len(row[4]) > 0)
             self.assertEqual(row[5], 1500)
             self.assertEqual(row[6], 9800)
-            self.assertEqual(row[7], "investigative_journalism")
-            self.assertEqual(row[8], "approved")
+            self.assertEqual(row[7], ArticleType.SCIENTIFIC.value)
+            self.assertEqual(row[8], PublicationVerdict.APPROVED.value)
             self.assertEqual(row[9], 4520.5)
 
     def test_record_analysis_completion_without_prior_start_inserts_new_row(self) -> None:
@@ -160,10 +163,10 @@ class TestSqliteAnalysisMetricsAdapter(TestCase):
             document_name="standalone_article.docx",
             word_count=850,
             char_count=5200,
-            article_type="opinion_column",
-            verdict="revision_required",
+            article_type=ArticleType.OPINION,
+            verdict=PublicationVerdict.WARNING,
             total_duration_ms=2100.0,
-            status="completed",
+            status=ExecutionStatus.SUCCESS,
         )
         adapter.record_analysis_completion(completion_dto)
         with closing(connect(self.database_path)) as connection:
@@ -176,14 +179,14 @@ class TestSqliteAnalysisMetricsAdapter(TestCase):
             self.assertIsNotNone(row)
             self.assertEqual(row[0], "analysis-standalone-1")
             self.assertEqual(row[1], "standalone_article.docx")
-            self.assertEqual(row[2], "completed")
+            self.assertEqual(row[2], ExecutionStatus.SUCCESS.value)
             self.assertIsNotNone(row[3])
             self.assertTrue(len(row[3]) > 0)
             self.assertEqual(row[3], row[4])
             self.assertEqual(row[5], 850)
             self.assertEqual(row[6], 5200)
-            self.assertEqual(row[7], "opinion_column")
-            self.assertEqual(row[8], "revision_required")
+            self.assertEqual(row[7], ArticleType.OPINION.value)
+            self.assertEqual(row[8], PublicationVerdict.WARNING.value)
             self.assertEqual(row[9], 2100.0)
 
     def test_record_stage_duration_stores_row(self) -> None:
@@ -225,7 +228,7 @@ class TestSqliteAnalysisMetricsAdapter(TestCase):
             input_payload=large_unicode_input,
             output_payload=multiline_output,
             duration_ms=1520.4,
-            status="success",
+            status=ExecutionStatus.SUCCESS,
         )
         adapter.record_ai_interaction(interaction_dto)
         with closing(connect(self.database_path)) as connection:
@@ -243,7 +246,7 @@ class TestSqliteAnalysisMetricsAdapter(TestCase):
             self.assertEqual(row[4], large_unicode_input)
             self.assertEqual(row[5], multiline_output)
             self.assertEqual(row[6], 1520.4)
-            self.assertEqual(row[7], "success")
+            self.assertEqual(row[7], ExecutionStatus.SUCCESS.value)
             self.assertTrue(len(row[8]) > 0)
 
     def test_record_ai_interaction_with_sql_injection_payload_is_parameterized_and_table_survives(
@@ -259,7 +262,7 @@ class TestSqliteAnalysisMetricsAdapter(TestCase):
             input_payload=sql_injection_payload,
             output_payload=sql_injection_payload,
             duration_ms=45.2,
-            status="success",
+            status=ExecutionStatus.SUCCESS,
         )
         adapter.record_ai_interaction(interaction_dto)
         with closing(connect(self.database_path)) as connection:
@@ -287,7 +290,7 @@ class TestSqliteAnalysisMetricsAdapter(TestCase):
                     input_payload=f"input_{index}",
                     output_payload=f"output_{index}",
                     duration_ms=float(index * 10),
-                    status="success",
+                    status=ExecutionStatus.SUCCESS,
                 )
             )
         with closing(connect(self.database_path)) as connection:
@@ -322,4 +325,41 @@ class TestSqliteAnalysisMetricsAdapter(TestCase):
             row = cursor.fetchone()
             self.assertIsNotNone(row)
             self.assertEqual(row[0], "committed_check.txt")
-            self.assertEqual(row[1], "running")
+            self.assertEqual(row[1], ExecutionStatus.RUNNING.value)
+
+    def test_record_analysis_completion_with_none_fields_persists_nulls_and_error_status(
+        self,
+    ) -> None:
+        adapter = SqliteAnalysisMetricsAdapter(self.database_path)
+        start_dto = AnalysisStartDTO(
+            analysis_id="analysis-failure-1",
+            document_name="broken_file.docx",
+        )
+        adapter.record_analysis_start(start_dto)
+        completion_dto = AnalysisCompletionDTO(
+            analysis_id="analysis-failure-1",
+            document_name="broken_file.docx",
+            word_count=None,
+            char_count=None,
+            article_type=None,
+            verdict=None,
+            total_duration_ms=125.0,
+            status=ExecutionStatus.ERROR,
+        )
+        adapter.record_analysis_completion(completion_dto)
+        with closing(connect(self.database_path)) as connection:
+            cursor = connection.cursor()
+            cursor.execute(
+                "SELECT analysis_id, document_name, status, word_count, char_count, article_type, verdict, total_duration_ms FROM analyses WHERE analysis_id = ?;",
+                ("analysis-failure-1",),
+            )
+            row = cursor.fetchone()
+            self.assertIsNotNone(row)
+            self.assertEqual(row[0], "analysis-failure-1")
+            self.assertEqual(row[1], "broken_file.docx")
+            self.assertEqual(row[2], ExecutionStatus.ERROR.value)
+            self.assertIsNone(row[3])
+            self.assertIsNone(row[4])
+            self.assertIsNone(row[5])
+            self.assertIsNone(row[6])
+            self.assertEqual(row[7], 125.0)

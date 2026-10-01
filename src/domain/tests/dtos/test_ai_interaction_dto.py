@@ -3,6 +3,7 @@ from unittest import TestCase
 
 from src.domain.dtos.ai_interaction_dto import AiInteractionDTO
 from src.domain.dtos.base_dto import BaseDTO
+from src.domain.enums.execution_status import ExecutionStatus
 
 
 class TestAiInteractionDTO(TestCase):
@@ -18,11 +19,11 @@ class TestAiInteractionDTO(TestCase):
             input_payload="prompt text",
             output_payload="response text",
             duration_ms=320.0,
-            status="success",
+            status=ExecutionStatus.SUCCESS,
         )
         field_name = "status"
         with self.assertRaises(FrozenInstanceError):
-            setattr(ai_interaction, field_name, "failed")
+            setattr(ai_interaction, field_name, ExecutionStatus.ERROR)
 
     def test_holds_expected_attributes(self):
         ai_interaction = AiInteractionDTO(
@@ -33,7 +34,7 @@ class TestAiInteractionDTO(TestCase):
             input_payload="prompt text",
             output_payload="response text",
             duration_ms=320.0,
-            status="success",
+            status=ExecutionStatus.SUCCESS,
         )
         self.assertEqual(ai_interaction.analysis_id, "analysis-123")
         self.assertEqual(ai_interaction.provider, "ollama")
@@ -42,4 +43,4 @@ class TestAiInteractionDTO(TestCase):
         self.assertEqual(ai_interaction.input_payload, "prompt text")
         self.assertEqual(ai_interaction.output_payload, "response text")
         self.assertEqual(ai_interaction.duration_ms, 320.0)
-        self.assertEqual(ai_interaction.status, "success")
+        self.assertEqual(ai_interaction.status, ExecutionStatus.SUCCESS)

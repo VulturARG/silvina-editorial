@@ -1,5 +1,6 @@
 from contextlib import closing
 from datetime import datetime, timezone
+from enum import Enum
 from pathlib import Path
 from sqlite3 import connect
 
@@ -7,6 +8,7 @@ from src.domain.dtos.ai_interaction_dto import AiInteractionDTO
 from src.domain.dtos.analysis_completion_dto import AnalysisCompletionDTO
 from src.domain.dtos.analysis_start_dto import AnalysisStartDTO
 from src.domain.dtos.stage_duration_dto import StageDurationDTO
+from src.domain.enums.execution_status import ExecutionStatus
 from src.domain.metrics.analysis_metrics_port import AnalysisMetricsPort
 
 
@@ -94,7 +96,7 @@ class SqliteAnalysisMetricsAdapter(AnalysisMetricsPort):
                     (
                         start_data.analysis_id,
                         start_data.document_name,
-                        "running",
+                        ExecutionStatus.RUNNING.value,
                         started_at,
                     ),
                 )
@@ -148,7 +150,7 @@ class SqliteAnalysisMetricsAdapter(AnalysisMetricsPort):
                         ai_interaction.input_payload,
                         ai_interaction.output_payload,
                         ai_interaction.duration_ms,
-                        ai_interaction.status,
+                        self._enum_value(ai_interaction.status),
                         recorded_at,
                     ),
                 )
@@ -185,13 +187,19 @@ class SqliteAnalysisMetricsAdapter(AnalysisMetricsPort):
                     (
                         completion_data.analysis_id,
                         completion_data.document_name,
-                        completion_data.status,
+                        self._enum_value(completion_data.status),
                         completed_at,
                         completed_at,
                         completion_data.word_count,
                         completion_data.char_count,
-                        completion_data.article_type,
-                        completion_data.verdict,
+                        self._enum_value(completion_data.article_type),
+                        self._enum_value(completion_data.verdict),
                         completion_data.total_duration_ms,
                     ),
                 )
+
+    @staticmethod
+    def _enum_value(member: Enum | None) -> str | None:
+        if member is None:
+            return None
+        return member.value

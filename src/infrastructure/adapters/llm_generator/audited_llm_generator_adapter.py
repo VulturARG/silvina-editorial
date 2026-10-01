@@ -1,6 +1,7 @@
 from time import perf_counter
 
 from src.domain.dtos.ai_interaction_dto import AiInteractionDTO
+from src.domain.enums.execution_status import ExecutionStatus
 from src.domain.metrics.analysis_context_port import AnalysisContextPort
 from src.domain.metrics.analysis_metrics_port import AnalysisMetricsPort
 from src.domain.metrics.audit_payload_policy import AuditPayloadPolicy
@@ -46,7 +47,7 @@ class AuditedLlmGeneratorAdapter(LlmGeneratorPort):
                 prompt=self._audit_payload_policy.apply(prompt),
                 output_payload=f"{type(exc).__name__}: {self._audit_payload_policy.apply(str(exc))}",
                 duration_ms=duration_ms,
-                status="error",
+                status=ExecutionStatus.ERROR,
             )
             raise
 
@@ -56,7 +57,7 @@ class AuditedLlmGeneratorAdapter(LlmGeneratorPort):
             prompt=self._audit_payload_policy.apply(prompt),
             output_payload=self._audit_payload_policy.apply(response),
             duration_ms=duration_ms,
-            status="success",
+            status=ExecutionStatus.SUCCESS,
         )
         return response
 
@@ -66,7 +67,7 @@ class AuditedLlmGeneratorAdapter(LlmGeneratorPort):
         prompt: str,
         output_payload: str,
         duration_ms: float,
-        status: str,
+        status: ExecutionStatus,
     ) -> None:
         interaction = AiInteractionDTO(
             analysis_id=analysis_id,

@@ -1,6 +1,7 @@
 from unittest import TestCase
 
 from src.domain.enums.app_mode import AppMode
+from src.domain.enums.execution_status import ExecutionStatus
 from src.domain.metrics.audit_payload_policy import AuditPayloadPolicy
 from src.domain.ports.llm_generator_port import LlmGeneratorPort
 from src.domain.tests.classification.fake_llm_generator_adapter import FakeLlmGeneratorAdapter
@@ -103,7 +104,7 @@ class TestAuditedLlmGeneratorAdapter(TestCase):
         self.assertEqual(recorded_interaction.model_name, self.model_name)
         self.assertEqual(recorded_interaction.input_payload, "sample prompt")
         self.assertEqual(recorded_interaction.output_payload, "generated output")
-        self.assertEqual(recorded_interaction.status, "success")
+        self.assertEqual(recorded_interaction.status, ExecutionStatus.SUCCESS)
 
     def test_generate_records_duration_in_milliseconds_as_non_negative_float(self) -> None:
         wrapped_generator = FakeLlmGeneratorAdapter(["response"])
@@ -167,7 +168,7 @@ class TestAuditedLlmGeneratorAdapter(TestCase):
         self.assertEqual(
             recorded_interaction.output_payload, "ValueError: invalid input parameters"
         )
-        self.assertEqual(recorded_interaction.status, "error")
+        self.assertEqual(recorded_interaction.status, ExecutionStatus.ERROR)
         self.assertIsInstance(recorded_interaction.duration_ms, float)
         self.assertGreaterEqual(recorded_interaction.duration_ms, 0.0)
 
@@ -182,7 +183,7 @@ class TestAuditedLlmGeneratorAdapter(TestCase):
         self.assertEqual(recorded_interaction.analysis_id, "unassigned")
         self.assertEqual(recorded_interaction.input_payload, "unassigned prompt")
         self.assertEqual(recorded_interaction.output_payload, "response without context")
-        self.assertEqual(recorded_interaction.status, "success")
+        self.assertEqual(recorded_interaction.status, ExecutionStatus.SUCCESS)
 
     def test_generate_records_no_lifecycle_events_other_than_ai_interactions(self) -> None:
         wrapped_generator = FakeLlmGeneratorAdapter(["response"])
@@ -232,7 +233,7 @@ class TestAuditedLlmGeneratorAdapter(TestCase):
         self.assertEqual(recorded_interaction.provider, self.provider)
         self.assertEqual(recorded_interaction.model_name, self.model_name)
         self.assertEqual(recorded_interaction.purpose, self.purpose)
-        self.assertEqual(recorded_interaction.status, "success")
+        self.assertEqual(recorded_interaction.status, ExecutionStatus.SUCCESS)
         self.assertIsInstance(recorded_interaction.duration_ms, float)
         self.assertNotIn("Sensible", recorded_interaction.input_payload)
         self.assertNotIn("manuscript", recorded_interaction.input_payload)
