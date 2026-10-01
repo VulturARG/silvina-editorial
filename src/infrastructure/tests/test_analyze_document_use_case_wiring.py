@@ -4,6 +4,8 @@ from unittest.mock import patch
 
 from src.application.analyze_document_use_case import AnalyzeDocumentUseCase
 from src.domain.dtos.recommendation_settings_dto import RecommendationSettingsDTO
+from src.infrastructure.adapters.document.docx_citation_adapter import DocxCitationAdapter
+from src.infrastructure.adapters.grammar.language_tool_adapter import LanguageToolAdapter
 from src.infrastructure.wirings.analyze_document_use_case_wiring import AnalyzeDocumentUseCaseWiring
 
 
@@ -33,6 +35,11 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
             use_case._quality_analyzer._llm_generator,
         )
 
+    REQUIRED_ENVIRONMENT = {
+        "METRICS_DATABASE_PATH": "/custom/path/metrics.db",
+        "LOG_FILE_PATH": "/custom/path/silvina.log",
+    }
+
     RECOMMENDATION_ENV_VARS = {
         "PUBLISH_THRESHOLD",
         "QUALITY_THRESHOLD",
@@ -60,6 +67,7 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
 
     def test_default_thresholds_when_env_vars_absent(self):
         env_without = {k: v for k, v in environ.items() if k not in self.RECOMMENDATION_ENV_VARS}
+        env_without.update(self.REQUIRED_ENVIRONMENT)
         with patch.dict(environ, env_without, clear=True):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
         settings: RecommendationSettingsDTO = result._recommendation_builder._settings
@@ -93,6 +101,7 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
 
     def test_default_structure_max_header_length_when_env_var_absent(self):
         env_without = {k: v for k, v in environ.items() if k != "STRUCTURE_MAX_HEADER_LENGTH"}
+        env_without.update(self.REQUIRED_ENVIRONMENT)
         with patch.dict(environ, env_without, clear=True):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
         self.assertEqual(result._structure_validator._max_header_length, 100)
@@ -101,24 +110,30 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         with patch.dict(environ, {"CITATION_MAX_AUTHOR_NAME_LENGTH": "5"}):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
         port = result._citation_extractor._citation_extraction_port
+        assert isinstance(port, DocxCitationAdapter)
         self.assertEqual(port._max_author_name_length, 5)
 
     def test_default_citation_max_author_name_length_when_env_var_absent(self):
         env_without = {k: v for k, v in environ.items() if k != "CITATION_MAX_AUTHOR_NAME_LENGTH"}
+        env_without.update(self.REQUIRED_ENVIRONMENT)
         with patch.dict(environ, env_without, clear=True):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
         port = result._citation_extractor._citation_extraction_port
+        assert isinstance(port, DocxCitationAdapter)
         self.assertEqual(port._max_author_name_length, 100)
 
     def test_env_var_overrides_grammar_max_replacements(self):
         with patch.dict(environ, {"GRAMMAR_MAX_REPLACEMENTS": "2"}):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
         port = result._grammar_checker._grammar_check_port
+        assert isinstance(port, LanguageToolAdapter)
         self.assertEqual(port._max_replacements, 2)
 
     def test_default_grammar_max_replacements_when_env_var_absent(self):
         env_without = {k: v for k, v in environ.items() if k != "GRAMMAR_MAX_REPLACEMENTS"}
+        env_without.update(self.REQUIRED_ENVIRONMENT)
         with patch.dict(environ, env_without, clear=True):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
         port = result._grammar_checker._grammar_check_port
+        assert isinstance(port, LanguageToolAdapter)
         self.assertEqual(port._max_replacements, 3)

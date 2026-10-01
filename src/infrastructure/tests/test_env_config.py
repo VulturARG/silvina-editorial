@@ -8,8 +8,13 @@ from src.infrastructure.env_config import EnvConfig
 
 
 class TestEnvConfig(TestCase):
+    REQUIRED_ENVIRONMENT = {
+        "METRICS_DATABASE_PATH": "/custom/path/metrics.db",
+        "LOG_FILE_PATH": "/custom/path/silvina.log",
+    }
+
     def test_defaults_are_loaded_when_env_is_empty(self):
-        with patch.dict(environ, {}, clear=True):
+        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
             config = EnvConfig()
 
         self.assertEqual(config.citation_max_author_name_length, 100)
@@ -53,9 +58,13 @@ class TestEnvConfig(TestCase):
         self.assertEqual(config.report_max_replacements, 3)
         self.assertEqual(config.upload_max_size_bytes, 26214400)
         self.assertEqual(config.app_mode, AppMode.PROD)
+        self.assertEqual(config.metrics_database_path, "/custom/path/metrics.db")
+        self.assertEqual(config.log_file_path, "/custom/path/silvina.log")
+        self.assertEqual(config.log_level, "INFO")
+        self.assertEqual(config.log_retention_days, 14)
 
     def test_raises_file_not_found_when_version_file_missing_outside_testing(self):
-        with patch.dict(environ, {}, clear=True):
+        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
             with patch("pathlib.Path.read_text", side_effect=FileNotFoundError):
                 with self.assertRaises(FileNotFoundError):
                     EnvConfig()
@@ -67,7 +76,8 @@ class TestEnvConfig(TestCase):
         self.assertEqual(config.silvina_version, "0.99")
 
     def test_testing_mode_uses_default_version_when_silvina_version_unset(self):
-        with patch.dict(environ, {"TESTING": "True"}, clear=True):
+        environment = {**self.REQUIRED_ENVIRONMENT, "TESTING": "True"}
+        with patch.dict(environ, environment, clear=True):
             with patch("pathlib.Path.read_text", side_effect=FileNotFoundError):
                 config = EnvConfig()
         self.assertEqual(config.silvina_version, "0.9")
@@ -140,7 +150,7 @@ class TestEnvConfig(TestCase):
         self.assertAlmostEqual(config.dimension_threshold, 5.0)
 
     def test_get_recommendation_settings_returns_dto_with_defaults(self):
-        with patch.dict(environ, {}, clear=True):
+        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
             config = EnvConfig()
             settings = config.get_recommendation_settings()
 
@@ -168,7 +178,7 @@ class TestEnvConfig(TestCase):
         self.assertEqual(settings.citation_count_threshold, 20)
 
     def test_app_mode_defaults_to_prod_when_env_is_empty(self):
-        with patch.dict(environ, {}, clear=True):
+        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
             config = EnvConfig()
         self.assertEqual(config.app_mode, AppMode.PROD)
 
@@ -193,5 +203,105 @@ class TestEnvConfig(TestCase):
 
     def test_empty_app_mode_raises_value_error(self):
         with patch.dict(environ, {"APP_MODE": ""}):
+            with self.assertRaises(ValueError):
+                EnvConfig()
+
+    def test_logging_defaults_are_loaded_when_env_is_empty(self):
+        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+            config = EnvConfig()
+        self.assertEqual(config.log_level, "INFO")
+        self.assertEqual(config.log_retention_days, 14)
+
+    def test_missing_metrics_database_path_raises_value_error(self):
+        environment = {"LOG_FILE_PATH": "/custom/path/silvina.log"}
+        with patch.dict(environ, environment, clear=True):
+            with self.assertRaises(ValueError) as context:
+                EnvConfig()
+        self.assertIn("METRICS_DATABASE_PATH", str(context.exception))
+
+    def test_missing_log_file_path_raises_value_error(self):
+        environment = {"METRICS_DATABASE_PATH": "/custom/path/metrics.db"}
+        with patch.dict(environ, environment, clear=True):
+            with self.assertRaises(ValueError) as context:
+                EnvConfig()
+        self.assertIn("LOG_FILE_PATH", str(context.exception))
+
+    def test_empty_metrics_database_path_raises_value_error(self):
+        environment = {
+            "METRICS_DATABASE_PATH": "",
+            "LOG_FILE_PATH": "/custom/path/silvina.log",
+        }
+        with patch.dict(environ, environment, clear=True):
+            with self.assertRaises(ValueError) as context:
+                EnvConfig()
+        self.assertIn("METRICS_DATABASE_PATH", str(context.exception))
+
+    def test_whitespace_metrics_database_path_raises_value_error(self):
+        environment = {
+            "METRICS_DATABASE_PATH": "   ",
+            "LOG_FILE_PATH": "/custom/path/silvina.log",
+        }
+        with patch.dict(environ, environment, clear=True):
+            with self.assertRaises(ValueError) as context:
+                EnvConfig()
+        self.assertIn("METRICS_DATABASE_PATH", str(context.exception))
+
+    def test_empty_log_file_path_raises_value_error(self):
+        environment = {
+            "METRICS_DATABASE_PATH": "/custom/path/metrics.db",
+            "LOG_FILE_PATH": "",
+        }
+        with patch.dict(environ, environment, clear=True):
+            with self.assertRaises(ValueError) as context:
+                EnvConfig()
+        self.assertIn("LOG_FILE_PATH", str(context.exception))
+
+    def test_whitespace_log_file_path_raises_value_error(self):
+        environment = {
+            "METRICS_DATABASE_PATH": "/custom/path/metrics.db",
+            "LOG_FILE_PATH": "   ",
+        }
+        with patch.dict(environ, environment, clear=True):
+            with self.assertRaises(ValueError) as context:
+                EnvConfig()
+        self.assertIn("LOG_FILE_PATH", str(context.exception))
+
+    def test_configured_required_paths_are_stripped_and_returned(self):
+        environment = {
+            "METRICS_DATABASE_PATH": "  /custom/path/metrics.db  ",
+            "LOG_FILE_PATH": "  /custom/path/silvina.log  ",
+        }
+        with patch.dict(environ, environment, clear=True):
+            config = EnvConfig()
+        self.assertEqual(config.metrics_database_path, "/custom/path/metrics.db")
+        self.assertEqual(config.log_file_path, "/custom/path/silvina.log")
+
+    def test_env_var_overrides_metrics_database_path(self):
+        with patch.dict(environ, {"METRICS_DATABASE_PATH": "/custom/path/metrics.db"}):
+            config = EnvConfig()
+        self.assertEqual(config.metrics_database_path, "/custom/path/metrics.db")
+
+    def test_env_var_overrides_log_file_path(self):
+        with patch.dict(environ, {"LOG_FILE_PATH": "/custom/path/silvina.log"}):
+            config = EnvConfig()
+        self.assertEqual(config.log_file_path, "/custom/path/silvina.log")
+
+    def test_env_var_overrides_log_level(self):
+        with patch.dict(environ, {"LOG_LEVEL": "DEBUG"}):
+            config = EnvConfig()
+        self.assertEqual(config.log_level, "DEBUG")
+
+    def test_env_var_normalizes_log_level_whitespace_and_casing(self):
+        with patch.dict(environ, {"LOG_LEVEL": " debug "}):
+            config = EnvConfig()
+        self.assertEqual(config.log_level, "DEBUG")
+
+    def test_env_var_overrides_log_retention_days(self):
+        with patch.dict(environ, {"LOG_RETENTION_DAYS": "30"}):
+            config = EnvConfig()
+        self.assertEqual(config.log_retention_days, 30)
+
+    def test_non_integer_log_retention_days_raises_value_error(self):
+        with patch.dict(environ, {"LOG_RETENTION_DAYS": "not_an_integer"}):
             with self.assertRaises(ValueError):
                 EnvConfig()
