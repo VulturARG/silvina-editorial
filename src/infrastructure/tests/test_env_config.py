@@ -3,6 +3,7 @@ from unittest import TestCase
 from unittest.mock import patch
 
 from src.domain.dtos.recommendation_settings_dto import RecommendationSettingsDTO
+from src.domain.enums.app_mode import AppMode
 from src.infrastructure.env_config import EnvConfig
 
 
@@ -51,6 +52,7 @@ class TestEnvConfig(TestCase):
         self.assertEqual(config.report_context_truncation_limit, 150)
         self.assertEqual(config.report_max_replacements, 3)
         self.assertEqual(config.upload_max_size_bytes, 26214400)
+        self.assertEqual(config.app_mode, AppMode.PROD)
 
     def test_raises_file_not_found_when_version_file_missing_outside_testing(self):
         with patch.dict(environ, {}, clear=True):
@@ -164,3 +166,32 @@ class TestEnvConfig(TestCase):
 
         self.assertAlmostEqual(settings.publish_threshold, 8.0)
         self.assertEqual(settings.citation_count_threshold, 20)
+
+    def test_app_mode_defaults_to_prod_when_env_is_empty(self):
+        with patch.dict(environ, {}, clear=True):
+            config = EnvConfig()
+        self.assertEqual(config.app_mode, AppMode.PROD)
+
+    def test_env_var_overrides_app_mode_to_debug(self):
+        with patch.dict(environ, {"APP_MODE": "DEBUG"}):
+            config = EnvConfig()
+        self.assertEqual(config.app_mode, AppMode.DEBUG)
+
+    def test_env_var_accepts_lowercase_and_padded_app_mode(self):
+        with patch.dict(environ, {"APP_MODE": "debug"}):
+            config_lowercase = EnvConfig()
+        self.assertEqual(config_lowercase.app_mode, AppMode.DEBUG)
+
+        with patch.dict(environ, {"APP_MODE": "  Prod  "}):
+            config_padded = EnvConfig()
+        self.assertEqual(config_padded.app_mode, AppMode.PROD)
+
+    def test_invalid_app_mode_raises_value_error(self):
+        with patch.dict(environ, {"APP_MODE": "STAGING"}):
+            with self.assertRaises(ValueError):
+                EnvConfig()
+
+    def test_empty_app_mode_raises_value_error(self):
+        with patch.dict(environ, {"APP_MODE": ""}):
+            with self.assertRaises(ValueError):
+                EnvConfig()

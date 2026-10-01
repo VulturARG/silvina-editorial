@@ -79,10 +79,12 @@ This feature introduces a 100% self-contained, open-source, and free observabili
   - **Verification**: Unit tests in `src/infrastructure/tests/test_logging_config.py` and `src/infrastructure/tests/test_analysis_context_log_filter.py` (12 passed).
   - **Outcome**: Until now the project called `getLogger` in several modules but no handler was configured anywhere; this task provides the single configuration point. Full test suite: 763 passed.
 
-- [ ] **TASK-10: Privacy mode `APP_MODE` (DEBUG | PROD) for AI payload auditing** (inserted; must be done BEFORE TASK-07)
+- [x] **TASK-10: Privacy mode `APP_MODE` (DEBUG | PROD) for AI payload auditing** (inserted; done BEFORE TASK-07)
   - **Origin**: `silvina-doc/prd.md:22` requires data privacy (100% local flow, unpublished manuscripts). The audit stores full prompts/responses (manuscript text) in `data/metrics.db`, which must not happen in production. User decision: an `.env` parameter `APP_MODE` with values `DEBUG` or `PROD`; in `DEBUG` privacy rules are not applied (full prompts and responses are needed to diagnose the LLM), in `PROD` they are.
   - **Route**: subagent delegation (`gentle-ai-worker`)
   - **Scope**: Domain enum `AppMode` (`DEBUG`, `PROD`) in `src/domain/enums/`. Domain service `AuditPayloadPolicy(app_mode)` in `src/domain/metrics/` with a single method that receives a raw payload and returns the payload to persist: in `DEBUG` the payload unchanged; in `PROD` the marker `[REDACTED chars=N sha256=<hex>]` (no content, size and hash kept for traceability). Latency, model, provider, purpose and status are always persisted. `EnvConfig.app_mode` read from `APP_MODE`, default `PROD` (fails closed on privacy), case-insensitive, any other value fails fast. `AuditedLlmGeneratorAdapter` receives the policy by constructor and applies it to `input_payload` and to `output_payload` (also the error text, which may echo content). The future audited Laya adapter (TASK-05) must use the same policy. The user adds `APP_MODE` to `.env`/`.env.example` by hand (security policy blocks reading `.env*`).
+  - **Refinement**: in the error path the exception TYPE name stays visible in every mode (`ErrorType: [REDACTED ...]` in PROD); only the message passes through the policy. The value returned to the caller and the re-raised exception are never altered. `openspec/specs/analyze-document/spec.md` documents `APP_MODE` in the environment-variable table.
+  - **Outcome**: Full test suite: 794 passed (21 new). `.env.example` carries `APP_MODE=DEBUG` (user edit, committed with this task) while the code default is `PROD`.
   - **Out of scope**: the request middleware (TASK-08) never logs query string, headers or body in any mode.
   - **Verification**: Unit tests for the enum, the policy (both modes, unicode, empty payload, hash determinism), `EnvConfig.app_mode` (default, case-insensitive, invalid value) and the updated audited adapter tests.
 
@@ -106,10 +108,14 @@ This feature introduces a 100% self-contained, open-source, and free observabili
 
 ## 4. Progress & Verification Log
 
-- **Current Status**: TASK-02 (`80aabbb`), TASK-03 (`07f50e3`), TASK-04 (`e63af3a`) and TASK-06 (`bac1372`) committed and pushed to `origin/feat/internal-metrics-and-ai-audit`. TASK-05 deferred (needs Laya). TASK-08 complete and uncommitted. TASK-10 (`APP_MODE` privacy) registered and next. Standing by for explicit user authorization to commit.
-- **Next Step**: TASK-10 (before TASK-07), then the non-Laya part of TASK-07. Open items for TASK-07: fail-safe wrapper so metrics persistence errors never break an analysis; decide root log level (INFO also surfaces `httpx`/`ollama` records); `.env.example` already carries `APP_MODE=DEBUG` (user edit) while the code default must be `PROD`.
+- **Current Status**: TASK-02 (`80aabbb`), TASK-03 (`07f50e3`), TASK-04 (`e63af3a`), TASK-06 (`bac1372`) and TASK-08 (`010c9a1`) committed and pushed to `origin/feat/internal-metrics-and-ai-audit`. TASK-05 deferred (needs Laya). TASK-10 (`APP_MODE` privacy) complete and uncommitted. Standing by for explicit user authorization to commit.
+- **Next Step**: the non-Laya part of TASK-07. Open items for TASK-07: fail-safe wrapper so metrics persistence errors never break an analysis; decide root log level (INFO also surfaces `httpx`/`ollama` records; DEBUG mode could map to DEBUG level); build one `AuditedLlmGeneratorAdapter` per LLM consumer (distinct `purpose`) sharing one `AuditPayloadPolicy(env_config.app_mode)`; call `LoggingConfig.configure()` from the entry points; `EnvConfig` entries for the metrics database path and log file.
 
 ### Verification History
+- **TASK-10**: Complete (uncommitted).
+  - RED: 36 failed / 18 passed across the new and updated test modules (missing enum, policy, `EnvConfig.app_mode`, un-redacted adapter payloads).
+  - GREEN: Implemented `AppMode`, `AuditPayloadPolicy`, `EnvConfig.app_mode` and the policy in `AuditedLlmGeneratorAdapter`. 54 tests passed in the touched modules. Full test suite: 794 passed. `ruff check` and `ruff format --check` clean.
+  - Verification: PROD never exposes original content (marker only, characters counted not bytes, deterministic sha256), DEBUG passthrough, fail-closed default, fail-fast on invalid or empty `APP_MODE`, no inline comments.
 - **TASK-08**: Complete (uncommitted).
   - RED: `.venv/Scripts/python -m pytest src/infrastructure/fastapi/tests/test_middleware.py` failed with `ModuleNotFoundError: No module named 'src.infrastructure.fastapi.src.middleware'`.
   - GREEN: Implemented `RequestTimingMiddleware` and registered it in `create_app`. 10 tests passed. Full test suite: 773 passed. `ruff check` and `ruff format --check` clean.

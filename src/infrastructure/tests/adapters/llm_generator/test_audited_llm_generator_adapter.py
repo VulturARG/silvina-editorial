@@ -1,5 +1,7 @@
 from unittest import TestCase
 
+from src.domain.enums.app_mode import AppMode
+from src.domain.metrics.audit_payload_policy import AuditPayloadPolicy
 from src.domain.ports.llm_generator_port import LlmGeneratorPort
 from src.domain.tests.classification.fake_llm_generator_adapter import FakeLlmGeneratorAdapter
 from src.domain.tests.metrics.fake_analysis_context_port import FakeAnalysisContextPort
@@ -26,28 +28,34 @@ class TestAuditedLlmGeneratorAdapter(TestCase):
         self.model_name = "test-model"
         self.purpose = "classification"
 
-    def test_is_instance_of_llm_generator_port(self) -> None:
-        wrapped_generator = FakeLlmGeneratorAdapter(["expected response"])
-        adapter = AuditedLlmGeneratorAdapter(
-            generator=wrapped_generator,
+    def _create_adapter(
+        self,
+        generator: LlmGeneratorPort,
+        audit_payload_policy: AuditPayloadPolicy | None = None,
+    ) -> AuditedLlmGeneratorAdapter:
+        policy = (
+            audit_payload_policy
+            if audit_payload_policy is not None
+            else AuditPayloadPolicy(app_mode=AppMode.DEBUG)
+        )
+        return AuditedLlmGeneratorAdapter(
+            generator=generator,
             metrics_port=self.metrics_port,
             analysis_context_port=self.context_port,
             provider=self.provider,
             model_name=self.model_name,
             purpose=self.purpose,
+            audit_payload_policy=policy,
         )
+
+    def test_is_instance_of_llm_generator_port(self) -> None:
+        wrapped_generator = FakeLlmGeneratorAdapter(["expected response"])
+        adapter = self._create_adapter(generator=wrapped_generator)
         self.assertIsInstance(adapter, LlmGeneratorPort)
 
     def test_generate_returns_wrapped_response_unchanged(self) -> None:
         wrapped_generator = FakeLlmGeneratorAdapter(["expected response text"])
-        adapter = AuditedLlmGeneratorAdapter(
-            generator=wrapped_generator,
-            metrics_port=self.metrics_port,
-            analysis_context_port=self.context_port,
-            provider=self.provider,
-            model_name=self.model_name,
-            purpose=self.purpose,
-        )
+        adapter = self._create_adapter(generator=wrapped_generator)
 
         response = adapter.generate(prompt="test prompt")
 
@@ -55,14 +63,7 @@ class TestAuditedLlmGeneratorAdapter(TestCase):
 
     def test_generate_forwards_prompt_and_none_options_to_wrapped_generator(self) -> None:
         wrapped_generator = FakeLlmGeneratorAdapter(["response"])
-        adapter = AuditedLlmGeneratorAdapter(
-            generator=wrapped_generator,
-            metrics_port=self.metrics_port,
-            analysis_context_port=self.context_port,
-            provider=self.provider,
-            model_name=self.model_name,
-            purpose=self.purpose,
-        )
+        adapter = self._create_adapter(generator=wrapped_generator)
 
         adapter.generate(prompt="prompt with default options")
 
@@ -71,14 +72,7 @@ class TestAuditedLlmGeneratorAdapter(TestCase):
 
     def test_generate_forwards_prompt_and_explicit_options_to_wrapped_generator(self) -> None:
         wrapped_generator = FakeLlmGeneratorAdapter(["response"])
-        adapter = AuditedLlmGeneratorAdapter(
-            generator=wrapped_generator,
-            metrics_port=self.metrics_port,
-            analysis_context_port=self.context_port,
-            provider=self.provider,
-            model_name=self.model_name,
-            purpose=self.purpose,
-        )
+        adapter = self._create_adapter(generator=wrapped_generator)
         custom_options = {"temperature": 0.2, "num_predict": 150}
 
         adapter.generate(prompt="prompt with custom options", options=custom_options)
@@ -88,14 +82,7 @@ class TestAuditedLlmGeneratorAdapter(TestCase):
 
     def test_generate_records_exactly_one_ai_interaction_on_success(self) -> None:
         wrapped_generator = FakeLlmGeneratorAdapter(["first response"])
-        adapter = AuditedLlmGeneratorAdapter(
-            generator=wrapped_generator,
-            metrics_port=self.metrics_port,
-            analysis_context_port=self.context_port,
-            provider=self.provider,
-            model_name=self.model_name,
-            purpose=self.purpose,
-        )
+        adapter = self._create_adapter(generator=wrapped_generator)
 
         adapter.generate(prompt="test prompt")
 
@@ -105,14 +92,7 @@ class TestAuditedLlmGeneratorAdapter(TestCase):
         self,
     ) -> None:
         wrapped_generator = FakeLlmGeneratorAdapter(["generated output"])
-        adapter = AuditedLlmGeneratorAdapter(
-            generator=wrapped_generator,
-            metrics_port=self.metrics_port,
-            analysis_context_port=self.context_port,
-            provider=self.provider,
-            model_name=self.model_name,
-            purpose=self.purpose,
-        )
+        adapter = self._create_adapter(generator=wrapped_generator)
 
         adapter.generate(prompt="sample prompt")
 
@@ -127,14 +107,7 @@ class TestAuditedLlmGeneratorAdapter(TestCase):
 
     def test_generate_records_duration_in_milliseconds_as_non_negative_float(self) -> None:
         wrapped_generator = FakeLlmGeneratorAdapter(["response"])
-        adapter = AuditedLlmGeneratorAdapter(
-            generator=wrapped_generator,
-            metrics_port=self.metrics_port,
-            analysis_context_port=self.context_port,
-            provider=self.provider,
-            model_name=self.model_name,
-            purpose=self.purpose,
-        )
+        adapter = self._create_adapter(generator=wrapped_generator)
 
         adapter.generate(prompt="sample prompt")
 
@@ -144,14 +117,7 @@ class TestAuditedLlmGeneratorAdapter(TestCase):
 
     def test_generate_measures_latency_with_slow_generator(self) -> None:
         slow_generator = SlowLlmGeneratorAdapter(response="delayed response", delay_seconds=0.02)
-        adapter = AuditedLlmGeneratorAdapter(
-            generator=slow_generator,
-            metrics_port=self.metrics_port,
-            analysis_context_port=self.context_port,
-            provider=self.provider,
-            model_name=self.model_name,
-            purpose=self.purpose,
-        )
+        adapter = self._create_adapter(generator=slow_generator)
 
         adapter.generate(prompt="sample prompt")
 
@@ -160,14 +126,7 @@ class TestAuditedLlmGeneratorAdapter(TestCase):
 
     def test_generate_records_each_call_in_chronological_order(self) -> None:
         wrapped_generator = FakeLlmGeneratorAdapter(["first response", "second response"])
-        adapter = AuditedLlmGeneratorAdapter(
-            generator=wrapped_generator,
-            metrics_port=self.metrics_port,
-            analysis_context_port=self.context_port,
-            provider=self.provider,
-            model_name=self.model_name,
-            purpose=self.purpose,
-        )
+        adapter = self._create_adapter(generator=wrapped_generator)
 
         adapter.generate(prompt="first prompt")
         adapter.generate(prompt="second prompt")
@@ -183,14 +142,7 @@ class TestAuditedLlmGeneratorAdapter(TestCase):
     def test_generate_reraises_same_exception_instance_on_wrapped_failure(self) -> None:
         original_exception = RuntimeError("backend connection failed")
         failing_generator = FailingLlmGeneratorAdapter(exception=original_exception)
-        adapter = AuditedLlmGeneratorAdapter(
-            generator=failing_generator,
-            metrics_port=self.metrics_port,
-            analysis_context_port=self.context_port,
-            provider=self.provider,
-            model_name=self.model_name,
-            purpose=self.purpose,
-        )
+        adapter = self._create_adapter(generator=failing_generator)
 
         with self.assertRaises(RuntimeError) as error_context:
             adapter.generate(prompt="failing prompt")
@@ -200,14 +152,7 @@ class TestAuditedLlmGeneratorAdapter(TestCase):
     def test_generate_records_error_interaction_on_wrapped_failure(self) -> None:
         original_exception = ValueError("invalid input parameters")
         failing_generator = FailingLlmGeneratorAdapter(exception=original_exception)
-        adapter = AuditedLlmGeneratorAdapter(
-            generator=failing_generator,
-            metrics_port=self.metrics_port,
-            analysis_context_port=self.context_port,
-            provider=self.provider,
-            model_name=self.model_name,
-            purpose=self.purpose,
-        )
+        adapter = self._create_adapter(generator=failing_generator)
 
         with self.assertRaises(ValueError):
             adapter.generate(prompt="failing prompt")
@@ -229,14 +174,7 @@ class TestAuditedLlmGeneratorAdapter(TestCase):
     def test_generate_records_under_unassigned_when_context_has_no_analysis_id(self) -> None:
         self.context_port.clear_analysis_id()
         wrapped_generator = FakeLlmGeneratorAdapter(["response without context"])
-        adapter = AuditedLlmGeneratorAdapter(
-            generator=wrapped_generator,
-            metrics_port=self.metrics_port,
-            analysis_context_port=self.context_port,
-            provider=self.provider,
-            model_name=self.model_name,
-            purpose=self.purpose,
-        )
+        adapter = self._create_adapter(generator=wrapped_generator)
 
         adapter.generate(prompt="unassigned prompt")
 
@@ -248,14 +186,7 @@ class TestAuditedLlmGeneratorAdapter(TestCase):
 
     def test_generate_records_no_lifecycle_events_other_than_ai_interactions(self) -> None:
         wrapped_generator = FakeLlmGeneratorAdapter(["response"])
-        adapter = AuditedLlmGeneratorAdapter(
-            generator=wrapped_generator,
-            metrics_port=self.metrics_port,
-            analysis_context_port=self.context_port,
-            provider=self.provider,
-            model_name=self.model_name,
-            purpose=self.purpose,
-        )
+        adapter = self._create_adapter(generator=wrapped_generator)
 
         adapter.generate(prompt="sample prompt")
 
@@ -275,14 +206,7 @@ class TestAuditedLlmGeneratorAdapter(TestCase):
             "2. Comillas angulares utilizadas correctamente."
         )
         wrapped_generator = FakeLlmGeneratorAdapter([multiline_response])
-        adapter = AuditedLlmGeneratorAdapter(
-            generator=wrapped_generator,
-            metrics_port=self.metrics_port,
-            analysis_context_port=self.context_port,
-            provider=self.provider,
-            model_name=self.model_name,
-            purpose=self.purpose,
-        )
+        adapter = self._create_adapter(generator=wrapped_generator)
 
         response = adapter.generate(prompt=multiline_prompt)
 
@@ -290,3 +214,64 @@ class TestAuditedLlmGeneratorAdapter(TestCase):
         recorded_interaction = self.metrics_port.recorded_ai_interactions[0]
         self.assertEqual(recorded_interaction.input_payload, multiline_prompt)
         self.assertEqual(recorded_interaction.output_payload, multiline_response)
+
+    def test_generate_records_redacted_payloads_in_prod_mode_on_success(self) -> None:
+        policy = AuditPayloadPolicy(app_mode=AppMode.PROD)
+        prompt = "Sensible manuscript text to analyze"
+        raw_response = "Generated analysis with confidential data"
+        wrapped_generator = FakeLlmGeneratorAdapter([raw_response])
+        adapter = self._create_adapter(generator=wrapped_generator, audit_payload_policy=policy)
+
+        response = adapter.generate(prompt=prompt)
+
+        self.assertEqual(response, raw_response)
+        self.assertEqual(len(self.metrics_port.recorded_ai_interactions), 1)
+        recorded_interaction = self.metrics_port.recorded_ai_interactions[0]
+        self.assertEqual(recorded_interaction.input_payload, policy.apply(prompt))
+        self.assertEqual(recorded_interaction.output_payload, policy.apply(raw_response))
+        self.assertEqual(recorded_interaction.provider, self.provider)
+        self.assertEqual(recorded_interaction.model_name, self.model_name)
+        self.assertEqual(recorded_interaction.purpose, self.purpose)
+        self.assertEqual(recorded_interaction.status, "success")
+        self.assertIsInstance(recorded_interaction.duration_ms, float)
+        self.assertNotIn("Sensible", recorded_interaction.input_payload)
+        self.assertNotIn("manuscript", recorded_interaction.input_payload)
+        self.assertNotIn("confidential", recorded_interaction.output_payload)
+
+    def test_generate_records_redacted_exception_message_in_prod_mode_on_failure(
+        self,
+    ) -> None:
+        policy = AuditPayloadPolicy(app_mode=AppMode.PROD)
+        sensitive_error_message = (
+            "Failure containing manuscript text: PrivateAuthorManuscriptContent"
+        )
+        original_exception = ValueError(sensitive_error_message)
+        failing_generator = FailingLlmGeneratorAdapter(exception=original_exception)
+        adapter = self._create_adapter(generator=failing_generator, audit_payload_policy=policy)
+
+        with self.assertRaises(ValueError) as error_context:
+            adapter.generate(prompt="failing prompt")
+
+        self.assertIs(error_context.exception, original_exception)
+        self.assertEqual(len(self.metrics_port.recorded_ai_interactions), 1)
+        recorded_interaction = self.metrics_port.recorded_ai_interactions[0]
+        expected_output_payload = f"ValueError: {policy.apply(sensitive_error_message)}"
+        self.assertEqual(recorded_interaction.output_payload, expected_output_payload)
+        self.assertEqual(recorded_interaction.input_payload, policy.apply("failing prompt"))
+        self.assertNotIn("PrivateAuthorManuscriptContent", recorded_interaction.output_payload)
+        self.assertNotIn("PrivateAuthorManuscriptContent", recorded_interaction.input_payload)
+
+    def test_generate_records_full_error_message_in_debug_mode_on_failure(self) -> None:
+        policy = AuditPayloadPolicy(app_mode=AppMode.DEBUG)
+        error_message = "Failure detail: unredacted error info"
+        original_exception = RuntimeError(error_message)
+        failing_generator = FailingLlmGeneratorAdapter(exception=original_exception)
+        adapter = self._create_adapter(generator=failing_generator, audit_payload_policy=policy)
+
+        with self.assertRaises(RuntimeError):
+            adapter.generate(prompt="failing prompt")
+
+        self.assertEqual(len(self.metrics_port.recorded_ai_interactions), 1)
+        recorded_interaction = self.metrics_port.recorded_ai_interactions[0]
+        self.assertEqual(recorded_interaction.output_payload, f"RuntimeError: {error_message}")
+        self.assertEqual(recorded_interaction.input_payload, "failing prompt")

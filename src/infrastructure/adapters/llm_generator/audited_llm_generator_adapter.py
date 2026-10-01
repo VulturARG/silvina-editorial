@@ -3,6 +3,7 @@ from time import perf_counter
 from src.domain.dtos.ai_interaction_dto import AiInteractionDTO
 from src.domain.metrics.analysis_context_port import AnalysisContextPort
 from src.domain.metrics.analysis_metrics_port import AnalysisMetricsPort
+from src.domain.metrics.audit_payload_policy import AuditPayloadPolicy
 from src.domain.ports.llm_generator_port import LlmGeneratorPort
 
 _UNASSIGNED_ANALYSIS_ID = "unassigned"
@@ -19,6 +20,7 @@ class AuditedLlmGeneratorAdapter(LlmGeneratorPort):
         provider: str,
         model_name: str,
         purpose: str,
+        audit_payload_policy: AuditPayloadPolicy,
     ) -> None:
         self._generator = generator
         self._metrics_port = metrics_port
@@ -26,6 +28,7 @@ class AuditedLlmGeneratorAdapter(LlmGeneratorPort):
         self._provider = provider
         self._model_name = model_name
         self._purpose = purpose
+        self._audit_payload_policy = audit_payload_policy
 
     def generate(self, prompt: str, options: dict | None = None) -> str:
         """Return the generated text for the given prompt while measuring latency and recording telemetry."""
@@ -40,8 +43,8 @@ class AuditedLlmGeneratorAdapter(LlmGeneratorPort):
             duration_ms = (perf_counter() - start_time) * 1000
             self._record_interaction(
                 analysis_id=analysis_id,
-                prompt=prompt,
-                output_payload=f"{type(exc).__name__}: {exc}",
+                prompt=self._audit_payload_policy.apply(prompt),
+                output_payload=f"{type(exc).__name__}: {self._audit_payload_policy.apply(str(exc))}",
                 duration_ms=duration_ms,
                 status="error",
             )
@@ -50,8 +53,8 @@ class AuditedLlmGeneratorAdapter(LlmGeneratorPort):
         duration_ms = (perf_counter() - start_time) * 1000
         self._record_interaction(
             analysis_id=analysis_id,
-            prompt=prompt,
-            output_payload=response,
+            prompt=self._audit_payload_policy.apply(prompt),
+            output_payload=self._audit_payload_policy.apply(response),
             duration_ms=duration_ms,
             status="success",
         )

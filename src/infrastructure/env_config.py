@@ -2,6 +2,7 @@ from os import getenv
 from pathlib import Path
 
 from src.domain.dtos.recommendation_settings_dto import RecommendationSettingsDTO
+from src.domain.enums.app_mode import AppMode
 
 _VERSION_FILE_PATH = Path(__file__).resolve().parents[2] / "version.txt"
 
@@ -65,6 +66,7 @@ class EnvConfig:
             "OLLAMA_MODEL_NAME", "hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:UD-IQ4_XS"
         )
         self.ollama_base_url: str = getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+        self.app_mode: AppMode = AppMode(getenv("APP_MODE", "PROD").strip().upper())
 
         # Recommendation thresholds: drive PublicationVerdictEvaluator and
         # the recommendation builder's publish/quality gating.
