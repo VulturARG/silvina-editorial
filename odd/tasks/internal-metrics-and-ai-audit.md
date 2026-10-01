@@ -67,15 +67,17 @@ This feature introduces a 100% self-contained, open-source, and free observabili
   - **Verification**: Unit tests in `src/infrastructure/tests/adapters/llm_generator/test_audited_llm_generator_adapter.py` (14 passed).
   - **Outcome**: Decorator records one `AiInteractionDTO` per call (success or error) and leaves the wrapped behavior untouched. Full test suite: 751 passed.
 
-- [ ] **TASK-05: Implement `AuditedLayaDecisionAdapter`**
+- [ ] **TASK-05: Implement `AuditedLayaDecisionAdapter`** (DEFERRED)
+  - **Blocker**: `LayaDecisionPort`, `LayaDecisionResultDTO` and the Laya adapter only exist in `feat/laya-system-one-ports` (29 commits ahead, not an ancestor of this branch). Decision (user): postpone until this branch is rebased onto Laya once Laya is merged; this branch stays Laya-free. The Laya part of TASK-07 (wrapping the Laya adapter) is deferred together with it.
   - **Route**: direct inline
   - **Scope**: Create `src/infrastructure/adapters/laya/audited_laya_decision_adapter.py` wrapping `LayaDecisionPort`. Intercept `decide()`, measure latency, audit input sample/questions and raw output answers via `AnalysisMetricsPort`.
   - **Verification**: Unit tests in `src/infrastructure/tests/adapters/laya/test_audited_laya_decision_adapter.py`.
 
-- [ ] **TASK-06: Implement Centralized Structured Logging Configuration**
-  - **Route**: direct inline
-  - **Scope**: Create `src/infrastructure/config/logging_config.py` setting up `TimedRotatingFileHandler` writing to `logs/silvina.log` with standardized log format including correlation IDs and timestamps.
-  - **Verification**: Unit tests in `src/infrastructure/tests/test_logging_config.py`.
+- [x] **TASK-06: Implement Centralized Structured Logging Configuration**
+  - **Route**: subagent delegation (`gentle-ai-worker`)
+  - **Scope**: Create `LoggingConfig` in `src/infrastructure/config/logging_config.py` (constructor receives `log_file_path`, `log_level`, `backup_count` and `AnalysisContextPort`; `configure()` attaches a midnight-rotating UTF-8 `TimedRotatingFileHandler` to the root logger, idempotently, failing fast on an invalid level). Create `AnalysisContextLogFilter` in `src/infrastructure/config/analysis_context_log_filter.py`, attached to the handler so every child logger record carries `analysis_id` (or `-`). Format: `%(asctime)s | %(levelname)s | %(name)s | analysis_id=%(analysis_id)s | %(message)s` with ISO timestamps including timezone offset. Callers (entry points), `EnvConfig` entries (`LOG_FILE_PATH` default `logs/silvina.log`, level, retention) and the wiring are TASK-07/08. `.gitignore` now ignores `logs/` and `data/metrics.db*`.
+  - **Verification**: Unit tests in `src/infrastructure/tests/test_logging_config.py` and `src/infrastructure/tests/test_analysis_context_log_filter.py` (12 passed).
+  - **Outcome**: Until now the project called `getLogger` in several modules but no handler was configured anywhere; this task provides the single configuration point. Full test suite: 763 passed.
 
 - [ ] **TASK-07: Integrate Metrics and Audited Adapters into Pipeline & Wiring**
   - **Route**: direct inline
@@ -96,10 +98,14 @@ This feature introduces a 100% self-contained, open-source, and free observabili
 
 ## 4. Progress & Verification Log
 
-- **Current Status**: TASK-04 complete and uncommitted. TASK-02 (`80aabbb`) and TASK-03 (`07f50e3`) committed and pushed. Standing by for explicit user authorization to commit or proceed to TASK-05.
-- **Next Step**: TASK-05 (Implement `AuditedLayaDecisionAdapter`). Open item for TASK-07: fail-safe wrapper so metrics persistence errors never break an analysis.
+- **Current Status**: TASK-02 (`80aabbb`), TASK-03 (`07f50e3`) and TASK-04 (`e63af3a`) committed and pushed to `origin/feat/internal-metrics-and-ai-audit`. TASK-05 deferred (needs Laya). TASK-06 complete and uncommitted. Standing by for explicit user authorization to commit or proceed.
+- **Next Step**: TASK-08 (request-timing middleware), then the non-Laya part of TASK-07. Open items for TASK-07: fail-safe wrapper so metrics persistence errors never break an analysis; decide root log level (INFO also surfaces `httpx`/`ollama` records).
 
 ### Verification History
+- **TASK-06**: Complete (uncommitted).
+  - RED: `.venv/Scripts/python -m pytest src/infrastructure/tests/test_logging_config.py src/infrastructure/tests/test_analysis_context_log_filter.py` failed with `ModuleNotFoundError: No module named 'src.infrastructure.config.logging_config'`.
+  - GREEN: Implemented `LoggingConfig` and `AnalysisContextLogFilter`. 12 tests passed. Full test suite: 763 passed. `ruff check` and `ruff format --check` clean.
+  - Verification: `unittest.TestCase`, no inline comments, PEP 257 docstrings, no `basicConfig`/`print`, collaborators injected by constructor, handler cleanup in test `tearDown` to avoid Windows file locks.
 - **TASK-04**: Complete (uncommitted).
   - RED: `.venv/Scripts/python -m pytest src/infrastructure/tests/adapters/llm_generator/test_audited_llm_generator_adapter.py` failed with `ModuleNotFoundError: No module named 'src.infrastructure.adapters.llm_generator.audited_llm_generator_adapter'`.
   - GREEN: Implemented `AuditedLlmGeneratorAdapter`. 14 tests passed. Full test suite: 751 passed. `ruff check` and `ruff format --check` clean.
