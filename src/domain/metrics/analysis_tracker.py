@@ -1,5 +1,6 @@
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
+from logging import getLogger
 from pathlib import PurePath
 from time import perf_counter
 from typing import Any, TypeVar
@@ -15,6 +16,10 @@ from src.domain.metrics.analysis_context_port import AnalysisContextPort
 from src.domain.metrics.analysis_metrics_recorder import AnalysisMetricsRecorder
 
 StageResult = TypeVar("StageResult")
+
+logger = getLogger(__name__)
+
+_ANALYSIS_FAILURE_LOG_FORMAT = "Analysis failed with %s after %.1f ms"
 
 
 class AnalysisTracker:
@@ -47,8 +52,13 @@ class AnalysisTracker:
             start_time = perf_counter()
             try:
                 report = pipeline()
-            except Exception:
+            except Exception as exception:
                 duration_ms = (perf_counter() - start_time) * 1000
+                logger.error(
+                    _ANALYSIS_FAILURE_LOG_FORMAT,
+                    type(exception).__name__,
+                    duration_ms,
+                )
                 self._record_failure(
                     analysis_id=analysis_id,
                     document_name=base_name,

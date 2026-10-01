@@ -1,3 +1,4 @@
+from logging import Handler, LogRecord, getLogger
 from time import sleep
 from unittest import TestCase
 from unittest.mock import MagicMock
@@ -43,6 +44,19 @@ def _make_report_input_dto(
         verdict=verdict_mock,
         eumic_violations=[],
     )
+
+
+class AnalysisIdCapturingHandler(Handler):
+    """Logging handler capturing active analysis identifier from context port at emit time."""
+
+    def __init__(self, context_port: FakeAnalysisContextPort) -> None:
+        super().__init__()
+        self._context_port = context_port
+        self.captured_analysis_ids: list[str | None] = []
+
+    def emit(self, record: LogRecord) -> None:
+        """Capture the active analysis identifier when a record is emitted."""
+        self.captured_analysis_ids.append(self._context_port.get_analysis_id())
 
 
 class TestAnalysisTracker(TestCase):
@@ -437,3 +451,97 @@ class TestAnalysisTracker(TestCase):
 
         self.assertEqual(result, "scientific")
         self.assertEqual(fake_metrics_port.recorded_stage_durations, [])
+
+    def test_track_analysis_emits_error_log_with_exception_type_and_duration_on_pipeline_failure(
+        self,
+    ) -> None:
+        fake_metrics_port = FakeAnalysisMetricsPort()
+        recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
+        context_port = FakeAnalysisContextPort()
+        tracker = AnalysisTracker(
+            metrics_recorder=recorder,
+            analysis_context_port=context_port,
+        )
+
+        def failing_pipeline() -> ReportInputDTO:
+            raise RuntimeError("pipeline failed")
+
+        with self.assertLogs("src.domain.metrics.analysis_tracker", level="ERROR") as captured_logs:
+            with self.assertRaises(RuntimeError):
+                tracker.track_analysis(
+                    document_name="paper.docx",
+                    pipeline=failing_pipeline,
+                )
+
+        self.assertEqual(len(captured_logs.records), 1)
+        record = captured_logs.records[0]
+        self.assertIn("RuntimeError", record.getMessage())
+        self.assertIn("after", record.getMessage())
+        self.assertIn("ms", record.getMessage())
+
+    def test_track_analysis_error_log_does_not_contain_exception_message(self) -> None:
+        fake_metrics_port = FakeAnalysisMetricsPort()
+        recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
+        context_port = FakeAnalysisContextPort()
+        tracker = AnalysisTracker(
+            metrics_recorder=recorder,
+            analysis_context_port=context_port,
+        )
+        secret_message = "secret manuscript sentence"
+
+        def failing_pipeline() -> ReportInputDTO:
+            raise RuntimeError(secret_message)
+
+        with self.assertLogs("src.domain.metrics.analysis_tracker", level="ERROR") as captured_logs:
+            with self.assertRaises(RuntimeError):
+                tracker.track_analysis(
+                    document_name="paper.docx",
+                    pipeline=failing_pipeline,
+                )
+
+        self.assertEqual(len(captured_logs.records), 1)
+        self.assertNotIn(secret_message, captured_logs.records[0].getMessage())
+
+    def test_track_analysis_emits_error_log_while_context_holds_analysis_id(self) -> None:
+        fake_metrics_port = FakeAnalysisMetricsPort()
+        recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
+        context_port = FakeAnalysisContextPort()
+        tracker = AnalysisTracker(
+            metrics_recorder=recorder,
+            analysis_context_port=context_port,
+        )
+        tracker_logger = getLogger("src.domain.metrics.analysis_tracker")
+        capturing_handler = AnalysisIdCapturingHandler(context_port=context_port)
+        tracker_logger.addHandler(capturing_handler)
+        try:
+            with self.assertRaises(RuntimeError):
+                tracker.track_analysis(
+                    document_name="paper.docx",
+                    pipeline=lambda: (_ for _ in ()).throw(RuntimeError("error")),
+                )
+            self.assertEqual(len(capturing_handler.captured_analysis_ids), 1)
+            recorded_completions = fake_metrics_port.recorded_completions
+            self.assertEqual(len(recorded_completions), 1)
+            self.assertEqual(
+                capturing_handler.captured_analysis_ids[0],
+                recorded_completions[0].analysis_id,
+            )
+            self.assertIsNotNone(recorded_completions[0].analysis_id)
+        finally:
+            tracker_logger.removeHandler(capturing_handler)
+            capturing_handler.close()
+
+    def test_track_analysis_emits_no_error_log_when_pipeline_succeeds(self) -> None:
+        fake_metrics_port = FakeAnalysisMetricsPort()
+        recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
+        context_port = FakeAnalysisContextPort()
+        tracker = AnalysisTracker(
+            metrics_recorder=recorder,
+            analysis_context_port=context_port,
+        )
+
+        with self.assertNoLogs("src.domain.metrics.analysis_tracker", level="ERROR"):
+            tracker.track_analysis(
+                document_name="paper.docx",
+                pipeline=_make_report_input_dto,
+            )

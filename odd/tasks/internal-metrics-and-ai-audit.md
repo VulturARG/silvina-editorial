@@ -104,10 +104,18 @@ This feature introduces a 100% self-contained, open-source, and free observabili
   - **Verification**: Tests in `src/infrastructure/fastapi/tests/test_middleware.py` (10 passed).
   - **Outcome**: Full test suite: 773 passed.
 
-- [ ] **TASK-09: End-to-End Verification & Work-Unit Commit**
-  - **Route**: direct inline
-  - **Scope**: Execute full pytest suite across `src/`. Verify zero regressions. Perform test analysis and assert records in `data/metrics.db` and logs in `logs/silvina.log`.
-  - **Verification**: 100% test pass rate and work-unit commit.
+- [x] **TASK-09: End-to-End Verification & Work-Unit Commit** (real runs done; Laya part pending with TASK-05)
+  - **Route**: direct inline (verification only, no code changes)
+  - **Scope**: Execute the full suite and real runs. Evidence (2026-10-01, scratch folders for `METRICS_DATABASE_PATH` and `LOG_FILE_PATH`, deleted afterwards):
+    - Full repository suite: 921 passed.
+    - Programmatic check: the `TimedRotatingFileHandler` survives uvicorn's own `dictConfig` (root handler kept; lines written before and after).
+    - Real server (`web_main.py`): the database is created at startup; one `request method=... path=... status=... duration_ms=...` line per request including 404s; the query string never appears (`?secreto=abc123` logged as the bare path); server stopped, port freed.
+    - Real CLI analysis, `APP_MODE=PROD` (document `1. test_Cientifico.docx`, Ollama 0.35.0, model `hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:UD-IQ4_XS`, 5 m 38 s): `journal_mode=wal`; one `analyses` row `success` (3613 words, 26235 chars, `aprobado`); ten `stage_durations` rows in pipeline order; five `ai_interactions` (`article_classification`, 2x `quality_analysis`, 2x `editorial_suitability`, provider `ollama`) all with payloads stored as `[REDACTED chars=N sha256=...]`; same `analysis_id` in analyses, stages, AI interactions and the log lines; last log line (after the analysis) has `analysis_id=-`.
+    - Real CLI analysis with Ollama unreachable (`OLLAMA_BASE_URL` to a closed port, `APP_MODE=DEBUG`): CLI behavior unchanged (error message, exit code 1); `analyses` row `error` with NULL counts/type/verdict; stages recorded up to and including the failing `classify_article`; one `ai_interactions` row `error` with `LanguageModelUnavailable: ` and the FULL prompt (8885 chars).
+    - Real CLI analysis, `APP_MODE=DEBUG` on the same database: full prompts and full model responses stored (0 redacted rows); two analyses (error + success) coexist.
+    - Privacy: no manuscript text (checked distinctive prompt strings) in either log file, including the error traceback.
+  - **Findings and resolution**: (1) FIXED: the ERROR record written by `@generic_error_handler` carries `analysis_id=-` because `track_analysis` clears the context before the exception reaches the decorator, so the failure could not be joined with its `analyses` row. `AnalysisTracker.track_analysis` now logs one ERROR record (`Analysis failed with <ExceptionType> after <n> ms`, exception TYPE only, never the message) while the id is still bound; verified in real runs: its `analysis_id` equals the `analyses.analysis_id`. (2) FIXED: in DEBUG the stored error text was empty (`LanguageModelUnavailable: `). `AuditedLlmGeneratorAdapter._describe_exception` now records the whole `__cause__` chain (`Type: msg <- caused by Type: msg`), cycle-safe, with every message passed through `AuditPayloadPolicy` (PROD: type names visible, messages as `[REDACTED ...]`); verified in real runs in both modes. Regression test with a real `LoggingConfig`: `src/infrastructure/tests/test_analysis_failure_log_correlation.py`. The `generic_error_handler` lines still show `analysis_id=-` by design (they run after the context is cleared). (3) ACCEPTED: root level INFO also writes one `httpx` line per Ollama call; lower `LOG_LEVEL` is not needed, filter if it becomes noisy. Full repository suite after the fixes: 931 passed.
+  - **Verification**: 100% test pass rate; work-unit commits already pushed per task.
 
 ---
 

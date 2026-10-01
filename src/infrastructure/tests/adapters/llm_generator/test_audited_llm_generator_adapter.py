@@ -278,3 +278,110 @@ class TestAuditedLlmGeneratorAdapter(TestCase):
         recorded_interaction = self.metrics_port.recorded_ai_interactions[0]
         self.assertEqual(recorded_interaction.output_payload, f"RuntimeError: {error_message}")
         self.assertEqual(recorded_interaction.input_payload, "failing prompt")
+
+    def test_generate_records_chained_exception_in_debug_mode_on_failure(self) -> None:
+        policy = AuditPayloadPolicy(app_mode=AppMode.DEBUG)
+        cause_exception = ConnectionError("connection refused")
+        try:
+            raise RuntimeError("service unavailable") from cause_exception
+        except RuntimeError as chained_exception:
+            original_exception = chained_exception
+
+        failing_generator = FailingLlmGeneratorAdapter(exception=original_exception)
+        adapter = self._create_adapter(generator=failing_generator, audit_payload_policy=policy)
+
+        with self.assertRaises(RuntimeError):
+            adapter.generate(prompt="failing prompt")
+
+        self.assertEqual(len(self.metrics_port.recorded_ai_interactions), 1)
+        recorded_interaction = self.metrics_port.recorded_ai_interactions[0]
+        self.assertEqual(
+            recorded_interaction.output_payload,
+            "RuntimeError: service unavailable <- caused by ConnectionError: connection refused",
+        )
+
+    def test_generate_records_chained_exception_with_redacted_messages_in_prod_mode(self) -> None:
+        policy = AuditPayloadPolicy(app_mode=AppMode.PROD)
+        primary_message = "secret primary prompt manuscript content"
+        cause_message = "secret cause sensitive connection detail"
+        cause_exception = ConnectionError(cause_message)
+        try:
+            raise RuntimeError(primary_message) from cause_exception
+        except RuntimeError as chained_exception:
+            original_exception = chained_exception
+
+        failing_generator = FailingLlmGeneratorAdapter(exception=original_exception)
+        adapter = self._create_adapter(generator=failing_generator, audit_payload_policy=policy)
+
+        with self.assertRaises(RuntimeError):
+            adapter.generate(prompt="failing prompt")
+
+        self.assertEqual(len(self.metrics_port.recorded_ai_interactions), 1)
+        recorded_interaction = self.metrics_port.recorded_ai_interactions[0]
+        expected_output_payload = (
+            f"RuntimeError: {policy.apply(primary_message)} <- caused by "
+            f"ConnectionError: {policy.apply(cause_message)}"
+        )
+        self.assertEqual(recorded_interaction.output_payload, expected_output_payload)
+        self.assertNotIn(primary_message, recorded_interaction.output_payload)
+        self.assertNotIn(cause_message, recorded_interaction.output_payload)
+
+    def test_generate_records_three_level_exception_chain_in_debug_mode(self) -> None:
+        policy = AuditPayloadPolicy(app_mode=AppMode.DEBUG)
+        root_cause = ValueError("socket closed")
+        try:
+            raise ConnectionError("connection dropped") from root_cause
+        except ConnectionError as intermediate_exception:
+            try:
+                raise RuntimeError("adapter failed") from intermediate_exception
+            except RuntimeError as top_exception:
+                original_exception = top_exception
+
+        failing_generator = FailingLlmGeneratorAdapter(exception=original_exception)
+        adapter = self._create_adapter(generator=failing_generator, audit_payload_policy=policy)
+
+        with self.assertRaises(RuntimeError):
+            adapter.generate(prompt="failing prompt")
+
+        self.assertEqual(len(self.metrics_port.recorded_ai_interactions), 1)
+        recorded_interaction = self.metrics_port.recorded_ai_interactions[0]
+        expected_output_payload = (
+            "RuntimeError: adapter failed <- caused by "
+            "ConnectionError: connection dropped <- caused by "
+            "ValueError: socket closed"
+        )
+        self.assertEqual(recorded_interaction.output_payload, expected_output_payload)
+
+    def test_generate_terminates_and_records_on_cyclic_cause_chain(self) -> None:
+        first_exception = RuntimeError("first failure")
+        second_exception = ValueError("second failure")
+        first_exception.__cause__ = second_exception
+        second_exception.__cause__ = first_exception
+
+        failing_generator = FailingLlmGeneratorAdapter(exception=first_exception)
+        adapter = self._create_adapter(generator=failing_generator)
+
+        with self.assertRaises(RuntimeError):
+            adapter.generate(prompt="failing prompt")
+
+        self.assertEqual(len(self.metrics_port.recorded_ai_interactions), 1)
+        recorded_interaction = self.metrics_port.recorded_ai_interactions[0]
+        expected_output_payload = (
+            "RuntimeError: first failure <- caused by ValueError: second failure"
+        )
+        self.assertEqual(recorded_interaction.output_payload, expected_output_payload)
+
+    def test_generate_reraises_same_chained_exception_instance_on_failure(self) -> None:
+        cause_exception = ConnectionError("timeout")
+        try:
+            raise RuntimeError("failure") from cause_exception
+        except RuntimeError as chained_exception:
+            original_exception = chained_exception
+
+        failing_generator = FailingLlmGeneratorAdapter(exception=original_exception)
+        adapter = self._create_adapter(generator=failing_generator)
+
+        with self.assertRaises(RuntimeError) as error_context:
+            adapter.generate(prompt="failing prompt")
+
+        self.assertIs(error_context.exception, original_exception)
