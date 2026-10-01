@@ -39,3 +39,7 @@ acme.json
 .pi/
 
 .codegraph/
+
+# Runtime observability artifacts
+logs/
+data/metrics.db*
