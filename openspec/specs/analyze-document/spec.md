@@ -145,7 +145,7 @@ The application version attribute (`silvina_version`) MUST be resolved dynamical
 | `STRUCTURE_MAX_HEADER_LENGTH` | `int` | `100` | `structure_max_header_length` |
 | `ARTICLE_CLASSIFIER_TEMPERATURE` | `float` | `0.1` | *(Retired in Phase 3 Laya integration)* |
 | `ARTICLE_CLASSIFIER_NUM_PREDICT` | `int` | `300` | *(Retired in Phase 3 Laya integration)* |
-| `LAYA_CHECKPOINT_PATH` | `str` | `"data/laya/checkpoints/laya_finetuned_v1_16epochs"` | `laya_checkpoint_path` |
+| `LAYA_CHECKPOINT_PATH` | `str` | `"data/laya/checkpoints/laya_finetuned_v2_16epochs"` | `laya_checkpoint_path` |
 | `LAYA_DEVICE` | `str \| None` | `None` | `laya_device` |
 | `LAYA_TEXT_SAMPLE_MIN_WORD_COUNT` | `int` | `400` | `laya_text_sample_min_word_count` |
 | `LAYA_TEXT_SAMPLE_CHARACTER_LIMIT` | `int` | `8000` | `laya_text_sample_character_limit` |

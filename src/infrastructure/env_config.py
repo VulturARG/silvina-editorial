@@ -22,7 +22,7 @@ class EnvConfig:
         self.structure_max_header_length: int = int(getenv("STRUCTURE_MAX_HEADER_LENGTH", "100"))
 
         self.laya_checkpoint_path: str = getenv(
-            "LAYA_CHECKPOINT_PATH", "data/laya/checkpoints/laya_finetuned_v1_16epochs"
+            "LAYA_CHECKPOINT_PATH", "data/laya/checkpoints/laya_finetuned_v2_16epochs"
         )
         self.laya_device: str | None = getenv("LAYA_DEVICE") or None
 

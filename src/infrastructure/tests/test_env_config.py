@@ -16,7 +16,7 @@ class TestEnvConfig(TestCase):
         self.assertEqual(config.grammar_max_replacements, 3)
         self.assertEqual(config.structure_max_header_length, 100)
         self.assertEqual(
-            config.laya_checkpoint_path, "data/laya/checkpoints/laya_finetuned_v1_16epochs"
+            config.laya_checkpoint_path, "data/laya/checkpoints/laya_finetuned_v2_16epochs"
         )
         self.assertIsNone(config.laya_device)
         self.assertEqual(config.article_size_short_min_chars, 16000)

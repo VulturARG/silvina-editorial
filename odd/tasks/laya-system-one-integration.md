@@ -149,11 +149,16 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
   - **Verification**: Zero regressions; commit work-unit to `feat/laya-system-one-ports`.
   - **Outcome**: Executed complete analysis pipeline on real editorial document (`capacidades_razonamiento_emergente_LLMs.docx`, 3613 words, 26k characters). Verified end-to-end integration: Laya decision engine runs on GPU/CPU in pipeline step 5, signals flow into `ArticleClassifier` (classified as DIVULGACION), scores flow into `QualityAnalyzer`, below-threshold dimensions trigger Ollama feedback on demand, structure and APA validation execute cleanly, and both Word (`.docx`) and JSON (`.json`) reports are exported successfully. Full test suite (791 tests) passed with zero regressions under both Python 3.14 (`.venv`) and Python 3.12 (`.venv312`). Phase 3 is complete.
 
+- [x] **TASK-22: Recalibrate Laya System 1 scoring and deploy checkpoint v2**
+  - **Route**: direct inline / automated Kaggle execution
+  - **Scope**: Recalibrate gold score distributions in dataset using uncompressed expected values as Gaussian distributions (sigma=0.8) via `data/laya/scripts/recalibrate_gold_scores.py`. Upload dataset v2 to Kaggle (`vulturarg/silvina-editorial-laya-gold`). Retrain Laya on Kaggle (2xT4 GPUs, DDP, 16 epochs). Download trained checkpoint to `data/laya/checkpoints/laya_finetuned_v2_16epochs/`. Update defaults in `.env`, `.env.example`, and `src/infrastructure/env_config.py`.
+  - **Verification**: 813/813 tests passing. Test set metrics: Accuracy 83.1%, Soft Accuracy 89.7%, Score MAE 0.14, Within 1 Level 100%. Real document `capacidades_razonamiento_emergente_LLMs.docx` scoring verified: average moved from 2.26 to 7.52 (clarity 8.4, coherence 8.0, argumentation 7.0, conclusions 6.7).
+
 ---
 
 ## 4. Progress & Verification Log
 
-- **Current Status**: Phase 3 Complete (TASK-12 through TASK-21 done). Laya System 1 engine fully integrated into production pipeline with on-demand LLM narration and verified AMD ROCm GPU acceleration.
+- **Current Status**: Phase 3 Complete (TASK-12 through TASK-22 done). TASK-22 complete: Laya System 1 scoring recalibrated and checkpoint v2 deployed to production defaults with verified metrics (Accuracy 83.1%, Score MAE 0.14) and real-document scoring restored to expected scale (average 7.52).
 - **Next Step**: Phase 3 complete. Ready for final review / merge of `feat/laya-system-one-ports`.
 - **Data Location Decision**: The `E:\IA\laya` repository is kept clean (frequent upstream updates); all generated datasets and generation scripts were relocated to `data/laya/` inside `silvina-editorial` and are tracked in this repo (~12MB total).
 
@@ -225,6 +230,9 @@ As a prerequisite to loading the trained Laya checkpoint, the domain must decoup
 
 - **TASK-20**: Complete.
   - Verification: Executed full document analysis pipeline on real editorial document (`capacidades_razonamiento_emergente_LLMs.docx`, 3613 words, 26,235 characters). Verified end-to-end integration: Laya decision engine runs in pipeline step 5, qualitative and quantitative signals flow into `ArticleClassifier` (classified as DIVULGACION), quality scores flow into `QualityAnalyzer`, below-threshold dimensions trigger Ollama feedback on demand, structure and APA validation execute cleanly, and both Word (`.docx`) and JSON (`.json`) reports are exported successfully. Full test suite (791 tests) passed with zero regressions under both Python 3.14 (`.venv`) and Python 3.12 (`.venv312`). Phase 3 is complete.
+
+- **TASK-22**: Complete.
+  - Verification: 813/813 tests passing. Test set metrics: Accuracy 83.1%, Soft Accuracy 89.7%, Score MAE 0.14, Within 1 Level 100%. Real document `capacidades_razonamiento_emergente_LLMs.docx` scoring verified: average moved from 2.26 to 7.52 (clarity 8.4, coherence 8.0, argumentation 7.0, conclusions 6.7). Deployed checkpoint v2 (`data/laya/checkpoints/laya_finetuned_v2_16epochs/`) and updated defaults in `.env`, `.env.example`, and `src/infrastructure/env_config.py`.
 
 ### Phase 3 Architecture Decision (recorded, not yet implemented)
 - A single `LayaDecisionPort.decide(text_sample) -> LayaDecisionResultDTO` is invoked once per document (one Laya forward pass resolves all 9 questions), and the resulting DTO is threaded down into `ArticleClassifier`, `QualityAnalyzer`, and `EditorialSuitabilityAnalyzer` instead of each service calling Laya independently.
