@@ -2,6 +2,7 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import PurePath
 from time import perf_counter
+from typing import Any, TypeVar
 from uuid import uuid4
 
 from src.domain.dtos.analysis_completion_dto import AnalysisCompletionDTO
@@ -12,6 +13,8 @@ from src.domain.enums.analysis_stage import AnalysisStage
 from src.domain.enums.execution_status import ExecutionStatus
 from src.domain.metrics.analysis_context_port import AnalysisContextPort
 from src.domain.metrics.analysis_metrics_recorder import AnalysisMetricsRecorder
+
+StageResult = TypeVar("StageResult")
 
 
 class AnalysisTracker:
@@ -80,6 +83,16 @@ class AnalysisTracker:
                     duration_ms=duration_ms,
                 )
                 self._metrics_recorder.record_stage_duration(stage_duration=stage_duration)
+
+    def track_stage(
+        self,
+        stage_name: AnalysisStage,
+        operation: Callable[..., StageResult],
+        **arguments: Any,
+    ) -> StageResult:
+        """Run the operation with the given keyword arguments, measure its duration as the given stage, and return the operation's result."""
+        with self.measure_stage(stage_name=stage_name):
+            return operation(**arguments)
 
     def _record_success(
         self,

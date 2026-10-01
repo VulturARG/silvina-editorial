@@ -29,8 +29,15 @@ from src.domain.document.document_format_inspector import DocumentFormatInspecto
 from src.domain.document.document_text_port import DocumentTextPort
 from src.domain.document.reference_extraction_port import ReferenceExtractionPort
 from src.domain.dtos.article_size_thresholds_dto import ArticleSizeThresholdsDTO
+from src.domain.enums.ai_provider import AiProvider
+from src.domain.enums.ai_purpose import AiPurpose
 from src.domain.grammar.grammar_check_port import GrammarCheckPort
 from src.domain.grammar.grammar_checker import GrammarChecker
+from src.domain.metrics.analysis_context_port import AnalysisContextPort
+from src.domain.metrics.analysis_metrics_port import AnalysisMetricsPort
+from src.domain.metrics.analysis_metrics_recorder import AnalysisMetricsRecorder
+from src.domain.metrics.analysis_tracker import AnalysisTracker
+from src.domain.metrics.audit_payload_policy import AuditPayloadPolicy
 from src.domain.ports.llm_generator_port import LlmGeneratorPort
 from src.domain.quality.editorial_suitability_analyzer import EditorialSuitabilityAnalyzer
 from src.domain.quality.editorial_suitability_parser import EditorialSuitabilityParser
@@ -49,8 +56,18 @@ from src.infrastructure.adapters.document.win32com_word_count_adapter import (
 )
 from src.infrastructure.adapters.gateway.file_gateway_adapter import FileGatewayAdapter
 from src.infrastructure.adapters.grammar.language_tool_adapter import LanguageToolAdapter
+from src.infrastructure.adapters.llm_generator.audited_llm_generator_adapter import (
+    AuditedLlmGeneratorAdapter,
+)
 from src.infrastructure.adapters.llm_generator.ollama_generator_adapter import (
     OllamaGeneratorAdapter,
+)
+from src.infrastructure.adapters.metrics.analysis_context_adapter import AnalysisContextAdapter
+from src.infrastructure.adapters.metrics.fail_safe_analysis_metrics_adapter import (
+    FailSafeAnalysisMetricsAdapter,
+)
+from src.infrastructure.adapters.metrics.sqlite_analysis_metrics_adapter import (
+    SqliteAnalysisMetricsAdapter,
 )
 from src.infrastructure.env_config import EnvConfig
 from src.infrastructure.resources.prompts.classification import (
@@ -66,8 +83,10 @@ class AnalyzeDocumentUseCaseWiring:
     """Composition root for the full document analysis pipeline."""
 
     def __init__(self) -> None:
-        self._llm_generator_instance: LlmGeneratorPort | None = None
+        self._ollama_generator_instance: LlmGeneratorPort | None = None
         self._env_config_instance: EnvConfig | None = None
+        self._analysis_metrics_port_instance: AnalysisMetricsPort | None = None
+        self._audit_payload_policy_instance: AuditPayloadPolicy | None = None
 
     def create_use_case(self) -> AnalyzeDocumentUseCase:
         return AnalyzeDocumentUseCase(
@@ -81,6 +100,7 @@ class AnalyzeDocumentUseCaseWiring:
             structure_validator=self._get_structure_validator(),
             citation_matcher=self._get_citation_matcher(),
             recommendation_builder=self._get_recommendation_builder(),
+            analysis_tracker=self._get_analysis_tracker(),
         )
 
     def _get_env_config(self) -> EnvConfig:
@@ -151,7 +171,7 @@ class AnalyzeDocumentUseCaseWiring:
     def _get_article_classifier(self) -> ArticleClassifier:
         env_config = self._get_env_config()
         return ArticleClassifier(
-            llm_generator=self._get_llm_generator(),
+            llm_generator=self._get_llm_generator(purpose=AiPurpose.ARTICLE_CLASSIFICATION),
             signal_detector=ImrydSignalDetector(),
             article_size_classifier=self._get_article_size_classifier(),
             text_sampler=ArticleClassificationTextSampler(),
@@ -182,7 +202,7 @@ class AnalyzeDocumentUseCaseWiring:
 
     def _get_quality_analyzer(self) -> QualityAnalyzer:
         return QualityAnalyzer(
-            llm_generator=self._get_llm_generator(),
+            llm_generator=self._get_llm_generator(purpose=AiPurpose.QUALITY_ANALYSIS),
             text_sampler=self._get_quality_text_sampler(),
             response_parser=QualityResponseParser(),
             clarity_coherence_prompt_template=read_text_resource(
@@ -196,7 +216,7 @@ class AnalyzeDocumentUseCaseWiring:
 
     def _get_editorial_suitability_analyzer(self) -> EditorialSuitabilityAnalyzer:
         return EditorialSuitabilityAnalyzer(
-            llm_generator=self._get_llm_generator(),
+            llm_generator=self._get_llm_generator(purpose=AiPurpose.EDITORIAL_SUITABILITY),
             parser=EditorialSuitabilityParser(),
             contribution_prompt_template=read_text_resource(
                 directory=QUALITY_PROMPTS_DIR, filename="contribution_prompt.txt"
@@ -216,10 +236,50 @@ class AnalyzeDocumentUseCaseWiring:
             text_sample_character_limit=env_config.quality_text_sample_character_limit,
         )
 
-    def _get_llm_generator(self) -> LlmGeneratorPort:
-        if self._llm_generator_instance is None:
+    def _get_ollama_generator(self) -> LlmGeneratorPort:
+        if self._ollama_generator_instance is None:
             env_config = self._get_env_config()
-            self._llm_generator_instance = OllamaGeneratorAdapter(
+            self._ollama_generator_instance = OllamaGeneratorAdapter(
                 model_name=env_config.ollama_model_name, base_url=env_config.ollama_base_url
             )
-        return self._llm_generator_instance
+        return self._ollama_generator_instance
+
+    def _get_analysis_context_port(self) -> AnalysisContextPort:
+        return AnalysisContextAdapter()
+
+    def _get_analysis_metrics_port(self) -> AnalysisMetricsPort:
+        if self._analysis_metrics_port_instance is None:
+            env_config = self._get_env_config()
+            self._analysis_metrics_port_instance = FailSafeAnalysisMetricsAdapter(
+                analysis_metrics_port=SqliteAnalysisMetricsAdapter(
+                    database_path=env_config.metrics_database_path
+                )
+            )
+        return self._analysis_metrics_port_instance
+
+    def _get_audit_payload_policy(self) -> AuditPayloadPolicy:
+        if self._audit_payload_policy_instance is None:
+            env_config = self._get_env_config()
+            self._audit_payload_policy_instance = AuditPayloadPolicy(app_mode=env_config.app_mode)
+        return self._audit_payload_policy_instance
+
+    def _get_llm_generator(self, purpose: AiPurpose) -> LlmGeneratorPort:
+        env_config = self._get_env_config()
+        return AuditedLlmGeneratorAdapter(
+            generator=self._get_ollama_generator(),
+            metrics_port=self._get_analysis_metrics_port(),
+            analysis_context_port=self._get_analysis_context_port(),
+            provider=AiProvider.OLLAMA,
+            model_name=env_config.ollama_model_name,
+            purpose=purpose,
+            audit_payload_policy=self._get_audit_payload_policy(),
+        )
+
+    def _get_analysis_metrics_recorder(self) -> AnalysisMetricsRecorder:
+        return AnalysisMetricsRecorder(metrics_port=self._get_analysis_metrics_port())
+
+    def _get_analysis_tracker(self) -> AnalysisTracker:
+        return AnalysisTracker(
+            metrics_recorder=self._get_analysis_metrics_recorder(),
+            analysis_context_port=self._get_analysis_context_port(),
+        )

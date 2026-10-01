@@ -327,3 +327,113 @@ class TestAnalysisTracker(TestCase):
             fake_metrics_port.recorded_stage_durations[1].stage_name,
             AnalysisStage.ANALYZE_QUALITY,
         )
+
+    def test_track_stage_returns_operation_result(self):
+        fake_metrics_port = FakeAnalysisMetricsPort()
+        recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
+        context_port = FakeAnalysisContextPort()
+        context_port.set_analysis_id("active-analysis-123")
+        tracker = AnalysisTracker(
+            metrics_recorder=recorder,
+            analysis_context_port=context_port,
+        )
+
+        result = tracker.track_stage(
+            stage_name=AnalysisStage.EXTRACT_CONTENT,
+            operation=lambda: "extracted_content_payload",
+        )
+
+        self.assertEqual(result, "extracted_content_payload")
+
+    def test_track_stage_forwards_keyword_arguments_to_operation(self):
+        fake_metrics_port = FakeAnalysisMetricsPort()
+        recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
+        context_port = FakeAnalysisContextPort()
+        context_port.set_analysis_id("active-analysis-123")
+        tracker = AnalysisTracker(
+            metrics_recorder=recorder,
+            analysis_context_port=context_port,
+        )
+        received_arguments: dict[str, str] = {}
+
+        def sample_operation(**arguments: str) -> str:
+            received_arguments.update(arguments)
+            return "operation_completed"
+
+        result = tracker.track_stage(
+            stage_name=AnalysisStage.EXTRACT_CONTENT,
+            operation=sample_operation,
+            document_path="paper.docx",
+            language="spanish",
+        )
+
+        self.assertEqual(result, "operation_completed")
+        self.assertEqual(
+            received_arguments,
+            {"document_path": "paper.docx", "language": "spanish"},
+        )
+
+    def test_track_stage_records_stage_duration_with_stage_and_active_analysis_id(self):
+        fake_metrics_port = FakeAnalysisMetricsPort()
+        recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
+        context_port = FakeAnalysisContextPort()
+        context_port.set_analysis_id("active-analysis-123")
+        tracker = AnalysisTracker(
+            metrics_recorder=recorder,
+            analysis_context_port=context_port,
+        )
+
+        tracker.track_stage(
+            stage_name=AnalysisStage.VALIDATE_APA,
+            operation=lambda: True,
+        )
+
+        self.assertEqual(len(fake_metrics_port.recorded_stage_durations), 1)
+        stage = fake_metrics_port.recorded_stage_durations[0]
+        self.assertEqual(stage.analysis_id, "active-analysis-123")
+        self.assertEqual(stage.stage_name, AnalysisStage.VALIDATE_APA)
+        self.assertGreaterEqual(stage.duration_ms, 0.0)
+
+    def test_track_stage_records_duration_and_re_raises_when_operation_raises(self):
+        fake_metrics_port = FakeAnalysisMetricsPort()
+        recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
+        context_port = FakeAnalysisContextPort()
+        context_port.set_analysis_id("active-analysis-123")
+        tracker = AnalysisTracker(
+            metrics_recorder=recorder,
+            analysis_context_port=context_port,
+        )
+        expected_exception = ValueError("operation failure")
+
+        def failing_operation() -> None:
+            raise expected_exception
+
+        with self.assertRaises(ValueError) as caught:
+            tracker.track_stage(
+                stage_name=AnalysisStage.CHECK_GRAMMAR,
+                operation=failing_operation,
+            )
+
+        self.assertIs(caught.exception, expected_exception)
+        self.assertEqual(len(fake_metrics_port.recorded_stage_durations), 1)
+        stage = fake_metrics_port.recorded_stage_durations[0]
+        self.assertEqual(stage.analysis_id, "active-analysis-123")
+        self.assertEqual(stage.stage_name, AnalysisStage.CHECK_GRAMMAR)
+        self.assertGreaterEqual(stage.duration_ms, 0.0)
+
+    def test_track_stage_records_nothing_and_returns_result_when_no_active_analysis(self):
+        fake_metrics_port = FakeAnalysisMetricsPort()
+        recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
+        context_port = FakeAnalysisContextPort()
+        tracker = AnalysisTracker(
+            metrics_recorder=recorder,
+            analysis_context_port=context_port,
+        )
+
+        result = tracker.track_stage(
+            stage_name=AnalysisStage.CLASSIFY_ARTICLE,
+            operation=lambda: "scientific",
+        )
+
+        self.assertEqual(result, "scientific")
+        self.assertEqual(fake_metrics_port.recorded_stage_durations, [])
