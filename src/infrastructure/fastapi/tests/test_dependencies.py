@@ -2,6 +2,7 @@ from typing import get_args
 from unittest import TestCase
 
 from fastapi.params import Depends
+from fastapi.templating import Jinja2Templates
 
 from src.application.analyze_document_use_case import AnalyzeDocumentUseCase
 from src.application.export_report_use_case import ExportReportUseCase
@@ -15,11 +16,13 @@ from src.infrastructure.fastapi.src.config.dependencies import (
     EnvConfigDep,
     ExportReportUseCaseDep,
     JsonReportUseCaseDep,
+    TemplatesDep,
     get_analysis_cancellation_port,
     get_analyze_document_use_case,
     get_env_config,
     get_export_report_use_case,
     get_json_export_report_use_case,
+    get_templates,
     reset_dependencies,
 )
 
@@ -64,6 +67,24 @@ class TestFastApiDependencies(TestCase):
         self.assertIsInstance(first_instance, AnalysisCancellationPort)
         self.assertIs(first_instance, second_instance)
 
+    def test_get_templates_returns_singleton_instance_with_configured_globals(self):
+        first_instance = get_templates()
+        second_instance = get_templates()
+        environment_configuration = get_env_config()
+
+        self.assertIsInstance(first_instance, Jinja2Templates)
+        self.assertIs(first_instance, second_instance)
+        self.assertIn("app_name", first_instance.env.globals)
+        self.assertIn("app_version", first_instance.env.globals)
+        self.assertEqual(
+            first_instance.env.globals["app_name"],
+            environment_configuration.silvina_app_name,
+        )
+        self.assertEqual(
+            first_instance.env.globals["app_version"],
+            environment_configuration.silvina_version,
+        )
+
     def test_dependency_annotations_map_to_expected_dependencies(self):
         analyze_type, analyze_dep = get_args(AnalyzeUseCaseDep)
         self.assertEqual(analyze_type, AnalyzeDocumentUseCase)
@@ -90,12 +111,18 @@ class TestFastApiDependencies(TestCase):
         self.assertIsInstance(cancellation_dep, Depends)
         self.assertIs(cancellation_dep.dependency, get_analysis_cancellation_port)
 
+        templates_type, templates_dependency = get_args(TemplatesDep)
+        self.assertEqual(templates_type, Jinja2Templates)
+        self.assertIsInstance(templates_dependency, Depends)
+        self.assertIs(templates_dependency.dependency, get_templates)
+
     def test_reset_dependencies_creates_fresh_instances(self):
         original_analyze = get_analyze_document_use_case()
         original_export = get_export_report_use_case()
         original_json = get_json_export_report_use_case()
         original_env = get_env_config()
         original_cancellation = get_analysis_cancellation_port()
+        original_templates = get_templates()
 
         reset_dependencies()
 
@@ -104,9 +131,27 @@ class TestFastApiDependencies(TestCase):
         new_json = get_json_export_report_use_case()
         new_env = get_env_config()
         new_cancellation = get_analysis_cancellation_port()
+        new_templates = get_templates()
 
         self.assertIsNot(original_analyze, new_analyze)
         self.assertIsNot(original_export, new_export)
         self.assertIsNot(original_json, new_json)
         self.assertIsNot(original_env, new_env)
         self.assertIsNot(original_cancellation, new_cancellation)
+        self.assertIsNot(original_templates, new_templates)
+
+    def test_reset_dependencies_preserves_template_globals(self):
+        reset_dependencies()
+        templates = get_templates()
+        environment_configuration = get_env_config()
+
+        self.assertIn("app_name", templates.env.globals)
+        self.assertIn("app_version", templates.env.globals)
+        self.assertEqual(
+            templates.env.globals["app_name"],
+            environment_configuration.silvina_app_name,
+        )
+        self.assertEqual(
+            templates.env.globals["app_version"],
+            environment_configuration.silvina_version,
+        )

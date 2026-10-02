@@ -8,6 +8,7 @@ Orchestrates the complete document analysis workflow.
 # the src.* imports below can resolve.
 
 from argparse import ArgumentParser
+from io import TextIOWrapper
 from os.path import exists, join
 from pathlib import Path
 from re import sub
@@ -15,9 +16,9 @@ from sys import exit, path, stderr, stdout
 from traceback import print_exc
 from typing import Any, Dict
 
-if hasattr(stdout, "reconfigure"):
+if isinstance(stdout, TextIOWrapper):
     stdout.reconfigure(encoding="utf-8", errors="replace")
-if hasattr(stderr, "reconfigure"):
+if isinstance(stderr, TextIOWrapper):
     stderr.reconfigure(encoding="utf-8", errors="replace")
 
 # Add project root to path
