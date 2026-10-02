@@ -11,7 +11,11 @@ from unittest.mock import MagicMock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from src.domain.exceptions.language_model_errors import LanguageModelUnavailable
+from src.domain.exceptions.language_model_errors import (
+    LanguageModelLoadFailed,
+    LanguageModelNotFound,
+    LanguageModelUnavailable,
+)
 
 
 class TestAnalyzeDocumentOllamaFailure(unittest.TestCase):
@@ -43,6 +47,28 @@ class TestAnalyzeDocumentOllamaFailure(unittest.TestCase):
         printed_text = captured_output.getvalue()
         self.assertIn(LanguageModelUnavailable.MESSAGE, printed_text)
         self.assertNotIn("Error durante el análisis", printed_text)
+
+    def test_reraises_language_model_not_found_and_prints_specific_message(self):
+        self.assistant._analyze_document_use_case.execute.side_effect = LanguageModelNotFound()
+        captured_output = io.StringIO()
+        with redirect_stdout(captured_output):
+            with self.assertRaises(LanguageModelNotFound):
+                self.assistant.analyze_document("some/path.docx")
+        printed_text = captured_output.getvalue()
+        self.assertIn(LanguageModelNotFound.MESSAGE, printed_text)
+        self.assertNotIn("Error durante el análisis", printed_text)
+        self.assertIsNone(self.assistant._last_report_input)
+
+    def test_reraises_language_model_load_failed_and_prints_specific_message(self):
+        self.assistant._analyze_document_use_case.execute.side_effect = LanguageModelLoadFailed()
+        captured_output = io.StringIO()
+        with redirect_stdout(captured_output):
+            with self.assertRaises(LanguageModelLoadFailed):
+                self.assistant.analyze_document("some/path.docx")
+        printed_text = captured_output.getvalue()
+        self.assertIn(LanguageModelLoadFailed.MESSAGE, printed_text)
+        self.assertNotIn("Error durante el análisis", printed_text)
+        self.assertIsNone(self.assistant._last_report_input)
 
 
 if __name__ == "__main__":

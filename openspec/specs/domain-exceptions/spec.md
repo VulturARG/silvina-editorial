@@ -25,7 +25,7 @@ Five domain groupings need typed exceptions. Each group file lives in
 | `citation_errors.py` | `CitationParsingFailed` | `SrcBaseWarning` |
 | `classification_errors.py` | `ClassificationFailed` | `SrcBaseWarning` |
 | `quality_errors.py` | `QualityAnalysisFailed` | `SrcBaseWarning` |
-| `language_model_errors.py` | `LanguageModelUnavailable` | `SrcBaseWarning` |
+| `language_model_errors.py` | `LanguageModelUnavailable`, `LanguageModelNotFound`, `LanguageModelLoadFailed` | `LanguageModelError`, `BaseSrcError` |
 
 ---
 
@@ -169,6 +169,86 @@ and MUST be a subclass of `SrcBaseWarning`.
 - GIVEN a `LanguageModelUnavailable` instance is raised
 - WHEN caught with `except BaseSrcError`
 - THEN it is caught successfully
+
+### REQ-EXC-LM-2 — LanguageModelNotFound inherits LanguageModelError
+
+`LanguageModelNotFound` SHALL be defined in
+`src/domain/exceptions/language_model_errors.py` and MUST be a subclass of
+`LanguageModelError`.
+
+#### Scenario: LanguageModelNotFound is a LanguageModelError
+
+- GIVEN `from src.domain.exceptions.language_model_errors import LanguageModelNotFound, LanguageModelError`
+- WHEN `issubclass(LanguageModelNotFound, LanguageModelError)` is checked
+- THEN the result is `True`
+
+#### Scenario: LanguageModelNotFound is catchable as BaseSrcError
+
+- GIVEN a `LanguageModelNotFound` instance is raised
+- WHEN caught with `except BaseSrcError`
+- THEN it is caught successfully
+
+#### Scenario: LanguageModelNotFound defines its own MESSAGE
+
+- GIVEN `LanguageModelNotFound`
+- WHEN `LanguageModelNotFound.MESSAGE` is inspected
+- THEN it equals `"The configured language model is not installed in the backend."`
+
+### REQ-EXC-LM-3 — LanguageModelLoadFailed inherits LanguageModelError
+
+`LanguageModelLoadFailed` SHALL be defined in
+`src/domain/exceptions/language_model_errors.py` and MUST be a subclass of
+`LanguageModelError`.
+
+#### Scenario: LanguageModelLoadFailed is a LanguageModelError
+
+- GIVEN `from src.domain.exceptions.language_model_errors import LanguageModelLoadFailed, LanguageModelError`
+- WHEN `issubclass(LanguageModelLoadFailed, LanguageModelError)` is checked
+- THEN the result is `True`
+
+#### Scenario: LanguageModelLoadFailed is catchable as BaseSrcError
+
+- GIVEN a `LanguageModelLoadFailed` instance is raised
+- WHEN caught with `except BaseSrcError`
+- THEN it is caught successfully
+
+#### Scenario: LanguageModelLoadFailed defines its own MESSAGE
+
+- GIVEN `LanguageModelLoadFailed`
+- WHEN `LanguageModelLoadFailed.MESSAGE` is inspected
+- THEN it equals `"The language model could not be loaded or run by the backend. Check the available memory and the backend log."`
+
+---
+
+## Requirement: Ollama Generator Adapter Error Mapping
+
+### REQ-EXC-LM-ADAPTER-1 — Map backend exceptions to specific LanguageModelError subclasses
+
+`OllamaGeneratorAdapter.generate` SHALL map backend exceptions to specific subclasses of `LanguageModelError`, preserving the original exception as `__cause__`:
+- `ollama.ResponseError` with `status_code == HTTPStatus.NOT_FOUND` maps to `LanguageModelNotFound`.
+- `ollama.ResponseError` with `status_code >= HTTPStatus.INTERNAL_SERVER_ERROR` maps to `LanguageModelLoadFailed`.
+- Any other `ollama.ResponseError`, `ollama.RequestError`, or `ConnectionError` maps to `LanguageModelUnavailable`.
+
+#### Scenario: 404 ResponseError maps to LanguageModelNotFound with cause
+
+- GIVEN an `OllamaGeneratorAdapter` instance
+- WHEN `generate` encounters `ollama.ResponseError` with `status_code == 404`
+- THEN `LanguageModelNotFound` is raised
+- AND `__cause__` is the original `ResponseError`
+
+#### Scenario: 500+ ResponseError maps to LanguageModelLoadFailed with cause
+
+- GIVEN an `OllamaGeneratorAdapter` instance
+- WHEN `generate` encounters `ollama.ResponseError` with `status_code >= 500` (e.g. 500, 503)
+- THEN `LanguageModelLoadFailed` is raised
+- AND `__cause__` is the original `ResponseError`
+
+#### Scenario: Other backend errors map to LanguageModelUnavailable with cause
+
+- GIVEN an `OllamaGeneratorAdapter` instance
+- WHEN `generate` encounters any other `ollama.ResponseError` (e.g. 400), `ollama.RequestError`, or `ConnectionError`
+- THEN `LanguageModelUnavailable` is raised
+- AND `__cause__` is the original backend exception
 
 ---
 

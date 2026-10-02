@@ -1,13 +1,22 @@
+from http import HTTPStatus
 from unittest import TestCase
 from unittest.mock import patch
 
-from src.domain.exceptions.language_model_errors import LanguageModelUnavailable
+from ollama import RequestError, ResponseError
+
+from src.domain.exceptions.language_model_errors import (
+    LanguageModelLoadFailed,
+    LanguageModelNotFound,
+    LanguageModelUnavailable,
+)
 from src.infrastructure.adapters.llm_generator.ollama_generator_adapter import (
     OllamaGeneratorAdapter,
 )
 
 
 class TestOllamaGeneratorAdapter(TestCase):
+    """Unit tests for the OllamaGeneratorAdapter class."""
+
     def setUp(self) -> None:
         self.model_name = "hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:UD-IQ4_XS"
         self.base_url = "http://localhost:11434"
@@ -31,10 +40,82 @@ class TestOllamaGeneratorAdapter(TestCase):
     @patch("src.infrastructure.adapters.llm_generator.ollama_generator_adapter.ollama.Client")
     def test_generate_raises_language_model_unavailable_on_backend_failure(self, mock_client_class):
         mock_client = mock_client_class.return_value
-        mock_client.generate.side_effect = ConnectionError("backend unreachable")
+        backend_error = ConnectionError("backend unreachable")
+        mock_client.generate.side_effect = backend_error
 
-        with self.assertRaises(LanguageModelUnavailable):
+        with self.assertRaises(LanguageModelUnavailable) as context:
             self.adapter.generate(prompt=self.sample_prompt)
+
+        self.assertIs(context.exception.__cause__, backend_error)
+
+    @patch("src.infrastructure.adapters.llm_generator.ollama_generator_adapter.ollama.Client")
+    def test_generate_raises_language_model_not_found_on_404_response_error(
+        self, mock_client_class
+    ):
+        mock_client = mock_client_class.return_value
+        backend_error = ResponseError("model not found", HTTPStatus.NOT_FOUND.value)
+        mock_client.generate.side_effect = backend_error
+
+        with self.assertRaises(LanguageModelNotFound) as context:
+            self.adapter.generate(prompt=self.sample_prompt)
+
+        self.assertIs(context.exception.__cause__, backend_error)
+
+    @patch("src.infrastructure.adapters.llm_generator.ollama_generator_adapter.ollama.Client")
+    def test_generate_raises_language_model_load_failed_on_500_response_error(
+        self, mock_client_class
+    ):
+        mock_client = mock_client_class.return_value
+        backend_error = ResponseError(
+            "llama-server startup failed: out-of-memory",
+            HTTPStatus.INTERNAL_SERVER_ERROR.value,
+        )
+        mock_client.generate.side_effect = backend_error
+
+        with self.assertRaises(LanguageModelLoadFailed) as context:
+            self.adapter.generate(prompt=self.sample_prompt)
+
+        self.assertIs(context.exception.__cause__, backend_error)
+
+    @patch("src.infrastructure.adapters.llm_generator.ollama_generator_adapter.ollama.Client")
+    def test_generate_raises_language_model_load_failed_on_503_response_error(
+        self, mock_client_class
+    ):
+        mock_client = mock_client_class.return_value
+        backend_error = ResponseError(
+            "service overloaded",
+            HTTPStatus.SERVICE_UNAVAILABLE.value,
+        )
+        mock_client.generate.side_effect = backend_error
+
+        with self.assertRaises(LanguageModelLoadFailed) as context:
+            self.adapter.generate(prompt=self.sample_prompt)
+
+        self.assertIs(context.exception.__cause__, backend_error)
+
+    @patch("src.infrastructure.adapters.llm_generator.ollama_generator_adapter.ollama.Client")
+    def test_generate_raises_language_model_unavailable_on_400_response_error(
+        self, mock_client_class
+    ):
+        mock_client = mock_client_class.return_value
+        backend_error = ResponseError("bad request", HTTPStatus.BAD_REQUEST.value)
+        mock_client.generate.side_effect = backend_error
+
+        with self.assertRaises(LanguageModelUnavailable) as context:
+            self.adapter.generate(prompt=self.sample_prompt)
+
+        self.assertIs(context.exception.__cause__, backend_error)
+
+    @patch("src.infrastructure.adapters.llm_generator.ollama_generator_adapter.ollama.Client")
+    def test_generate_raises_language_model_unavailable_on_request_error(self, mock_client_class):
+        mock_client = mock_client_class.return_value
+        backend_error = RequestError("request timeout")
+        mock_client.generate.side_effect = backend_error
+
+        with self.assertRaises(LanguageModelUnavailable) as context:
+            self.adapter.generate(prompt=self.sample_prompt)
+
+        self.assertIs(context.exception.__cause__, backend_error)
 
     @patch("src.infrastructure.adapters.llm_generator.ollama_generator_adapter.ollama.Client")
     def test_generate_instantiates_client_with_configured_base_url(self, mock_client_class):
