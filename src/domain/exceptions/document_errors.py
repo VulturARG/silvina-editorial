@@ -21,3 +21,15 @@ class DocumentUnreadable(DocumentError):
     """Raised when a document cannot be read or parsed."""
 
     MESSAGE = "The document could not be read."
+
+
+class DocumentInvalidType(DocumentError):
+    """Raised when a document has an invalid or unsupported file extension."""
+
+    MESSAGE = "The document type is invalid. Only .docx files are supported."
+
+
+class DocumentTooLarge(DocumentError):
+    """Raised when an uploaded document exceeds the maximum allowed size."""
+
+    MESSAGE = "The document file exceeds the maximum allowed size."

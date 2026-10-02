@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title | default("Silvina - Asistente Editorial EUMIC") }}</title>
+    <link rel="icon" type="image/x-icon" href="/static/img/logo.ico">
+    <link rel="stylesheet" href="/static/css/silvina.css">
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="/static/js/htmx_error_handling.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="logo-container">
+            <img src="/static/img/silvina_logo.png" alt="Silvina Logo" onerror="this.style.display='none'">
+            <h1>Silvina - Asistente Editorial</h1>
+            <p>Sistema de revisión automatizado para manuscritos académicos EUMIC</p>
+        </header>
+
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <footer class="footer">
+        <p><strong>{{ app_name }} v{{ app_version }}</strong> | Desarrollado para EUMIC</p>
+    </footer>
+</body>
+</html>

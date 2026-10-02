@@ -1,0 +1,107 @@
+{
+  "filename": "sample_article.docx",
+  "document_info": {
+    "title": "El Impacto de la Inteligencia Artificial",
+    "authors": "Juan Perez, Maria Gomez",
+    "word_count": 2500,
+    "char_count": 15000,
+    "estimated_pages": 10
+  },
+  "classification": {
+    "category": "científico",
+    "article_size": "corto",
+    "confidence": 0.92,
+    "reasoning": "El documento sigue la estructura IMRyD."
+  },
+  "quality_analysis": {
+    "overall_score": 8.4,
+    "quality_level": "Bueno",
+    "gramatica": {
+      "score": 9.0,
+      "feedback": "Muy buena redaccion.",
+      "errors": [
+        {
+          "number": 1,
+          "message": "Posible error de concordancia.",
+          "context": "los datos fue analizados",
+          "offset": 120,
+          "length": 13,
+          "replacements": [
+            "fueron"
+          ]
+        }
+      ]
+    },
+    "dimensions": {
+      "claridad": {
+        "score": 8.0,
+        "feedback": "Texto claro y bien estructurado."
+      },
+      "coherencia": {
+        "score": 8.8,
+        "feedback": "Argumentos consistentes."
+      }
+    }
+  },
+  "structure_validation": {
+    "is_valid": false,
+    "missing_sections": [
+      "conclusiones"
+    ],
+    "details": {
+      "introduccion": {
+        "present": true
+      }
+    }
+  },
+  "citations_analysis": {
+    "total_citations": 10,
+    "total_references": 8,
+    "matched_count": 7,
+    "unmatched_count": 3,
+    "by_type": {
+      "parenthetical": 6,
+      "narrative": 4
+    },
+    "unmatched_citations": [
+      "(Smith, 2020)",
+      "(Lopez, 2019)",
+      "(Diaz, 2021)"
+    ],
+    "apa_violations": 2,
+    "apa_compliant": false
+  },
+  "apa_validation": {
+    "violations": [
+      {
+        "citation": "(Smith, 2020)",
+        "error_type": "Puntuación incorrecta",
+        "location": 145,
+        "explanation": "Falta punto y coma antes del anio.",
+        "correction": "(Smith; 2020)"
+      },
+      {
+        "citation": "(Lopez y Diaz, 2019)",
+        "error_type": "Formato 'et al.' incorrecto",
+        "location": 310,
+        "explanation": "Formato de multiples autores incorrecto.",
+        "correction": "(Lopez & Diaz, 2019)"
+      }
+    ],
+    "report": ""
+  },
+  "recommendations": [
+    {
+      "priority": "alta",
+      "message": "Agregar conclusiones."
+    },
+    {
+      "priority": "media",
+      "message": "Revisar citas APA."
+    },
+    {
+      "priority": "baja",
+      "message": "Ajustar estilo de redaccion."
+    }
+  ]
+}

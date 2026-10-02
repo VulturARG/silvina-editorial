@@ -6,7 +6,7 @@ repos:
         stages: [pre-commit]
       - id: end-of-file-fixer
         stages: [pre-commit]
-        exclude: '\.txt$'
+        exclude: '\.txt$|src/infrastructure/tests/adapters/report/fixtures/json_export_golden\.json$'
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.14.13

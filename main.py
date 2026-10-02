@@ -8,8 +8,7 @@ Orchestrates the complete document analysis workflow.
 # the src.* imports below can resolve.
 
 from argparse import ArgumentParser
-from enum import Enum
-from json import dump
+from io import TextIOWrapper
 from os.path import exists, join
 from pathlib import Path
 from re import sub
@@ -17,23 +16,24 @@ from sys import exit, path, stderr, stdout
 from traceback import print_exc
 from typing import Any, Dict
 
-if hasattr(stdout, "reconfigure"):
+if isinstance(stdout, TextIOWrapper):
     stdout.reconfigure(encoding="utf-8", errors="replace")
-if hasattr(stderr, "reconfigure"):
+if isinstance(stderr, TextIOWrapper):
     stderr.reconfigure(encoding="utf-8", errors="replace")
 
 # Add project root to path
 project_root = Path(__file__).parent
 path.insert(0, str(project_root))
 
-from src.domain.dtos.base_dto import BaseDTO
 from src.domain.dtos.report_input_dto import ReportInputDTO
 from src.domain.exceptions.base_src_error import BaseSrcError
-from src.domain.exceptions.language_model_errors import LanguageModelUnavailable
+from src.domain.exceptions.language_model_errors import LanguageModelError
 from src.infrastructure.wirings.analyze_document_use_case_wiring import (
     AnalyzeDocumentUseCaseWiring,
 )
 from src.infrastructure.wirings.export_report_wiring import ExportReportWiring
+from src.infrastructure.wirings.json_report_wiring import JsonReportWiring
+from src.infrastructure.wirings.logging_config_wiring import LoggingConfigWiring
 
 
 class SilvinaEditorialAssistant:
@@ -46,6 +46,7 @@ class SilvinaEditorialAssistant:
         try:
             self._analyze_document_use_case = AnalyzeDocumentUseCaseWiring().create_use_case()
             self._export_report_use_case = ExportReportWiring().create_use_case()
+            self._export_json_report_use_case = JsonReportWiring().create_use_case()
             self._last_report_input: ReportInputDTO | None = None
 
             print("✅ Silvina inicializada correctamente\n")
@@ -63,8 +64,9 @@ class SilvinaEditorialAssistant:
 
         try:
             report = self._analyze_document_use_case.execute(document_path)
-        except LanguageModelUnavailable:
-            print(f"\n❌ Error fatal: {LanguageModelUnavailable.MESSAGE}")
+        except LanguageModelError as exc:
+            message = exc.dict().get("error", "Unknown domain error")
+            print(f"\n❌ Error fatal: {message}")
             raise
         except Exception as e:
             print(f"\n❌ Error durante el análisis: {e}")
@@ -164,28 +166,14 @@ class SilvinaEditorialAssistant:
             return False
 
     def save_json_report(self, analysis_results: Dict[str, Any], output_path: str) -> None:
-        """Save the last analyzed report as a JSON file."""
+        """Save the last analyzed report as a JSON file via ExportReportUseCase."""
         print(f"💾 Guardando datos JSON: {output_path}")
 
-        json_data = self._prepare_for_json(analysis_results)
-
-        with open(output_path, "w", encoding="utf-8") as f:
-            dump(json_data, f, ensure_ascii=False, indent=2)
+        self._export_json_report_use_case.execute(
+            report_input=self._last_report_input, output_path=output_path
+        )
 
         print("   ✅ Datos JSON guardados exitosamente")
-
-    def _prepare_for_json(self, data: Any) -> Any:
-        """Recursively convert enums and DTOs into JSON-serializable structures."""
-        if isinstance(data, dict):
-            return {k: self._prepare_for_json(v) for k, v in data.items()}
-        elif isinstance(data, list):
-            return [self._prepare_for_json(item) for item in data]
-        elif isinstance(data, Enum):
-            return data.value
-        elif isinstance(data, BaseDTO):
-            return self._prepare_for_json(data.as_dict())
-        else:
-            return data
 
 
 def _build_argument_parser() -> ArgumentParser:
@@ -217,6 +205,7 @@ def _build_argument_parser() -> ArgumentParser:
 
 def main():
     """Main execution function."""
+    LoggingConfigWiring().create_logging_config().configure()
     print("\n" + "=" * 80)
     print("   SILVINA EDITORIAL ASSISTANT v0.9")
     print("   Asistente de Análisis Editorial para Documentos Académicos")

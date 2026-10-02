@@ -132,7 +132,7 @@ The `RecommendationPriority` enum MUST live in `src/domain/enums/recommendation_
 
 ### Requirement: EnvConfig Infrastructure Config Class
 
-`EnvConfig` MUST reside in `src/infrastructure/env_config.py`. It MUST parse environment variables at instantiation, cast them, and cache them as typed instance attributes. It MUST expose a method `get_recommendation_settings() -> RecommendationSettingsDTO` to build recommendation settings.
+`EnvConfig` MUST reside in `src/infrastructure/env_config.py`. It MUST parse environment variables at instantiation, cast them, and cache them as typed instance attributes. Values for `APP_MODE` are `DEBUG` or `PROD` (case-insensitive); any other value fails fast. `METRICS_DATABASE_PATH` and `LOG_FILE_PATH` have no default and MUST be set; a missing or empty value fails fast naming the variable. `OLLAMA_THINK` accepts only `true` or `false` (case-insensitive) and any other value fails fast. It MUST expose a method `get_recommendation_settings() -> RecommendationSettingsDTO` to build recommendation settings.
 
 The application version attribute (`silvina_version`) MUST be resolved dynamically:
 - In production/standard mode: `EnvConfig` MUST load the version string from the file `version.txt` located in the project root directory (resolved relative to `EnvConfig` file location: `Path(__file__).resolve().parents[2] / "version.txt"`). The version string MUST be stripped of surrounding whitespace. If the file is missing or unreadable, `EnvConfig` MUST raise `FileNotFoundError` (or standard OS/permission errors).
@@ -159,6 +159,12 @@ The application version attribute (`silvina_version`) MUST be resolved dynamical
 | `QUALITY_TEXT_SAMPLE_CHARACTER_LIMIT` | `int` | `8000` | `quality_text_sample_character_limit` |
 | `OLLAMA_MODEL_NAME` | `str` | `"hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:UD-IQ4_XS"` | `ollama_model_name` |
 | `OLLAMA_BASE_URL` | `str` | `"http://localhost:11434"` | `ollama_base_url` |
+| `OLLAMA_THINK` | `bool` | `false` | `ollama_think` |
+| `APP_MODE` | `AppMode` | `"PROD"` | `app_mode` |
+| `METRICS_DATABASE_PATH` | `str` | `— (required)` | `metrics_database_path` |
+| `LOG_FILE_PATH` | `str` | `— (required)` | `log_file_path` |
+| `LOG_LEVEL` | `str` | `"INFO"` | `log_level` |
+| `LOG_RETENTION_DAYS` | `int` | `14` | `log_retention_days` |
 | `PUBLISH_THRESHOLD` | `float` | `7.0` | `publish_threshold` |
 | `QUALITY_THRESHOLD` | `float` | `7.0` | `quality_threshold` |
 | `GRAMMAR_THRESHOLD` | `float` | `7.0` | `grammar_threshold` |
@@ -377,7 +383,8 @@ The `GrammarChecker` domain service MUST reside in `src/domain/grammar/grammar_c
 - Domain services: `document_content_extractor`, `citation_extractor`, `document_format_inspector`, `grammar_checker`, `apa_validator`, `article_classifier`, `quality_analyzer`, `structure_validator`, `citation_matcher`, `recommendation_builder`.
 (Previously: Accepted 7 ports, 5 domain services, and 1 builder — 13 dependencies total.)
 
-Method `execute(document_path: str) -> ReportInputDTO` MUST be wrapped with `@generic_error_handler` and perform:
+Method `execute(document_path: str, document_name: str | None = None) -> ReportInputDTO` MUST be wrapped with `@generic_error_handler` and perform:
+When `document_name` is provided, it is used as the display name for analysis tracking and the returned `ReportInputDTO.filename`. When `document_name` is omitted or `None`, it falls back to `document_path`. The file-reading stages continue to use `document_path`.
 1. Extract content via `document_content_extractor.extract_content(document_path)`.
 2. Extract citations/references via `citation_extractor.extract_citations_and_references(document_path)`.
 3. Validate APA citations via `apa_validator.validate_all_citations(citations, document_content.paragraphs)`.
@@ -395,6 +402,16 @@ Method `execute(document_path: str) -> ReportInputDTO` MUST be wrapped with `@ge
 - GIVEN a valid `document_path`
 - WHEN `execute(document_path)` is called
 - THEN each of the 10 domain service dependencies is invoked and a `ReportInputDTO` is returned
+
+#### Scenario: Orchestrator uses custom document name for telemetry and report
+- GIVEN a valid `document_path` and a custom `document_name`
+- WHEN `execute(document_path, document_name)` is called
+- THEN analysis tracking and the returned `ReportInputDTO` use `document_name` while extraction stages receive `document_path`
+
+#### Scenario: Orchestrator falls back to document path when document name omitted
+- GIVEN a valid `document_path` and `document_name` is None
+- WHEN `execute(document_path)` is called
+- THEN analysis tracking and the returned `ReportInputDTO` fall back to `document_path`
 
 #### Scenario: Structure validation uses effective structure type
 - GIVEN a scientific article without "IMRyD" in reasoning
@@ -429,3 +446,35 @@ Method `execute(document_path: str) -> ReportInputDTO` MUST be wrapped with `@ge
 - GIVEN `QUALITY_THRESHOLD=6.5` is set in the environment before `create_use_case()` instantiates `EnvConfig`
 - WHEN `create_use_case()` is called
 - THEN `recommendation_builder._settings.quality_threshold` equals `6.5`
+
+---
+
+### Requirement: Cooperative Analysis Cancellation
+
+Analysis execution MUST support cooperative cancellation upon client disconnection to avoid occupying single-slot AI resources with orphan analyses.
+- `AnalysisCancellationPort` (in `src/domain/metrics/analysis_cancellation_port.py`) defines the interface: `bind_new_cancellation_signal()`, `request_cancellation()`, `is_cancellation_requested()`, and `clear_cancellation_signal()`.
+- `AnalysisCancellationAdapter` (in `src/infrastructure/adapters/metrics/analysis_cancellation_adapter.py`) manages context-local state using a class-level `ContextVar[threading.Event | None]`, ensuring signals are shared across instances and propagated to thread pool worker tasks.
+- `AnalysisCancelled` (in `src/domain/exceptions/analysis_errors.py`) inherits from `SrcBaseWarning` with message `"The analysis was cancelled because the client disconnected."`.
+- `ExecutionStatus` includes `CANCELLED = "cancelled"`.
+- `AnalysisTracker.track_stage` checks `is_cancellation_requested()` before invoking the stage operation. If requested, it raises `AnalysisCancelled` immediately without executing the stage or recording stage latency.
+- `AnalysisTracker.track_analysis` catches `AnalysisCancelled`, records completion telemetry with status `ExecutionStatus.CANCELLED`, logs an INFO message with elapsed milliseconds (not ERROR), re-raises `AnalysisCancelled`, and clears the cancellation signal in `finally`.
+- The FastAPI upload endpoint `/analyze` runs as an asynchronous handler (`async def`), binds a fresh cancellation signal, executes analysis in a thread pool via `anyio.to_thread.run_sync`, concurrently watches for `http.disconnect` events via `request.receive()`, requests cancellation upon disconnect, and clears the signal in `finally`.
+
+#### Scenario: Cancellation requested before stage boundary stops pipeline
+- GIVEN an active analysis where cancellation has been requested via `AnalysisCancellationPort`
+- WHEN `AnalysisTracker.track_stage` is invoked for a subsequent stage
+- THEN it raises `AnalysisCancelled` before executing the stage
+- AND no duration telemetry is recorded for the skipped stage
+
+#### Scenario: Cancelled analysis records CANCELLED execution status and logs at INFO
+- GIVEN an active analysis pipeline that raises `AnalysisCancelled`
+- WHEN `AnalysisTracker.track_analysis` catches the exception
+- THEN it records completion telemetry with status `ExecutionStatus.CANCELLED` and null metrics
+- AND it emits an INFO log containing the elapsed time
+- AND it re-raises `AnalysisCancelled` without emitting ERROR logs
+
+#### Scenario: Pipeline completes successfully when no cancellation is requested
+- GIVEN an active analysis where no cancellation signal is requested
+- WHEN all pipeline stages execute to completion
+- THEN completion telemetry is recorded with status `ExecutionStatus.SUCCESS`
+- AND the cancellation signal is cleared upon exit
