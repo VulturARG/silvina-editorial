@@ -82,6 +82,12 @@ Test document used throughout: `capacidades_razonamiento_emergente_LLMs.docx` (3
 ### F-12 (OPERATIONAL, DONE) Stopping Ollama by killing only `ollama.exe` leaves GPU-holding orphans
 - The `llama-server.exe` children survived three times and retained 15.1 of 16 GB of VRAM; the next load failed with `cudaMalloc failed: out of memory` (see F-04). Correct procedure: terminate the whole process tree and verify that no `llama-server.exe` remains and that VRAM dropped. Recorded in the project memory (#2508).
 
+### F-13 (HIGH, FIXED in this branch) The Word report crashed whenever the classification had a confidence value
+- **Symptom** (found by the full end-to-end run after the F-01 fix): `Error al guardar reporte Word:` (empty message), CLI exit code 1, JSON written but no `.docx`. Log: `ValueError: Unknown format code '%' for object of type 'str'` at `docx_report_adapter.py:311` (`f"{classification.confidence:.1%}"`).
+- **Root cause**: `ClassificationConfidence(float, Enum)` loses its numeric `format()` on Python 3.12+ (the venv runs 3.14): `Enum.__format__` falls back to `str(member)`. Three production sites format it with `:.1%` (Word report, `ClassificationResultDTO.__str__`, `ConfidenceRule`).
+- **Why it was hidden**: before F-01 was fixed the confidence was almost always `None`; only the IMRyD override path carried a value. Populating the references made it the normal case for every scientific article.
+- **Fix**: `ClassificationConfidence.__format__` delegates to the float value (one place, consumers untouched), with enum, DTO and real Word-export regression tests.
+
 ### Unexplained observation
 - `GET /` took 6.3 s while an analysis was running (2026-10-01 19:23:51); the logs do not explain it.
 
@@ -118,6 +124,7 @@ Test document used throughout: `capacidades_razonamiento_emergente_LLMs.docx` (3
   - **Scope**: see F-01 proposed action; update `openspec/specs/extract-content/spec.md`; add a regression test with a real `.docx` that has references (S2a and S2b true, category `SCIENTIFIC`); evaluate the effect on structure validation and recommendations for the sample documents and document any behavior change.
   - **Verification**: full repository suite; before/after classification of every sample document.
   - **Outcome (2026-10-02, implemented, commit `0d0df1d`)**: `DocumentContentExtractor` now receives `ReferenceExtractionPort` and fills `references` with `dataclasses.replace` before the count refinement, so both the accurate-count and the fallback paths carry them; wiring updated; `extract-content` spec updated; unit tests plus a real-fixture regression test (34 references, S2a and S2b true, `SCIENTIFIC` with a stubbed `S4/S5/S6: SI` answer). Whole suite 951 passed, `ruff check` clean. References are now parsed twice per analysis (here and in `CitationExtractor`); both are cheap regex passes and the duplication was accepted to keep each domain service self-contained.
+  - **End-to-end run (2026-10-02)**: real CLI analysis of `capacidades_razonamiento_emergente_LLMs.docx` (145 s, model already warm): `SCIENTIFIC`, `Confianza: 90.0%`, reasoning cites S2a and S2b; Word and JSON reports saved. The first attempt failed in the Word export, which uncovered F-13 (fixed). Added the smoke test `tests/smoke/test_extract_content_references_parity.py` (3 sample documents: 34, 11 and 4 references; S2a/S2b true only for the scientific one); verified to fail when the reference population is removed. Whole suite 960 passed, `ruff check` clean.
   - **Real-model before/after (2026-10-02)**: classification only (one real Ollama call per document, same model answer for both sides; "before" = `references=[]`, "after" = the extractor output), `gemma4-26b-adapted`, `think=false`:
 
     | Document | Refs | S2a | S2b | Before | After | Effective structure type |
