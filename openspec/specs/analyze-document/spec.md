@@ -446,3 +446,35 @@ When `document_name` is provided, it is used as the display name for analysis tr
 - GIVEN `QUALITY_THRESHOLD=6.5` is set in the environment before `create_use_case()` instantiates `EnvConfig`
 - WHEN `create_use_case()` is called
 - THEN `recommendation_builder._settings.quality_threshold` equals `6.5`
+
+---
+
+### Requirement: Cooperative Analysis Cancellation
+
+Analysis execution MUST support cooperative cancellation upon client disconnection to avoid occupying single-slot AI resources with orphan analyses.
+- `AnalysisCancellationPort` (in `src/domain/metrics/analysis_cancellation_port.py`) defines the interface: `bind_new_cancellation_signal()`, `request_cancellation()`, `is_cancellation_requested()`, and `clear_cancellation_signal()`.
+- `AnalysisCancellationAdapter` (in `src/infrastructure/adapters/metrics/analysis_cancellation_adapter.py`) manages context-local state using a class-level `ContextVar[threading.Event | None]`, ensuring signals are shared across instances and propagated to thread pool worker tasks.
+- `AnalysisCancelled` (in `src/domain/exceptions/analysis_errors.py`) inherits from `SrcBaseWarning` with message `"The analysis was cancelled because the client disconnected."`.
+- `ExecutionStatus` includes `CANCELLED = "cancelled"`.
+- `AnalysisTracker.track_stage` checks `is_cancellation_requested()` before invoking the stage operation. If requested, it raises `AnalysisCancelled` immediately without executing the stage or recording stage latency.
+- `AnalysisTracker.track_analysis` catches `AnalysisCancelled`, records completion telemetry with status `ExecutionStatus.CANCELLED`, logs an INFO message with elapsed milliseconds (not ERROR), re-raises `AnalysisCancelled`, and clears the cancellation signal in `finally`.
+- The FastAPI upload endpoint `/analyze` runs as an asynchronous handler (`async def`), binds a fresh cancellation signal, executes analysis in a thread pool via `anyio.to_thread.run_sync`, concurrently watches for `http.disconnect` events via `request.receive()`, requests cancellation upon disconnect, and clears the signal in `finally`.
+
+#### Scenario: Cancellation requested before stage boundary stops pipeline
+- GIVEN an active analysis where cancellation has been requested via `AnalysisCancellationPort`
+- WHEN `AnalysisTracker.track_stage` is invoked for a subsequent stage
+- THEN it raises `AnalysisCancelled` before executing the stage
+- AND no duration telemetry is recorded for the skipped stage
+
+#### Scenario: Cancelled analysis records CANCELLED execution status and logs at INFO
+- GIVEN an active analysis pipeline that raises `AnalysisCancelled`
+- WHEN `AnalysisTracker.track_analysis` catches the exception
+- THEN it records completion telemetry with status `ExecutionStatus.CANCELLED` and null metrics
+- AND it emits an INFO log containing the elapsed time
+- AND it re-raises `AnalysisCancelled` without emitting ERROR logs
+
+#### Scenario: Pipeline completes successfully when no cancellation is requested
+- GIVEN an active analysis where no cancellation signal is requested
+- WHEN all pipeline stages execute to completion
+- THEN completion telemetry is recorded with status `ExecutionStatus.SUCCESS`
+- AND the cancellation signal is cleared upon exit

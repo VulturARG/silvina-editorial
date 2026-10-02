@@ -8,8 +8,12 @@ from src.domain.enums.analysis_stage import AnalysisStage
 from src.domain.enums.article_type import ArticleType
 from src.domain.enums.execution_status import ExecutionStatus
 from src.domain.enums.publication_verdict import PublicationVerdict
+from src.domain.exceptions.analysis_errors import AnalysisCancelled
 from src.domain.metrics.analysis_metrics_recorder import AnalysisMetricsRecorder
 from src.domain.metrics.analysis_tracker import AnalysisTracker
+from src.domain.tests.metrics.fake_analysis_cancellation_port import (
+    FakeAnalysisCancellationPort,
+)
 from src.domain.tests.metrics.fake_analysis_context_port import FakeAnalysisContextPort
 from src.domain.tests.metrics.fake_analysis_metrics_port import FakeAnalysisMetricsPort
 
@@ -47,7 +51,7 @@ def _make_report_input_dto(
 
 
 class AnalysisIdCapturingHandler(Handler):
-    """Logging handler capturing active analysis identifier from context port at emit time."""
+    """Logging handler capturing the active analysis identifier from context port at emit time."""
 
     def __init__(self, context_port: FakeAnalysisContextPort) -> None:
         super().__init__()
@@ -64,9 +68,11 @@ class TestAnalysisTracker(TestCase):
         fake_metrics_port = FakeAnalysisMetricsPort()
         recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
         context_port = FakeAnalysisContextPort()
+        cancellation_port = FakeAnalysisCancellationPort()
         tracker = AnalysisTracker(
             metrics_recorder=recorder,
             analysis_context_port=context_port,
+            analysis_cancellation_port=cancellation_port,
         )
         expected_report = _make_report_input_dto()
 
@@ -81,9 +87,11 @@ class TestAnalysisTracker(TestCase):
         fake_metrics_port = FakeAnalysisMetricsPort()
         recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
         context_port = FakeAnalysisContextPort()
+        cancellation_port = FakeAnalysisCancellationPort()
         tracker = AnalysisTracker(
             metrics_recorder=recorder,
             analysis_context_port=context_port,
+            analysis_cancellation_port=cancellation_port,
         )
 
         tracker.track_analysis(
@@ -101,9 +109,11 @@ class TestAnalysisTracker(TestCase):
         fake_metrics_port = FakeAnalysisMetricsPort()
         recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
         context_port = FakeAnalysisContextPort()
+        cancellation_port = FakeAnalysisCancellationPort()
         tracker = AnalysisTracker(
             metrics_recorder=recorder,
             analysis_context_port=context_port,
+            analysis_cancellation_port=cancellation_port,
         )
         observed_ids: list[str | None] = []
 
@@ -123,9 +133,11 @@ class TestAnalysisTracker(TestCase):
         fake_metrics_port = FakeAnalysisMetricsPort()
         recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
         context_port = FakeAnalysisContextPort()
+        cancellation_port = FakeAnalysisCancellationPort()
         tracker = AnalysisTracker(
             metrics_recorder=recorder,
             analysis_context_port=context_port,
+            analysis_cancellation_port=cancellation_port,
         )
         report = _make_report_input_dto(
             word_count=1800,
@@ -159,9 +171,11 @@ class TestAnalysisTracker(TestCase):
         fake_metrics_port = FakeAnalysisMetricsPort()
         recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
         context_port = FakeAnalysisContextPort()
+        cancellation_port = FakeAnalysisCancellationPort()
         tracker = AnalysisTracker(
             metrics_recorder=recorder,
             analysis_context_port=context_port,
+            analysis_cancellation_port=cancellation_port,
         )
 
         tracker.track_analysis(
@@ -177,9 +191,11 @@ class TestAnalysisTracker(TestCase):
         fake_metrics_port = FakeAnalysisMetricsPort()
         recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
         context_port = FakeAnalysisContextPort()
+        cancellation_port = FakeAnalysisCancellationPort()
         tracker = AnalysisTracker(
             metrics_recorder=recorder,
             analysis_context_port=context_port,
+            analysis_cancellation_port=cancellation_port,
         )
         expected_exception = RuntimeError("pipeline execution failed")
 
@@ -213,9 +229,11 @@ class TestAnalysisTracker(TestCase):
         )
         recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
         context_port = FakeAnalysisContextPort()
+        cancellation_port = FakeAnalysisCancellationPort()
         tracker = AnalysisTracker(
             metrics_recorder=recorder,
             analysis_context_port=context_port,
+            analysis_cancellation_port=cancellation_port,
         )
 
         with self.assertRaises(RuntimeError):
@@ -230,9 +248,11 @@ class TestAnalysisTracker(TestCase):
         fake_metrics_port = FakeAnalysisMetricsPort()
         recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
         context_port = FakeAnalysisContextPort()
+        cancellation_port = FakeAnalysisCancellationPort()
         tracker = AnalysisTracker(
             metrics_recorder=recorder,
             analysis_context_port=context_port,
+            analysis_cancellation_port=cancellation_port,
         )
 
         tracker.track_analysis(
@@ -254,9 +274,11 @@ class TestAnalysisTracker(TestCase):
         recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
         context_port = FakeAnalysisContextPort()
         context_port.set_analysis_id("active-analysis-123")
+        cancellation_port = FakeAnalysisCancellationPort()
         tracker = AnalysisTracker(
             metrics_recorder=recorder,
             analysis_context_port=context_port,
+            analysis_cancellation_port=cancellation_port,
         )
 
         with tracker.measure_stage(AnalysisStage.EXTRACT_CONTENT):
@@ -273,9 +295,11 @@ class TestAnalysisTracker(TestCase):
         recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
         context_port = FakeAnalysisContextPort()
         context_port.set_analysis_id("active-analysis-123")
+        cancellation_port = FakeAnalysisCancellationPort()
         tracker = AnalysisTracker(
             metrics_recorder=recorder,
             analysis_context_port=context_port,
+            analysis_cancellation_port=cancellation_port,
         )
         expected_exception = ValueError("stage body raised")
 
@@ -294,9 +318,11 @@ class TestAnalysisTracker(TestCase):
         fake_metrics_port = FakeAnalysisMetricsPort()
         recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
         context_port = FakeAnalysisContextPort()
+        cancellation_port = FakeAnalysisCancellationPort()
         tracker = AnalysisTracker(
             metrics_recorder=recorder,
             analysis_context_port=context_port,
+            analysis_cancellation_port=cancellation_port,
         )
         executed = False
 
@@ -310,9 +336,11 @@ class TestAnalysisTracker(TestCase):
         fake_metrics_port = FakeAnalysisMetricsPort()
         recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
         context_port = FakeAnalysisContextPort()
+        cancellation_port = FakeAnalysisCancellationPort()
         tracker = AnalysisTracker(
             metrics_recorder=recorder,
             analysis_context_port=context_port,
+            analysis_cancellation_port=cancellation_port,
         )
 
         def staged_pipeline() -> ReportInputDTO:
@@ -347,9 +375,11 @@ class TestAnalysisTracker(TestCase):
         recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
         context_port = FakeAnalysisContextPort()
         context_port.set_analysis_id("active-analysis-123")
+        cancellation_port = FakeAnalysisCancellationPort()
         tracker = AnalysisTracker(
             metrics_recorder=recorder,
             analysis_context_port=context_port,
+            analysis_cancellation_port=cancellation_port,
         )
 
         result = tracker.track_stage(
@@ -364,9 +394,11 @@ class TestAnalysisTracker(TestCase):
         recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
         context_port = FakeAnalysisContextPort()
         context_port.set_analysis_id("active-analysis-123")
+        cancellation_port = FakeAnalysisCancellationPort()
         tracker = AnalysisTracker(
             metrics_recorder=recorder,
             analysis_context_port=context_port,
+            analysis_cancellation_port=cancellation_port,
         )
         received_arguments: dict[str, str] = {}
 
@@ -392,9 +424,11 @@ class TestAnalysisTracker(TestCase):
         recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
         context_port = FakeAnalysisContextPort()
         context_port.set_analysis_id("active-analysis-123")
+        cancellation_port = FakeAnalysisCancellationPort()
         tracker = AnalysisTracker(
             metrics_recorder=recorder,
             analysis_context_port=context_port,
+            analysis_cancellation_port=cancellation_port,
         )
 
         tracker.track_stage(
@@ -413,9 +447,11 @@ class TestAnalysisTracker(TestCase):
         recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
         context_port = FakeAnalysisContextPort()
         context_port.set_analysis_id("active-analysis-123")
+        cancellation_port = FakeAnalysisCancellationPort()
         tracker = AnalysisTracker(
             metrics_recorder=recorder,
             analysis_context_port=context_port,
+            analysis_cancellation_port=cancellation_port,
         )
         expected_exception = ValueError("operation failure")
 
@@ -439,9 +475,11 @@ class TestAnalysisTracker(TestCase):
         fake_metrics_port = FakeAnalysisMetricsPort()
         recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
         context_port = FakeAnalysisContextPort()
+        cancellation_port = FakeAnalysisCancellationPort()
         tracker = AnalysisTracker(
             metrics_recorder=recorder,
             analysis_context_port=context_port,
+            analysis_cancellation_port=cancellation_port,
         )
 
         result = tracker.track_stage(
@@ -458,9 +496,11 @@ class TestAnalysisTracker(TestCase):
         fake_metrics_port = FakeAnalysisMetricsPort()
         recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
         context_port = FakeAnalysisContextPort()
+        cancellation_port = FakeAnalysisCancellationPort()
         tracker = AnalysisTracker(
             metrics_recorder=recorder,
             analysis_context_port=context_port,
+            analysis_cancellation_port=cancellation_port,
         )
 
         def failing_pipeline() -> ReportInputDTO:
@@ -483,9 +523,11 @@ class TestAnalysisTracker(TestCase):
         fake_metrics_port = FakeAnalysisMetricsPort()
         recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
         context_port = FakeAnalysisContextPort()
+        cancellation_port = FakeAnalysisCancellationPort()
         tracker = AnalysisTracker(
             metrics_recorder=recorder,
             analysis_context_port=context_port,
+            analysis_cancellation_port=cancellation_port,
         )
         secret_message = "secret manuscript sentence"
 
@@ -506,9 +548,11 @@ class TestAnalysisTracker(TestCase):
         fake_metrics_port = FakeAnalysisMetricsPort()
         recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
         context_port = FakeAnalysisContextPort()
+        cancellation_port = FakeAnalysisCancellationPort()
         tracker = AnalysisTracker(
             metrics_recorder=recorder,
             analysis_context_port=context_port,
+            analysis_cancellation_port=cancellation_port,
         )
         tracker_logger = getLogger("src.domain.metrics.analysis_tracker")
         capturing_handler = AnalysisIdCapturingHandler(context_port=context_port)
@@ -535,9 +579,11 @@ class TestAnalysisTracker(TestCase):
         fake_metrics_port = FakeAnalysisMetricsPort()
         recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
         context_port = FakeAnalysisContextPort()
+        cancellation_port = FakeAnalysisCancellationPort()
         tracker = AnalysisTracker(
             metrics_recorder=recorder,
             analysis_context_port=context_port,
+            analysis_cancellation_port=cancellation_port,
         )
 
         with self.assertNoLogs("src.domain.metrics.analysis_tracker", level="ERROR"):
@@ -545,3 +591,142 @@ class TestAnalysisTracker(TestCase):
                 document_name="paper.docx",
                 pipeline=_make_report_input_dto,
             )
+
+    def test_track_stage_raises_analysis_cancelled_and_records_nothing_when_cancellation_requested(
+        self,
+    ) -> None:
+        fake_metrics_port = FakeAnalysisMetricsPort()
+        recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
+        context_port = FakeAnalysisContextPort()
+        cancellation_port = FakeAnalysisCancellationPort()
+        cancellation_port.bind_new_cancellation_signal()
+        cancellation_port.request_cancellation()
+        tracker = AnalysisTracker(
+            metrics_recorder=recorder,
+            analysis_context_port=context_port,
+            analysis_cancellation_port=cancellation_port,
+        )
+        operation_called = False
+
+        def sample_operation() -> str:
+            nonlocal operation_called
+            operation_called = True
+            return "done"
+
+        with self.assertRaises(AnalysisCancelled):
+            tracker.track_stage(
+                stage_name=AnalysisStage.EXTRACT_CONTENT,
+                operation=sample_operation,
+            )
+
+        self.assertFalse(operation_called)
+        self.assertEqual(fake_metrics_port.recorded_stage_durations, [])
+
+    def test_track_analysis_records_cancelled_completion_emits_info_log_and_re_raises(
+        self,
+    ) -> None:
+        fake_metrics_port = FakeAnalysisMetricsPort()
+        recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
+        context_port = FakeAnalysisContextPort()
+        cancellation_port = FakeAnalysisCancellationPort()
+        cancellation_port.bind_new_cancellation_signal()
+        tracker = AnalysisTracker(
+            metrics_recorder=recorder,
+            analysis_context_port=context_port,
+            analysis_cancellation_port=cancellation_port,
+        )
+
+        def cancelling_pipeline() -> ReportInputDTO:
+            cancellation_port.request_cancellation()
+            tracker.track_stage(
+                stage_name=AnalysisStage.EXTRACT_CONTENT,
+                operation=lambda: "content",
+            )
+            return _make_report_input_dto()
+
+        with self.assertLogs("src.domain.metrics.analysis_tracker", level="INFO") as captured_logs:
+            with self.assertRaises(AnalysisCancelled):
+                tracker.track_analysis(
+                    document_name="paper.docx",
+                    pipeline=cancelling_pipeline,
+                )
+
+        self.assertEqual(len(fake_metrics_port.recorded_completions), 1)
+        completion = fake_metrics_port.recorded_completions[0]
+        start_data = fake_metrics_port.recorded_starts[0]
+        self.assertEqual(completion.analysis_id, start_data.analysis_id)
+        self.assertEqual(completion.document_name, "paper.docx")
+        self.assertEqual(completion.status, ExecutionStatus.CANCELLED)
+        self.assertIsNone(completion.word_count)
+        self.assertIsNone(completion.char_count)
+        self.assertIsNone(completion.article_type)
+        self.assertIsNone(completion.verdict)
+        self.assertGreaterEqual(completion.total_duration_ms, 0.0)
+
+        info_records = [record for record in captured_logs.records if record.levelname == "INFO"]
+        self.assertTrue(len(info_records) >= 1)
+        cancellation_log = info_records[-1].getMessage()
+        self.assertIn("cancelled", cancellation_log.lower())
+        self.assertIn("after", cancellation_log)
+        self.assertIn("ms", cancellation_log)
+
+    def test_track_analysis_emits_no_error_log_when_cancelled(self) -> None:
+        fake_metrics_port = FakeAnalysisMetricsPort()
+        recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
+        context_port = FakeAnalysisContextPort()
+        cancellation_port = FakeAnalysisCancellationPort()
+        cancellation_port.bind_new_cancellation_signal()
+        tracker = AnalysisTracker(
+            metrics_recorder=recorder,
+            analysis_context_port=context_port,
+            analysis_cancellation_port=cancellation_port,
+        )
+
+        def cancelling_pipeline() -> ReportInputDTO:
+            raise AnalysisCancelled()
+
+        with self.assertNoLogs("src.domain.metrics.analysis_tracker", level="ERROR"):
+            with self.assertRaises(AnalysisCancelled):
+                tracker.track_analysis(
+                    document_name="paper.docx",
+                    pipeline=cancelling_pipeline,
+                )
+
+    def test_track_analysis_clears_cancellation_signal_after_completion(self) -> None:
+        fake_metrics_port = FakeAnalysisMetricsPort()
+        recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
+        context_port = FakeAnalysisContextPort()
+        cancellation_port = FakeAnalysisCancellationPort()
+        cancellation_port.bind_new_cancellation_signal()
+        tracker = AnalysisTracker(
+            metrics_recorder=recorder,
+            analysis_context_port=context_port,
+            analysis_cancellation_port=cancellation_port,
+        )
+
+        tracker.track_analysis(
+            document_name="paper.docx",
+            pipeline=_make_report_input_dto,
+        )
+
+        self.assertFalse(cancellation_port.is_cancellation_requested())
+
+    def test_track_analysis_clears_cancellation_signal_after_failure(self) -> None:
+        fake_metrics_port = FakeAnalysisMetricsPort()
+        recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
+        context_port = FakeAnalysisContextPort()
+        cancellation_port = FakeAnalysisCancellationPort()
+        cancellation_port.bind_new_cancellation_signal()
+        tracker = AnalysisTracker(
+            metrics_recorder=recorder,
+            analysis_context_port=context_port,
+            analysis_cancellation_port=cancellation_port,
+        )
+
+        with self.assertRaises(RuntimeError):
+            tracker.track_analysis(
+                document_name="paper.docx",
+                pipeline=lambda: (_ for _ in ()).throw(RuntimeError("boom")),
+            )
+
+        self.assertFalse(cancellation_port.is_cancellation_requested())

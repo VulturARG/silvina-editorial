@@ -6,6 +6,9 @@ from unittest import TestCase
 from src.domain.dtos.report_input_dto import ReportInputDTO
 from src.domain.metrics.analysis_metrics_recorder import AnalysisMetricsRecorder
 from src.domain.metrics.analysis_tracker import AnalysisTracker
+from src.domain.tests.metrics.fake_analysis_cancellation_port import (
+    FakeAnalysisCancellationPort,
+)
 from src.domain.tests.metrics.fake_analysis_metrics_port import FakeAnalysisMetricsPort
 from src.infrastructure.adapters.metrics.analysis_context_adapter import AnalysisContextAdapter
 from src.infrastructure.config.logging_config import LoggingConfig
@@ -38,11 +41,13 @@ class TestAnalysisFailureLogCorrelation(TestCase):
 
     def test_pipeline_failure_log_record_contains_active_analysis_identifier(self) -> None:
         analysis_context_adapter = AnalysisContextAdapter()
+        analysis_cancellation_port = FakeAnalysisCancellationPort()
         fake_metrics_port = FakeAnalysisMetricsPort()
         metrics_recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
         analysis_tracker = AnalysisTracker(
             metrics_recorder=metrics_recorder,
             analysis_context_port=analysis_context_adapter,
+            analysis_cancellation_port=analysis_cancellation_port,
         )
         logging_config = LoggingConfig(
             log_file_path=self._log_file_path,

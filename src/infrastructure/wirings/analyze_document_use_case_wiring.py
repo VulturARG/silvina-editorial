@@ -33,6 +33,7 @@ from src.domain.enums.ai_provider import AiProvider
 from src.domain.enums.ai_purpose import AiPurpose
 from src.domain.grammar.grammar_check_port import GrammarCheckPort
 from src.domain.grammar.grammar_checker import GrammarChecker
+from src.domain.metrics.analysis_cancellation_port import AnalysisCancellationPort
 from src.domain.metrics.analysis_context_port import AnalysisContextPort
 from src.domain.metrics.analysis_metrics_port import AnalysisMetricsPort
 from src.domain.metrics.analysis_metrics_recorder import AnalysisMetricsRecorder
@@ -61,6 +62,9 @@ from src.infrastructure.adapters.llm_generator.audited_llm_generator_adapter imp
 )
 from src.infrastructure.adapters.llm_generator.ollama_generator_adapter import (
     OllamaGeneratorAdapter,
+)
+from src.infrastructure.adapters.metrics.analysis_cancellation_adapter import (
+    AnalysisCancellationAdapter,
 )
 from src.infrastructure.adapters.metrics.analysis_context_adapter import AnalysisContextAdapter
 from src.infrastructure.adapters.metrics.fail_safe_analysis_metrics_adapter import (
@@ -250,6 +254,9 @@ class AnalyzeDocumentUseCaseWiring:
     def _get_analysis_context_port(self) -> AnalysisContextPort:
         return AnalysisContextAdapter()
 
+    def _get_analysis_cancellation_port(self) -> AnalysisCancellationPort:
+        return AnalysisCancellationAdapter()
+
     def _get_analysis_metrics_port(self) -> AnalysisMetricsPort:
         if self._analysis_metrics_port_instance is None:
             env_config = self._get_env_config()
@@ -285,4 +292,5 @@ class AnalyzeDocumentUseCaseWiring:
         return AnalysisTracker(
             metrics_recorder=self._get_analysis_metrics_recorder(),
             analysis_context_port=self._get_analysis_context_port(),
+            analysis_cancellation_port=self._get_analysis_cancellation_port(),
         )

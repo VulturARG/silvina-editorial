@@ -12,6 +12,8 @@ from src.domain.dtos.report_input_dto import ReportInputDTO
 from src.domain.dtos.stage_duration_dto import StageDurationDTO
 from src.domain.enums.analysis_stage import AnalysisStage
 from src.domain.enums.execution_status import ExecutionStatus
+from src.domain.exceptions.analysis_errors import AnalysisCancelled
+from src.domain.metrics.analysis_cancellation_port import AnalysisCancellationPort
 from src.domain.metrics.analysis_context_port import AnalysisContextPort
 from src.domain.metrics.analysis_metrics_recorder import AnalysisMetricsRecorder
 
@@ -20,6 +22,7 @@ StageResult = TypeVar("StageResult")
 logger = getLogger(__name__)
 
 _ANALYSIS_FAILURE_LOG_FORMAT = "Analysis failed with %s after %.1f ms"
+_ANALYSIS_CANCELLATION_LOG_FORMAT = "Analysis cancelled after %.1f ms"
 
 
 class AnalysisTracker:
@@ -29,9 +32,11 @@ class AnalysisTracker:
         self,
         metrics_recorder: AnalysisMetricsRecorder,
         analysis_context_port: AnalysisContextPort,
+        analysis_cancellation_port: AnalysisCancellationPort,
     ) -> None:
         self._metrics_recorder = metrics_recorder
         self._analysis_context_port = analysis_context_port
+        self._analysis_cancellation_port = analysis_cancellation_port
 
     def track_analysis(
         self,
@@ -52,6 +57,18 @@ class AnalysisTracker:
             start_time = perf_counter()
             try:
                 report = pipeline()
+            except AnalysisCancelled:
+                duration_ms = (perf_counter() - start_time) * 1000
+                logger.info(
+                    _ANALYSIS_CANCELLATION_LOG_FORMAT,
+                    duration_ms,
+                )
+                self._record_cancellation(
+                    analysis_id=analysis_id,
+                    document_name=base_name,
+                    duration_ms=duration_ms,
+                )
+                raise
             except Exception as exception:
                 duration_ms = (perf_counter() - start_time) * 1000
                 logger.error(
@@ -75,6 +92,7 @@ class AnalysisTracker:
             )
             return report
         finally:
+            self._analysis_cancellation_port.clear_cancellation_signal()
             self._analysis_context_port.clear_analysis_id()
 
     @contextmanager
@@ -101,6 +119,8 @@ class AnalysisTracker:
         **arguments: Any,
     ) -> StageResult:
         """Run the operation with the given keyword arguments, measure its duration as the given stage, and return the operation's result."""
+        if self._analysis_cancellation_port.is_cancellation_requested():
+            raise AnalysisCancelled()
         with self.measure_stage(stage_name=stage_name):
             return operation(**arguments)
 
@@ -120,6 +140,24 @@ class AnalysisTracker:
             verdict=report.verdict.verdict,
             total_duration_ms=duration_ms,
             status=ExecutionStatus.SUCCESS,
+        )
+        self._metrics_recorder.complete_analysis(completion_data=completion_data)
+
+    def _record_cancellation(
+        self,
+        analysis_id: str,
+        document_name: str,
+        duration_ms: float,
+    ) -> None:
+        completion_data = AnalysisCompletionDTO(
+            analysis_id=analysis_id,
+            document_name=document_name,
+            word_count=None,
+            char_count=None,
+            article_type=None,
+            verdict=None,
+            total_duration_ms=duration_ms,
+            status=ExecutionStatus.CANCELLED,
         )
         self._metrics_recorder.complete_analysis(completion_data=completion_data)
 

@@ -12,6 +12,9 @@ from src.domain.enums.section_name import SectionName
 from src.domain.exceptions.base_src_error import SrcGenericError
 from src.domain.metrics.analysis_metrics_recorder import AnalysisMetricsRecorder
 from src.domain.metrics.analysis_tracker import AnalysisTracker
+from src.domain.tests.metrics.fake_analysis_cancellation_port import (
+    FakeAnalysisCancellationPort,
+)
 from src.domain.tests.metrics.fake_analysis_context_port import FakeAnalysisContextPort
 from src.domain.tests.metrics.fake_analysis_metrics_port import FakeAnalysisMetricsPort
 
@@ -46,6 +49,9 @@ class TestAnalyzeDocumentUseCase(TestCase):
 
         fake_metrics_port = overrides.pop("fake_metrics_port", FakeAnalysisMetricsPort())
         fake_context_port = overrides.pop("fake_context_port", FakeAnalysisContextPort())
+        fake_cancellation_port = overrides.pop(
+            "fake_cancellation_port", FakeAnalysisCancellationPort()
+        )
         metrics_recorder = overrides.pop(
             "metrics_recorder",
             AnalysisMetricsRecorder(metrics_port=fake_metrics_port),
@@ -55,6 +61,7 @@ class TestAnalyzeDocumentUseCase(TestCase):
             AnalysisTracker(
                 metrics_recorder=metrics_recorder,
                 analysis_context_port=fake_context_port,
+                analysis_cancellation_port=fake_cancellation_port,
             ),
         )
 
@@ -87,6 +94,7 @@ class TestAnalyzeDocumentUseCase(TestCase):
             "analysis_tracker": analysis_tracker,
             "fake_metrics_port": fake_metrics_port,
             "fake_context_port": fake_context_port,
+            "fake_cancellation_port": fake_cancellation_port,
         }
         mocks.update(overrides)
         use_case = AnalyzeDocumentUseCase(
