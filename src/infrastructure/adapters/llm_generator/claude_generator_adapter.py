@@ -44,6 +44,14 @@ class ClaudeGeneratorAdapter(LlmGeneratorPort):
             return None
         return CLAUDE_STOP_REASON_TO_DONE_REASON.get(stop_reason, stop_reason)
 
+    def _extract_token_count(self, usage: Any, key: str) -> int | None:
+        if not isinstance(usage, dict):
+            return None
+        token_count = usage.get(key)
+        if isinstance(token_count, int) and not isinstance(token_count, bool):
+            return token_count
+        return None
+
     async def _execute_query(self, prompt: str) -> LlmGenerationDTO:
         """Execute the asynchronous query against Claude Agent SDK and assemble the result."""
         text_fragments: list[str] = []
@@ -69,14 +77,11 @@ class ClaudeGeneratorAdapter(LlmGeneratorPort):
                     raise LanguageModelUnavailable()
                 final_result_message = message
 
-        usage_dictionary: dict[str, Any] = (
-            final_result_message.usage
-            if final_result_message is not None and isinstance(final_result_message.usage, dict)
-            else {}
+        raw_usage = final_result_message.usage if final_result_message is not None else None
+        prompt_tokens: int | None = self._extract_token_count(usage=raw_usage, key="input_tokens")
+        completion_tokens: int | None = self._extract_token_count(
+            usage=raw_usage, key="output_tokens"
         )
-
-        prompt_tokens: int | None = usage_dictionary.get("input_tokens")
-        completion_tokens: int | None = usage_dictionary.get("output_tokens")
         stop_reason: str | None = (
             final_result_message.stop_reason if final_result_message is not None else None
         )
