@@ -24,6 +24,10 @@ _metrics_test_directory = TemporaryDirectory(prefix="silvina-metrics-")
 environ.setdefault("METRICS_DATABASE_PATH", join(_metrics_test_directory.name, "metrics.db"))
 environ.setdefault("LOG_FILE_PATH", join(_metrics_test_directory.name, "silvina.log"))
 
+# Never let a developer's local .env enable the external LLM during tests: the wiring would
+# call the real provider instead of the mocked Ollama client.
+environ["USE_EXTERNAL_LLM"] = "false"
+
 # Reconfigure stdout/stderr to UTF-8 so that emoji in source print() calls
 # don't cause UnicodeEncodeError on Windows cp1252 consoles.
 if isinstance(sys.stdout, TextIOWrapper):
