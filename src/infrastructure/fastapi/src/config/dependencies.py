@@ -19,12 +19,14 @@ from src.infrastructure.wirings.export_report_wiring import ExportReportWiring
 from src.infrastructure.wirings.json_report_wiring import JsonReportWiring
 
 TEMPLATES_DIR = Path(__file__).resolve().parents[2] / "templates"
+_env_config: EnvConfig = EnvConfig()
 _templates: Jinja2Templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+_templates.env.globals["app_name"] = _env_config.silvina_app_name
+_templates.env.globals["app_version"] = _env_config.silvina_version
 
 _analyze_use_case: AnalyzeDocumentUseCase = AnalyzeDocumentUseCaseWiring().create_use_case()
 _export_use_case: ExportReportUseCase = ExportReportWiring().create_use_case()
 _json_export_use_case: ExportReportUseCase = JsonReportWiring().create_use_case()
-_env_config: EnvConfig = EnvConfig()
 _analysis_cancellation_port: AnalysisCancellationPort = (
     AnalysisCancellationWiring().get_analysis_cancellation_port()
 )
@@ -82,6 +84,8 @@ def reset_dependencies() -> None:
     _json_export_use_case = JsonReportWiring().create_use_case()
     _env_config = EnvConfig()
     _templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+    _templates.env.globals["app_name"] = _env_config.silvina_app_name
+    _templates.env.globals["app_version"] = _env_config.silvina_version
     _analysis_cancellation_port = AnalysisCancellationWiring().get_analysis_cancellation_port()
 
 

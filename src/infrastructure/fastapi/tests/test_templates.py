@@ -7,6 +7,10 @@ from src.domain.dtos.editorial_suitability_dto import EditorialSuitabilityDTO
 from src.domain.dtos.recommendation_dto import RecommendationDTO
 from src.domain.enums.publication_verdict import PublicationVerdict
 from src.domain.enums.recommendation_priority import RecommendationPriority
+from src.infrastructure.fastapi.src.config.dependencies import (
+    get_env_config,
+    get_templates,
+)
 from src.infrastructure.tests.adapters.report.fixtures import ReportFixtures
 
 TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
@@ -31,6 +35,26 @@ class TestFastApiTemplates(TestCase):
         self.assertIn("logo-container", rendered)
         self.assertIn("Silvina - Asistente Editorial", rendered)
         self.assertIn("footer", rendered)
+
+    def test_base_template_renders_configured_version_and_application_name(self) -> None:
+        templates = get_templates()
+        template = templates.get_template("base.html")
+        rendered = template.render()
+        environment_configuration = get_env_config()
+
+        self.assertIn(environment_configuration.silvina_app_name, rendered)
+        self.assertIn(f"v{environment_configuration.silvina_version}", rendered)
+        self.assertNotIn("v0.8", rendered)
+
+    def test_index_page_renders_configured_version_and_application_name(self) -> None:
+        templates = get_templates()
+        template = templates.get_template("index.html")
+        rendered = template.render()
+        environment_configuration = get_env_config()
+
+        self.assertIn(environment_configuration.silvina_app_name, rendered)
+        self.assertIn(f"v{environment_configuration.silvina_version}", rendered)
+        self.assertNotIn("v0.8", rendered)
 
     def test_index_template_renders_upload_form_and_indicator(self) -> None:
         template = self.env.get_template("index.html")

@@ -68,15 +68,15 @@ Test document used throughout: `capacidades_razonamiento_emergente_LLMs.docx` (3
 - Ollama's `/api/generate` reply carries `prompt_eval_count`, `eval_count` and `done_reason` (`length` when output was cut). Today `LlmGeneratorPort.generate` returns only text, so an empty or cut response is a silent failure that had to be discovered from `ollama.log`.
 - **Proposed action**: extend the port/DTO (or add a side channel) to record the three values and log a warning when `done_reason == "length"`. Prompt size is currently stored only in characters (`input_payload` length, or `chars=N` in PROD).
 
-### F-09 (LOW, OPEN) Report presentation details
+### F-09 (LOW, FIXED in this branch; truncation and `Confianza: -` left by design) Report presentation details
 - The editorial-alignment "Justificacion" ends with an ellipsis: the report truncates it (the stored model answer is complete, 622 characters).
 - `Confianza: -` is printed when the confidence is `None` (a consequence of F-01 for `POPULAR_SCIENCE`).
 - The report footer says `v0.95` while the web footer is hardcoded `v0.8`.
 
-### F-10 (LOW, OPEN) Pre-existing type-checker finding
+### F-10 (LOW, FIXED in this branch) Pre-existing type-checker finding
 - `TextIO.reconfigure` in `main.py` (lines 18-21) and `conftest.py`: the `hasattr(stdout, "reconfigure")` blocks are flagged by the type checker every time those files are touched. Left untouched on purpose in the delivered work.
 
-### F-11 (LOW, OPEN) JVM crash dumps land in the repository root
+### F-11 (LOW, FIXED in this branch; only the dumps are ignored) JVM crash dumps land in the repository root
 - Under memory pressure the LanguageTool JVM crashed ("insufficient memory ... out of physical RAM or swap") and wrote `hs_err_pid*.log` and `replay_pid*.log` in the working directory; a test run showed an intermittent `GrammarCheckUnavailable`. **Proposed action**: add both patterns to `.gitignore` and consider where LanguageTool runs from.
 
 ### F-12 (OPERATIONAL, DONE) Stopping Ollama by killing only `ollama.exe` leaves GPU-holding orphans
@@ -162,7 +162,11 @@ Test document used throughout: `capacidades_razonamiento_emergente_LLMs.docx` (3
 - [ ] **TASK-08: Record tokens and `done_reason` in the audit** (F-08)
   - **Scope**: extend `LlmGeneratorPort` or the Ollama adapter contract, `AiInteractionDTO`, the SQLite schema and a warning log; keep the privacy policy (`APP_MODE`).
 
-- [ ] **TASK-09: Housekeeping** (F-09, F-10, F-11): report footer version and truncation, the type-checker finding, `.gitignore` for JVM dumps.
+- [x] **TASK-09: Housekeeping** (F-09, F-10, F-11)
+  - **Route**: subagent delegation (`gentle-ai-worker`), branch `chore/housekeeping-report-footer-typecheck-gitignore`, own PR
+  - **Done**: F-10: the `hasattr(stdout, "reconfigure")` guards in `main.py` and `conftest.py` became `isinstance(<stream>, TextIOWrapper)`, so the type checker no longer flags them (pi-lens stopped reporting the finding). F-11: `hs_err_pid*.log` and `replay_pid*.log` are ignored by `.gitignore`. F-09 footer: the web footer rendered a hardcoded `v0.8`; it now renders `app_name` and `app_version` (Jinja globals fed from `EnvConfig`, i.e. `version.txt`, currently 0.95), the same source as the Word report footer.
+  - **Decided to leave as is (by design, 2026-10-02, user decision)**: the editorial-alignment "Justificación" ends with an ellipsis because `EditorialSuitabilityParser` deliberately keeps the first sentence and at most 120 characters (the complete model answer stays stored); and `Confianza: -` is printed only when the category has no confidence, which after F-01 is the expected case for popular science and opinion. Not touched: the parser's module-level length constants predate the no-constants rule.
+  - **Outcome (2026-10-02, implemented, uncommitted)**: whole suite 1018 passed, `ruff check` clean; the rendered footer reads `Silvina Editorial Assistant v0.95`; `git check-ignore` confirms both patterns. The LanguageTool JVM crash itself (memory pressure) was not investigated: only the dumps are ignored.
 
 ---
 

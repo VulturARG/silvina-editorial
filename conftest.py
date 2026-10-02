@@ -4,6 +4,7 @@ Pytest configuration — applies to all tests.
 """
 
 import sys
+from io import TextIOWrapper
 from logging import getLogger
 from os import environ
 from os.path import join
@@ -25,12 +26,12 @@ environ.setdefault("LOG_FILE_PATH", join(_metrics_test_directory.name, "silvina.
 
 # Reconfigure stdout/stderr to UTF-8 so that emoji in source print() calls
 # don't cause UnicodeEncodeError on Windows cp1252 consoles.
-if hasattr(sys.stdout, "reconfigure"):
+if isinstance(sys.stdout, TextIOWrapper):
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     except Exception:
         pass
-if hasattr(sys.stderr, "reconfigure"):
+if isinstance(sys.stderr, TextIOWrapper):
     try:
         sys.stderr.reconfigure(encoding="utf-8", errors="replace")
     except Exception:
