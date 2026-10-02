@@ -16,6 +16,7 @@ from claude_agent_sdk import (
 )
 
 from src.domain.dtos.llm_generation_dto import LlmGenerationDTO
+from src.domain.enums.llm_done_reason import LlmDoneReason
 from src.domain.exceptions.language_model_errors import LanguageModelUnavailable
 from src.infrastructure.adapters.llm_generator.claude_generator_adapter import (
     ClaudeGeneratorAdapter,
@@ -156,7 +157,7 @@ class TestClaudeGeneratorAdapter(TestCase):
         self.assertEqual(result.text, "analyzed content")
         self.assertEqual(result.prompt_tokens, 128)
         self.assertEqual(result.completion_tokens, 64)
-        self.assertEqual(result.done_reason, "end_turn")
+        self.assertEqual(result.done_reason, LlmDoneReason.STOP.value)
 
     @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
     def test_generate_with_usage_returns_none_metadata_when_usage_missing(
@@ -187,6 +188,114 @@ class TestClaudeGeneratorAdapter(TestCase):
         self.assertEqual(result.text, "simple response")
         self.assertIsNone(result.prompt_tokens)
         self.assertIsNone(result.completion_tokens)
+        self.assertIsNone(result.done_reason)
+
+    @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
+    def test_generate_with_usage_maps_end_turn_stop_reason_to_stop_done_reason(
+        self, mock_query: MagicMock
+    ) -> None:
+        mock_query.side_effect = self._create_fake_query(
+            [
+                ResultMessage(
+                    subtype="success",
+                    duration_ms=100,
+                    duration_api_ms=90,
+                    is_error=False,
+                    num_turns=1,
+                    session_id="test-session-identifier",
+                    stop_reason="end_turn",
+                ),
+            ]
+        )
+
+        result = self.adapter.generate_with_usage(prompt=self.sample_prompt)
+
+        self.assertEqual(result.done_reason, LlmDoneReason.STOP.value)
+
+    @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
+    def test_generate_with_usage_maps_max_tokens_stop_reason_to_length_done_reason(
+        self, mock_query: MagicMock
+    ) -> None:
+        mock_query.side_effect = self._create_fake_query(
+            [
+                ResultMessage(
+                    subtype="success",
+                    duration_ms=100,
+                    duration_api_ms=90,
+                    is_error=False,
+                    num_turns=1,
+                    session_id="test-session-identifier",
+                    stop_reason="max_tokens",
+                ),
+            ]
+        )
+
+        result = self.adapter.generate_with_usage(prompt=self.sample_prompt)
+
+        self.assertEqual(result.done_reason, LlmDoneReason.LENGTH.value)
+
+    @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
+    def test_generate_with_usage_maps_model_context_window_exceeded_to_length_done_reason(
+        self, mock_query: MagicMock
+    ) -> None:
+        mock_query.side_effect = self._create_fake_query(
+            [
+                ResultMessage(
+                    subtype="success",
+                    duration_ms=100,
+                    duration_api_ms=90,
+                    is_error=False,
+                    num_turns=1,
+                    session_id="test-session-identifier",
+                    stop_reason="model_context_window_exceeded",
+                ),
+            ]
+        )
+
+        result = self.adapter.generate_with_usage(prompt=self.sample_prompt)
+
+        self.assertEqual(result.done_reason, LlmDoneReason.LENGTH.value)
+
+    @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
+    def test_generate_with_usage_preserves_unmapped_stop_reason_verbatim(
+        self, mock_query: MagicMock
+    ) -> None:
+        mock_query.side_effect = self._create_fake_query(
+            [
+                ResultMessage(
+                    subtype="success",
+                    duration_ms=100,
+                    duration_api_ms=90,
+                    is_error=False,
+                    num_turns=1,
+                    session_id="test-session-identifier",
+                    stop_reason="refusal",
+                ),
+            ]
+        )
+
+        result = self.adapter.generate_with_usage(prompt=self.sample_prompt)
+
+        self.assertEqual(result.done_reason, "refusal")
+
+    @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
+    def test_generate_with_usage_preserves_none_stop_reason(self, mock_query: MagicMock) -> None:
+        mock_query.side_effect = self._create_fake_query(
+            [
+                ResultMessage(
+                    subtype="success",
+                    duration_ms=100,
+                    duration_api_ms=90,
+                    is_error=False,
+                    num_turns=1,
+                    session_id="test-session-identifier",
+                    stop_reason=None,
+                ),
+            ]
+        )
+
+        result = self.adapter.generate_with_usage(prompt=self.sample_prompt)
+
         self.assertIsNone(result.done_reason)
 
     @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")

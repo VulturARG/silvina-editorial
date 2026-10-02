@@ -11,8 +11,15 @@ from claude_agent_sdk import (
 )
 
 from src.domain.dtos.llm_generation_dto import LlmGenerationDTO
+from src.domain.enums.llm_done_reason import LlmDoneReason
 from src.domain.exceptions.language_model_errors import LanguageModelUnavailable
 from src.domain.ports.llm_generator_port import LlmGeneratorPort
+
+CLAUDE_STOP_REASON_TO_DONE_REASON: dict[str, str] = {
+    "end_turn": LlmDoneReason.STOP.value,
+    "max_tokens": LlmDoneReason.LENGTH.value,
+    "model_context_window_exceeded": LlmDoneReason.LENGTH.value,
+}
 
 
 class ClaudeGeneratorAdapter(LlmGeneratorPort):
@@ -31,6 +38,11 @@ class ClaudeGeneratorAdapter(LlmGeneratorPort):
             return run(self._execute_query(prompt=prompt))
         except ClaudeSDKError as exception:
             raise LanguageModelUnavailable() from exception
+
+    def _translate_stop_reason(self, stop_reason: str | None) -> str | None:
+        if stop_reason is None:
+            return None
+        return CLAUDE_STOP_REASON_TO_DONE_REASON.get(stop_reason, stop_reason)
 
     async def _execute_query(self, prompt: str) -> LlmGenerationDTO:
         """Execute the asynchronous query against Claude Agent SDK and assemble the result."""
@@ -65,9 +77,10 @@ class ClaudeGeneratorAdapter(LlmGeneratorPort):
 
         prompt_tokens: int | None = usage_dictionary.get("input_tokens")
         completion_tokens: int | None = usage_dictionary.get("output_tokens")
-        done_reason: str | None = (
+        stop_reason: str | None = (
             final_result_message.stop_reason if final_result_message is not None else None
         )
+        done_reason: str | None = self._translate_stop_reason(stop_reason)
 
         return LlmGenerationDTO(
             text="".join(text_fragments).strip(),
