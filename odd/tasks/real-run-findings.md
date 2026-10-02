@@ -48,15 +48,15 @@ Test document used throughout: `capacidades_razonamiento_emergente_LLMs.docx` (3
 ### F-03 (MEDIUM, FIXED in PR #54) The web page showed nothing when an analysis failed
 - htmx 1.x does not swap 4xx/5xx responses; the server returned the rendered error fragment with HTTP 400 and the page looked stuck. Fixed with a `htmx:beforeSwap` listener that paints HTML error responses only. Verified in a real headless Chrome.
 
-### F-04 (MEDIUM, OPEN) The error message hides the real cause of a language-model failure
+### F-04 (MEDIUM, FIXED in this branch) The error message hides the real cause of a language-model failure
 - Every `ollama.ResponseError`, `RequestError` and `ConnectionError` is mapped to `LanguageModelUnavailable` ("The language model backend is unavailable"). A real model-load failure (`llama-server startup failed ... out-of-memory ... status code 500`) looked identical to "Ollama is not running". The cause was recoverable only from the audit database (cause chain) and the Ollama log.
 - **Proposed action**: distinct domain errors/messages for "unreachable", "model could not be loaded" and "model not found", without leaking internals to the user; keep the detail in the log.
 
-### F-05 (MEDIUM, OPEN) Reports and audit rows carry the temporary upload name instead of the original file name
+### F-05 (MEDIUM, FIXED in PR #57) Reports and audit rows carry the temporary upload name instead of the original file name
 - The report JSON `filename` and the metrics `analyses.document_name` hold the random temporary name (`tmp0hog1vwr.docx`); only the report file name is derived from the original.
 - **Proposed action**: carry the original file name from the upload endpoint to the use case/report DTO.
 
-### F-06 (MEDIUM, OPEN) Two analyses of the same document overwrite each other's reports
+### F-06 (MEDIUM, FIXED in PR #57) Two analyses of the same document overwrite each other's reports
 - Both write `<name>_analisis.docx` and `<name>_analisis.json`; the last to finish wins (observed 2026-10-01 19:34). Concurrent writes could interleave.
 - **Proposed action**: unique report names or one folder per analysis id.
 
@@ -142,15 +142,20 @@ Test document used throughout: `capacidades_razonamiento_emergente_LLMs.docx` (3
 
     Reading: the 5 scientific samples are now classified correctly (they were all `POPULAR_SCIENCE`); the 5 divulgacion/opinion samples are unchanged, so there are no false positives. `ClassificationResultDTO.effective_structure_type` keeps a `SCIENTIFIC` article that lacks IMRyD wording in its reasoning validated as `POPULAR_SCIENCE` (legacy behavior, covered by existing tests), so structure validation does not change for any sample; the recommendation code does not read the article type. The visible change is the category, confidence and reasoning shown in the report. Whether a `SCIENTIFIC` article without IMRyD should be validated as scientific is a separate product question, not part of this fix.
 
-- [ ] **TASK-05: Specific language-model error messages** (F-04) and **TASK-07: Cancel or serialize analyses** (F-07)
-  - **Route**: one branch and PR each; scopes as in the findings.
+- [x] **TASK-05: Specific language-model error messages** (F-04)
+  - **Route**: subagent delegation (`gentle-ai-worker`), branch `fix/specific-language-model-error-messages`, own PR
+  - **Design**: two new domain errors under `LanguageModelError`, `LanguageModelNotFound` and `LanguageModelLoadFailed`, next to the existing `LanguageModelUnavailable` (unreachable backend). `OllamaGeneratorAdapter` maps by HTTP status: 404 to not found, 5xx to load failed, anything else (other response codes, `RequestError`, `ConnectionError`) to unavailable. The original exception stays as `__cause__`, so the technical detail (for example the out-of-memory text) remains in the audit cause chain and the log, never in the user-facing message. The web handler already renders any `BaseSrcError` message; the CLI now catches the whole `LanguageModelError` family.
+  - **Outcome (2026-10-02, implemented, uncommitted)**: whole suite 983 passed, `ruff check` and `ruff format --check` clean. The classification is by status code, not by message text; a 5xx is reported as "could not be loaded or run" on purpose, since it can also be a failure while running. The worker also narrowed the `TextIO.reconfigure` check in `main.py`; that is F-10 (TASK-09) and was reverted to keep this task scoped. Real CLI runs: Ollama off prints "The language model backend is unavailable."; Ollama on with `OLLAMA_MODEL_NAME=does-not-exist-model` prints "The configured language model is not installed in the backend." and the audit row keeps `caused by ResponseError: model 'does-not-exist-model' not found (status code: 404)`. The load-failed branch is covered by unit tests only (a real out-of-memory load was not reproduced).
 
-- [ ] **TASK-06: Original file name and unique report names** (F-05, F-06)
+- [ ] **TASK-07: Cancel or serialize analyses** (F-07)
+  - **Route**: own branch and PR; scope as in the finding.
+
+- [x] **TASK-06: Original file name and unique report names** (F-05, F-06)
   - **Route**: subagent delegation (`gentle-ai-worker`), branch `fix/report-original-filename-and-unique-names`, own PR
   - **Design**: `AnalyzeDocumentUseCase.execute` gets an optional `document_name` (defaults to `document_path`, so the CLI is unchanged) used for the tracked analysis name and `ReportInputDTO.filename`; the upload endpoint passes the original upload name. Each web analysis writes its reports into its own sub-folder of the reports directory (`<reports_dir>/<unique id>/<name>_analisis.docx|json`), keeping the original-based file names, and the download links point to `/reports/<unique id>/<file>` (the download route already accepts sub-paths with traversal protection).
   - **Scope**: `src/application/analyze_document_use_case.py`, `src/infrastructure/fastapi/src/routes/analyze_endpoint.py`, their tests, `openspec/specs` where the report name or the upload flow is described.
   - **Verification**: failing tests first (use case records the original name in metrics start/completion and report filename; endpoint passes the original name, two analyses of the same name write to different paths, links include the folder); whole suite and `ruff check`; real web run with two uploads of the same document.
-  - **Outcome (2026-10-02, implemented, uncommitted)**: `execute(document_path, document_name=None)` falls back to `document_path`; the endpoint passes the upload name and writes into `<reports_dir>/<uuid4 hex>/`; links are `/reports/<uuid>/<name>_analisis.*`; the download header still carries the bare file name. Also updated `tests/e2e/test_fastapi_e2e.py` (it asserted the flat paths) and the `analyze-document` spec. Whole suite 964 passed, `ruff check` and `ruff format --check` clean. Native review (`review-reliability`, medium risk): approved and acknowledged. Committed on branch `fix/report-original-filename-and-unique-names`. **Pending**: real web run with two uploads of the same document.
+  - **Outcome (2026-10-02, implemented, uncommitted)**: `execute(document_path, document_name=None)` falls back to `document_path`; the endpoint passes the upload name and writes into `<reports_dir>/<uuid4 hex>/`; links are `/reports/<uuid>/<name>_analisis.*`; the download header still carries the bare file name. Also updated `tests/e2e/test_fastapi_e2e.py` (it asserted the flat paths) and the `analyze-document` spec. Whole suite 964 passed, `ruff check` and `ruff format --check` clean. Native review (`review-reliability`, medium risk): approved and acknowledged. Delivered in PR #57 (merged, merge commit `09be10c`). **Real web run (2026-10-02)**: Ollama `gemma4-26b-adapted`, scratch database, log and reports directory; the same document uploaded twice returned HTTP 200 both times (107 s cold, 31 s warm), each analysis in its own folder holding both reports; the downloads work; the JSON `filename` and `analyses.document_name` are the original name in both analyses; `/reports/../metrics.db` returns 404; no temporary upload is left behind.
 
 - [ ] **TASK-08: Record tokens and `done_reason` in the audit** (F-08)
   - **Scope**: extend `LlmGeneratorPort` or the Ollama adapter contract, `AiInteractionDTO`, the SQLite schema and a warning log; keep the privacy policy (`APP_MODE`).

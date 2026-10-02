@@ -1,3 +1,4 @@
+from http import HTTPStatus
 from unittest import TestCase
 
 from fastapi import APIRouter
@@ -11,6 +12,10 @@ from src.domain.exceptions.document_errors import (
     DocumentNotFound,
     DocumentTooLarge,
     DocumentUnreadable,
+)
+from src.domain.exceptions.language_model_errors import (
+    LanguageModelLoadFailed,
+    LanguageModelNotFound,
 )
 from src.infrastructure.fastapi.fastapi_app import create_app
 
@@ -47,6 +52,14 @@ class TestFastApiExceptionHandlers(TestCase):
         @self.router.get("/unexpected")
         def raise_unexpected():
             raise RuntimeError("Unexpected pipeline crash")
+
+        @self.router.get("/language-model-not-found")
+        def raise_language_model_not_found():
+            raise LanguageModelNotFound()
+
+        @self.router.get("/language-model-load-failed")
+        def raise_language_model_load_failed():
+            raise LanguageModelLoadFailed()
 
         self.app.include_router(self.router)
         self.client = TestClient(self.app, raise_server_exceptions=False)
@@ -95,6 +108,29 @@ class TestFastApiExceptionHandlers(TestCase):
         self.assertEqual(response.status_code, 500)
         self.assertIn("Error al procesar el documento: Unexpected pipeline crash", response.text)
         self.assertNotIn("Traceback (most recent call last)", response.text)
+        self.assertIn("error-callout", response.text)
+
+    def test_language_model_not_found_returns_400_and_error_partial(self) -> None:
+        response = self.client.get("/test-exceptions/language-model-not-found")
+
+        self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)
+        self.assertIn(
+            "The configured language model is not installed in the backend.",
+            response.text,
+        )
+        self.assertIn("Error de validación:", response.text)
+        self.assertIn("error-callout", response.text)
+
+    def test_language_model_load_failed_returns_400_and_error_partial(self) -> None:
+        response = self.client.get("/test-exceptions/language-model-load-failed")
+
+        self.assertEqual(response.status_code, HTTPStatus.BAD_REQUEST)
+        self.assertIn(
+            "The language model could not be loaded or run by the backend. "
+            "Check the available memory and the backend log.",
+            response.text,
+        )
+        self.assertIn("Error de validación:", response.text)
         self.assertIn("error-callout", response.text)
 
     def test_static_files_are_mounted_and_accessible(self) -> None:

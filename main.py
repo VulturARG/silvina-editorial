@@ -26,7 +26,7 @@ path.insert(0, str(project_root))
 
 from src.domain.dtos.report_input_dto import ReportInputDTO
 from src.domain.exceptions.base_src_error import BaseSrcError
-from src.domain.exceptions.language_model_errors import LanguageModelUnavailable
+from src.domain.exceptions.language_model_errors import LanguageModelError
 from src.infrastructure.wirings.analyze_document_use_case_wiring import (
     AnalyzeDocumentUseCaseWiring,
 )
@@ -63,8 +63,9 @@ class SilvinaEditorialAssistant:
 
         try:
             report = self._analyze_document_use_case.execute(document_path)
-        except LanguageModelUnavailable:
-            print(f"\n❌ Error fatal: {LanguageModelUnavailable.MESSAGE}")
+        except LanguageModelError as exc:
+            message = exc.dict().get("error", "Unknown domain error")
+            print(f"\n❌ Error fatal: {message}")
             raise
         except Exception as e:
             print(f"\n❌ Error durante el análisis: {e}")
