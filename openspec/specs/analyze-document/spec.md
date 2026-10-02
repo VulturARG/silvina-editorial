@@ -383,7 +383,8 @@ The `GrammarChecker` domain service MUST reside in `src/domain/grammar/grammar_c
 - Domain services: `document_content_extractor`, `citation_extractor`, `document_format_inspector`, `grammar_checker`, `apa_validator`, `article_classifier`, `quality_analyzer`, `structure_validator`, `citation_matcher`, `recommendation_builder`.
 (Previously: Accepted 7 ports, 5 domain services, and 1 builder — 13 dependencies total.)
 
-Method `execute(document_path: str) -> ReportInputDTO` MUST be wrapped with `@generic_error_handler` and perform:
+Method `execute(document_path: str, document_name: str | None = None) -> ReportInputDTO` MUST be wrapped with `@generic_error_handler` and perform:
+When `document_name` is provided, it is used as the display name for analysis tracking and the returned `ReportInputDTO.filename`. When `document_name` is omitted or `None`, it falls back to `document_path`. The file-reading stages continue to use `document_path`.
 1. Extract content via `document_content_extractor.extract_content(document_path)`.
 2. Extract citations/references via `citation_extractor.extract_citations_and_references(document_path)`.
 3. Validate APA citations via `apa_validator.validate_all_citations(citations, document_content.paragraphs)`.
@@ -401,6 +402,16 @@ Method `execute(document_path: str) -> ReportInputDTO` MUST be wrapped with `@ge
 - GIVEN a valid `document_path`
 - WHEN `execute(document_path)` is called
 - THEN each of the 10 domain service dependencies is invoked and a `ReportInputDTO` is returned
+
+#### Scenario: Orchestrator uses custom document name for telemetry and report
+- GIVEN a valid `document_path` and a custom `document_name`
+- WHEN `execute(document_path, document_name)` is called
+- THEN analysis tracking and the returned `ReportInputDTO` use `document_name` while extraction stages receive `document_path`
+
+#### Scenario: Orchestrator falls back to document path when document name omitted
+- GIVEN a valid `document_path` and `document_name` is None
+- WHEN `execute(document_path)` is called
+- THEN analysis tracking and the returned `ReportInputDTO` fall back to `document_path`
 
 #### Scenario: Structure validation uses effective structure type
 - GIVEN a scientific article without "IMRyD" in reasoning

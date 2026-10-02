@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Annotated
+from uuid import uuid4
 
 from fastapi import APIRouter, File, Request, Response, UploadFile
 
@@ -28,21 +29,26 @@ def analyze_document(
     file: Annotated[UploadFile | None, File()] = None,
 ) -> Response:
     """Validate, analyze, and export analysis reports for an uploaded document."""
+    raw_filename = file.filename if file is not None and file.filename else "document"
     temp_path = validate_and_persist(file, env_config.upload_max_size_bytes)
     try:
-        report = analyze_use_case.execute(document_path=str(temp_path))
+        report = analyze_use_case.execute(
+            document_path=str(temp_path),
+            document_name=raw_filename,
+        )
     finally:
         if temp_path.exists():
             temp_path.unlink(missing_ok=True)
 
-    raw_filename = file.filename if file is not None and file.filename else "document"
+    analysis_folder = uuid4().hex
     base_name = Path(raw_filename).stem
-    word_filename = f"{base_name}_analisis.docx"
-    json_filename = f"{base_name}_analisis.json"
-    word_path = reports_dir / word_filename
-    json_path = reports_dir / json_filename
+    word_filename = f"{analysis_folder}/{base_name}_analisis.docx"
+    json_filename = f"{analysis_folder}/{base_name}_analisis.json"
+    analysis_directory = reports_dir / analysis_folder
+    word_path = analysis_directory / f"{base_name}_analisis.docx"
+    json_path = analysis_directory / f"{base_name}_analisis.json"
 
-    reports_dir.mkdir(parents=True, exist_ok=True)
+    analysis_directory.mkdir(parents=True, exist_ok=True)
     export_use_case.execute(report_input=report, output_path=str(word_path))
     json_export_use_case.execute(report_input=report, output_path=str(json_path))
 

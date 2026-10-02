@@ -2,6 +2,7 @@
 
 from io import BytesIO
 from pathlib import Path
+from re import search
 import tempfile
 import unittest
 from unittest.mock import MagicMock
@@ -65,10 +66,8 @@ class TestFastApiE2E(unittest.TestCase):
         # Step 2: POST /analyze (submit .docx for analysis)
         # -------------------------------------------------------------
         fake_report = ReportFixtures.make_report_input_dto()
-        expected_word_filename = "paper_sample_analisis.docx"
-        expected_json_filename = "paper_sample_analisis.json"
-        expected_word_path = self.reports_dir / expected_word_filename
-        expected_json_path = self.reports_dir / expected_json_filename
+        report_word_name = "paper_sample_analisis.docx"
+        report_json_name = "paper_sample_analisis.json"
 
         mock_word_bytes = b"PK\x03\x04mock docx report payload"
         mock_json_bytes = b'{"analysis": "mock json content"}'
@@ -113,6 +112,15 @@ class TestFastApiE2E(unittest.TestCase):
         self.assertIn("Errores APA 7", analyze_response.text)
         self.assertIn("Citas sin referencia", analyze_response.text)
         self.assertIn("Secciones faltantes", analyze_response.text)
+        analysis_folder_match = search(
+            rf"/reports/([0-9a-f]{{32}})/{report_word_name}", analyze_response.text
+        )
+        self.assertIsNotNone(analysis_folder_match)
+        analysis_folder = analysis_folder_match.group(1)
+        expected_word_filename = f"{analysis_folder}/{report_word_name}"
+        expected_json_filename = f"{analysis_folder}/{report_json_name}"
+        expected_word_path = self.reports_dir / analysis_folder / report_word_name
+        expected_json_path = self.reports_dir / analysis_folder / report_json_name
         # Download buttons and filenames in download links
         self.assertIn(f"/reports/{expected_word_filename}", analyze_response.text)
         self.assertIn(f"/reports/{expected_json_filename}", analyze_response.text)
@@ -137,7 +145,7 @@ class TestFastApiE2E(unittest.TestCase):
         self.assertEqual(word_response.content, mock_word_bytes)
         self.assertEqual(word_response.headers.get("content-type"), "application/octet-stream")
         self.assertIn(
-            f'filename="{expected_word_filename}"',
+            f'filename="{report_word_name}"',
             word_response.headers.get("content-disposition", ""),
         )
 
@@ -147,7 +155,7 @@ class TestFastApiE2E(unittest.TestCase):
         self.assertEqual(json_response.content, mock_json_bytes)
         self.assertEqual(json_response.headers.get("content-type"), "application/octet-stream")
         self.assertIn(
-            f'filename="{expected_json_filename}"',
+            f'filename="{report_json_name}"',
             json_response.headers.get("content-disposition", ""),
         )
 
