@@ -411,3 +411,170 @@ class TestSqliteAnalysisMetricsAdapter(TestCase):
             self.assertIsNotNone(ai_row)
             self.assertEqual(ai_row[0], AiProvider.OLLAMA.value)
             self.assertEqual(ai_row[1], AiPurpose.EDITORIAL_SUITABILITY.value)
+
+    def test_creates_ai_interactions_table_with_token_and_done_reason_columns(self) -> None:
+        SqliteAnalysisMetricsAdapter(self.database_path)
+        with closing(connect(self.database_path)) as connection:
+            cursor = connection.cursor()
+            cursor.execute("PRAGMA table_info(ai_interactions);")
+            column_names = {row[1] for row in cursor.fetchall()}
+            self.assertIn("prompt_tokens", column_names)
+            self.assertIn("completion_tokens", column_names)
+            self.assertIn("done_reason", column_names)
+
+    def test_migrates_existing_database_from_old_schema_preserving_existing_rows_with_nulls(
+        self,
+    ) -> None:
+        Path(self.database_path).parent.mkdir(parents=True, exist_ok=True)
+        with closing(connect(self.database_path)) as connection:
+            with connection:
+                connection.execute(
+                    """
+                    CREATE TABLE ai_interactions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        analysis_id TEXT NOT NULL,
+                        provider TEXT NOT NULL,
+                        purpose TEXT NOT NULL,
+                        model_name TEXT NOT NULL,
+                        input_payload TEXT NOT NULL,
+                        output_payload TEXT NOT NULL,
+                        duration_ms REAL NOT NULL,
+                        status TEXT NOT NULL,
+                        recorded_at TEXT NOT NULL
+                    );
+                    """
+                )
+                connection.execute(
+                    """
+                    INSERT INTO ai_interactions (
+                        analysis_id,
+                        provider,
+                        purpose,
+                        model_name,
+                        input_payload,
+                        output_payload,
+                        duration_ms,
+                        status,
+                        recorded_at
+                    ) VALUES (
+                        'legacy-analysis',
+                        'ollama',
+                        'article_classification',
+                        'legacy-model',
+                        'legacy input',
+                        'legacy output',
+                        120.5,
+                        'success',
+                        '2025-01-01T00:00:00+00:00'
+                    );
+                    """
+                )
+
+        SqliteAnalysisMetricsAdapter(self.database_path)
+
+        with closing(connect(self.database_path)) as connection:
+            cursor = connection.cursor()
+            cursor.execute("PRAGMA table_info(ai_interactions);")
+            column_names = {row[1] for row in cursor.fetchall()}
+            self.assertIn("prompt_tokens", column_names)
+            self.assertIn("completion_tokens", column_names)
+            self.assertIn("done_reason", column_names)
+
+            cursor.execute(
+                "SELECT analysis_id, prompt_tokens, completion_tokens, done_reason FROM ai_interactions WHERE analysis_id = 'legacy-analysis';"
+            )
+            legacy_row = cursor.fetchone()
+            self.assertIsNotNone(legacy_row)
+            self.assertEqual(legacy_row[0], "legacy-analysis")
+            self.assertIsNone(legacy_row[1])
+            self.assertIsNone(legacy_row[2])
+            self.assertIsNone(legacy_row[3])
+
+    def test_schema_migration_is_idempotent_when_initialized_multiple_times(self) -> None:
+        Path(self.database_path).parent.mkdir(parents=True, exist_ok=True)
+        with closing(connect(self.database_path)) as connection:
+            with connection:
+                connection.execute(
+                    """
+                    CREATE TABLE ai_interactions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        analysis_id TEXT NOT NULL,
+                        provider TEXT NOT NULL,
+                        purpose TEXT NOT NULL,
+                        model_name TEXT NOT NULL,
+                        input_payload TEXT NOT NULL,
+                        output_payload TEXT NOT NULL,
+                        duration_ms REAL NOT NULL,
+                        status TEXT NOT NULL,
+                        recorded_at TEXT NOT NULL
+                    );
+                    """
+                )
+        SqliteAnalysisMetricsAdapter(self.database_path)
+        SqliteAnalysisMetricsAdapter(self.database_path)
+
+        with closing(connect(self.database_path)) as connection:
+            cursor = connection.cursor()
+            cursor.execute("PRAGMA table_info(ai_interactions);")
+            column_names = [row[1] for row in cursor.fetchall()]
+            self.assertEqual(column_names.count("prompt_tokens"), 1)
+            self.assertEqual(column_names.count("completion_tokens"), 1)
+            self.assertEqual(column_names.count("done_reason"), 1)
+
+    def test_record_ai_interaction_persists_and_reads_back_tokens_and_done_reason(self) -> None:
+        adapter = SqliteAnalysisMetricsAdapter(self.database_path)
+        interaction_dto = AiInteractionDTO(
+            analysis_id="analysis-token-test",
+            provider=AiProvider.OLLAMA,
+            purpose=AiPurpose.QUALITY_ANALYSIS,
+            model_name="gemma:latest",
+            input_payload="audit prompt",
+            output_payload="audit response",
+            duration_ms=340.0,
+            status=ExecutionStatus.SUCCESS,
+            prompt_tokens=150,
+            completion_tokens=42,
+            done_reason="stop",
+        )
+        adapter.record_ai_interaction(interaction_dto)
+
+        with closing(connect(self.database_path)) as connection:
+            cursor = connection.cursor()
+            cursor.execute(
+                "SELECT prompt_tokens, completion_tokens, done_reason FROM ai_interactions WHERE analysis_id = ?;",
+                ("analysis-token-test",),
+            )
+            row = cursor.fetchone()
+            self.assertIsNotNone(row)
+            self.assertEqual(row[0], 150)
+            self.assertEqual(row[1], 42)
+            self.assertEqual(row[2], "stop")
+
+    def test_record_ai_interaction_with_none_tokens_and_done_reason_persists_nulls(self) -> None:
+        adapter = SqliteAnalysisMetricsAdapter(self.database_path)
+        interaction_dto = AiInteractionDTO(
+            analysis_id="analysis-none-tokens-test",
+            provider=AiProvider.OLLAMA,
+            purpose=AiPurpose.ARTICLE_CLASSIFICATION,
+            model_name="gemma:latest",
+            input_payload="audit prompt without tokens",
+            output_payload="audit response without tokens",
+            duration_ms=100.0,
+            status=ExecutionStatus.SUCCESS,
+            prompt_tokens=None,
+            completion_tokens=None,
+            done_reason=None,
+        )
+        adapter.record_ai_interaction(interaction_dto)
+
+        with closing(connect(self.database_path)) as connection:
+            cursor = connection.cursor()
+            cursor.execute(
+                "SELECT prompt_tokens, completion_tokens, done_reason FROM ai_interactions WHERE analysis_id = ?;",
+                ("analysis-none-tokens-test",),
+            )
+            row = cursor.fetchone()
+            self.assertIsNotNone(row)
+            self.assertIsNone(row[0])
+            self.assertIsNone(row[1])
+            self.assertIsNone(row[2])
