@@ -42,8 +42,8 @@ In `APP_MODE=DEBUG` the application must be able to use an external LLM instead 
 
 ## 5. Tasks
 
-- [ ] **TASK-01** `AiProvider.CLAUDE`, `EnvConfig.llm_provider` / `external_llm_model_name` with PROD-ignores and DEBUG-requires-model rules, tests.
-- [ ] **TASK-02** `ClaudeGeneratorAdapter` with unit tests using a fake of the SDK `query` (no network), error mapping, sync bridge over the async SDK.
+- [x] **TASK-01** `AiProvider.CLAUDE`, `EnvConfig.llm_provider` / `external_llm_model_name` with PROD-ignores and DEBUG-requires-model rules, tests. Commit `353dab8`; 130 tests green (RED 13 failing first), ruff clean.
+- [x] **TASK-02** `ClaudeGeneratorAdapter` with unit tests using a fake of the SDK `query` (no network), error mapping, sync bridge over the async SDK. 18 tests (RED 18 failing first), whole suite 1026 passed, ruff clean. Errors: the ClaudeSDKError hierarchy, AssistantMessage.error and ResultMessage.is_error map to LanguageModelUnavailable; no LanguageModelNotFound mapping because the SDK does not expose an unknown-model error. Follow-up: Claude stop_reason values (end_turn, max_tokens) are stored raw and do not match LlmDoneReason.LENGTH, so the truncation warning will not fire for Claude.
 - [ ] **TASK-03** External generator loader (registry + `import_module`) and `AnalyzeDocumentUseCaseWiring` selection by `EnvConfig`; wiring tests.
 - [ ] **TASK-04** `requirements-debug.txt`, `.env.example`/`.env`, README; real run with the subscription (verify the API-key override) and full suite.
 
