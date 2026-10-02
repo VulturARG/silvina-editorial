@@ -50,3 +50,5 @@ In `APP_MODE=DEBUG` the application must be able to use an external LLM instead 
 ## 6. Evidence
 
 (commit identities and observed checks are recorded here per task)
+- Commits: TASK-01 `353dab8`, TASK-02 `4099517`, TASK-03 `849b517`, TASK-04 `4f96b49`. Whole suite 1037 passed, `ruff check` and `ruff format --check` clean.
+- Native review (lineage `review-cec9619b95337966`, committed range against `silvina_editorial_v100`, one reliability lens): approved and acknowledged. Two non-blocking warnings, to be handled as separate work: R3-1 `test_claude_generator_adapter.py:6-16`, R3-2 `claude_generator_adapter.py:68-70`.
