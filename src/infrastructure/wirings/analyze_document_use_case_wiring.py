@@ -240,7 +240,9 @@ class AnalyzeDocumentUseCaseWiring:
         if self._ollama_generator_instance is None:
             env_config = self._get_env_config()
             self._ollama_generator_instance = OllamaGeneratorAdapter(
-                model_name=env_config.ollama_model_name, base_url=env_config.ollama_base_url
+                model_name=env_config.ollama_model_name,
+                base_url=env_config.ollama_base_url,
+                think=env_config.ollama_think,
             )
         return self._ollama_generator_instance
 

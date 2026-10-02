@@ -38,6 +38,7 @@ class TestEnvConfig(TestCase):
             config.ollama_model_name, "hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:UD-IQ4_XS"
         )
         self.assertEqual(config.ollama_base_url, "http://localhost:11434")
+        self.assertFalse(config.ollama_think)
         self.assertAlmostEqual(config.publish_threshold, 7.0)
         self.assertAlmostEqual(config.quality_threshold, 7.0)
         self.assertAlmostEqual(config.grammar_threshold, 7.0)
@@ -111,6 +112,33 @@ class TestEnvConfig(TestCase):
         with patch.dict(environ, {"OLLAMA_BASE_URL": "http://example.com:1234"}):
             config = EnvConfig()
         self.assertEqual(config.ollama_base_url, "http://example.com:1234")
+
+    def test_env_var_overrides_ollama_think_to_true(self):
+        with patch.dict(environ, {"OLLAMA_THINK": "true"}):
+            config = EnvConfig()
+        self.assertTrue(config.ollama_think)
+
+    def test_env_var_accepts_case_and_whitespace_variations_for_ollama_think(self):
+        with patch.dict(environ, {"OLLAMA_THINK": " TRUE "}):
+            config_true = EnvConfig()
+        self.assertTrue(config_true.ollama_think)
+
+        with patch.dict(environ, {"OLLAMA_THINK": "False"}):
+            config_false = EnvConfig()
+        self.assertFalse(config_false.ollama_think)
+
+        with patch.dict(environ, {"OLLAMA_THINK": "  false  "}):
+            config_spaced_false = EnvConfig()
+        self.assertFalse(config_spaced_false.ollama_think)
+
+    def test_invalid_ollama_think_value_raises_value_error(self):
+        invalid_values = ["yes", "1", ""]
+        for invalid_value in invalid_values:
+            with self.subTest(invalid_value=invalid_value):
+                with patch.dict(environ, {"OLLAMA_THINK": invalid_value}):
+                    with self.assertRaises(ValueError) as context:
+                        EnvConfig()
+                    self.assertIn("OLLAMA_THINK", str(context.exception))
 
     def test_env_var_overrides_quality_threshold(self):
         with patch.dict(environ, {"QUALITY_THRESHOLD": "6.5"}):

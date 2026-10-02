@@ -21,6 +21,9 @@ from src.infrastructure.adapters.grammar.language_tool_adapter import LanguageTo
 from src.infrastructure.adapters.llm_generator.audited_llm_generator_adapter import (
     AuditedLlmGeneratorAdapter,
 )
+from src.infrastructure.adapters.llm_generator.ollama_generator_adapter import (
+    OllamaGeneratorAdapter,
+)
 from src.infrastructure.adapters.metrics.fail_safe_analysis_metrics_adapter import (
     FailSafeAnalysisMetricsAdapter,
 )
@@ -333,3 +336,18 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         port = result._grammar_checker._grammar_check_port
         self.assertIsInstance(port, LanguageToolAdapter)
         self.assertEqual(port._max_replacements, 3)
+
+    def test_default_ollama_think_when_env_var_absent(self):
+        env_without = {k: v for k, v in environ.items() if k != "OLLAMA_THINK"}
+        with patch.dict(environ, env_without, clear=True):
+            result = AnalyzeDocumentUseCaseWiring().create_use_case()
+        generator = result._article_classifier._llm_generator._generator
+        self.assertIsInstance(generator, OllamaGeneratorAdapter)
+        self.assertFalse(generator._think)
+
+    def test_env_var_overrides_ollama_think(self):
+        with patch.dict(environ, {"OLLAMA_THINK": "true"}):
+            result = AnalyzeDocumentUseCaseWiring().create_use_case()
+        generator = result._article_classifier._llm_generator._generator
+        self.assertIsInstance(generator, OllamaGeneratorAdapter)
+        self.assertTrue(generator._think)

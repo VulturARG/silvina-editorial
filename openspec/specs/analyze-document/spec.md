@@ -132,7 +132,7 @@ The `RecommendationPriority` enum MUST live in `src/domain/enums/recommendation_
 
 ### Requirement: EnvConfig Infrastructure Config Class
 
-`EnvConfig` MUST reside in `src/infrastructure/env_config.py`. It MUST parse environment variables at instantiation, cast them, and cache them as typed instance attributes. Values for `APP_MODE` are `DEBUG` or `PROD` (case-insensitive); any other value fails fast. `METRICS_DATABASE_PATH` and `LOG_FILE_PATH` have no default and MUST be set; a missing or empty value fails fast naming the variable. It MUST expose a method `get_recommendation_settings() -> RecommendationSettingsDTO` to build recommendation settings.
+`EnvConfig` MUST reside in `src/infrastructure/env_config.py`. It MUST parse environment variables at instantiation, cast them, and cache them as typed instance attributes. Values for `APP_MODE` are `DEBUG` or `PROD` (case-insensitive); any other value fails fast. `METRICS_DATABASE_PATH` and `LOG_FILE_PATH` have no default and MUST be set; a missing or empty value fails fast naming the variable. `OLLAMA_THINK` accepts only `true` or `false` (case-insensitive) and any other value fails fast. It MUST expose a method `get_recommendation_settings() -> RecommendationSettingsDTO` to build recommendation settings.
 
 The application version attribute (`silvina_version`) MUST be resolved dynamically:
 - In production/standard mode: `EnvConfig` MUST load the version string from the file `version.txt` located in the project root directory (resolved relative to `EnvConfig` file location: `Path(__file__).resolve().parents[2] / "version.txt"`). The version string MUST be stripped of surrounding whitespace. If the file is missing or unreadable, `EnvConfig` MUST raise `FileNotFoundError` (or standard OS/permission errors).
@@ -159,6 +159,7 @@ The application version attribute (`silvina_version`) MUST be resolved dynamical
 | `QUALITY_TEXT_SAMPLE_CHARACTER_LIMIT` | `int` | `8000` | `quality_text_sample_character_limit` |
 | `OLLAMA_MODEL_NAME` | `str` | `"hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:UD-IQ4_XS"` | `ollama_model_name` |
 | `OLLAMA_BASE_URL` | `str` | `"http://localhost:11434"` | `ollama_base_url` |
+| `OLLAMA_THINK` | `bool` | `false` | `ollama_think` |
 | `APP_MODE` | `AppMode` | `"PROD"` | `app_mode` |
 | `METRICS_DATABASE_PATH` | `str` | `— (required)` | `metrics_database_path` |
 | `LOG_FILE_PATH` | `str` | `— (required)` | `log_file_path` |
