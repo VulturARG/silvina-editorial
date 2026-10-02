@@ -41,6 +41,7 @@ class TestFastApiTemplates(TestCase):
         self.assertIn('type="file"', rendered)
         self.assertIn(".docx", rendered)
         self.assertIn('hx-indicator="#loading-indicator"', rendered)
+        self.assertIn('hx-disabled-elt="find button[type=submit]"', rendered)
         self.assertIn('id="loading-indicator"', rendered)
         self.assertIn("htmx-indicator", rendered)
         self.assertIn('id="results-container"', rendered)

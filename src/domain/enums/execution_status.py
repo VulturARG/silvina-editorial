@@ -7,3 +7,4 @@ class ExecutionStatus(Enum):
     RUNNING = "running"
     SUCCESS = "success"
     ERROR = "error"
+    CANCELLED = "cancelled"

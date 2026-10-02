@@ -3,14 +3,19 @@ from os import environ
 from pathlib import Path
 from re import search
 from tempfile import TemporaryDirectory
+from time import sleep as threading_sleep
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
+from anyio import sleep
 from fastapi.testclient import TestClient
+from starlette.requests import Request
 
+from src.domain.exceptions.analysis_errors import AnalysisCancelled
 from src.infrastructure.env_config import EnvConfig
 from src.infrastructure.fastapi.fastapi_app import create_app
 from src.infrastructure.fastapi.src.config.dependencies import (
+    get_analysis_cancellation_port,
     get_analyze_document_use_case,
     get_env_config,
     get_export_report_use_case,
@@ -42,7 +47,25 @@ class TestFastApiRoutes(TestCase):
 
         self.client = TestClient(self.app, raise_server_exceptions=False)
 
+        def default_receive_getter(request_instance: Request):
+            real_receive = request_instance._receive
+
+            async def wrapped_receive():
+                if not getattr(request_instance, "_stream_consumed", False):
+                    return await real_receive()
+                await sleep(999999)
+
+            return wrapped_receive
+
+        self._receive_patch = patch.object(
+            Request,
+            "receive",
+            property(default_receive_getter),
+        )
+        self._receive_patch.start()
+
     def tearDown(self) -> None:
+        self._receive_patch.stop()
         self.app.dependency_overrides.clear()
         self.temp_reports_dir.cleanup()
 
@@ -52,6 +75,7 @@ class TestFastApiRoutes(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("Silvina - Asistente Editorial EUMIC", response.text)
         self.assertIn('hx-post="/analyze"', response.text)
+        self.assertIn('hx-disabled-elt="find button[type=submit]"', response.text)
         self.assertIn("<form", response.text)
 
     def test_post_analyze_success(self) -> None:
@@ -272,3 +296,42 @@ class TestFastApiRoutes(TestCase):
     def test_get_templates_returns_jinja2_templates(self) -> None:
         templates = get_templates()
         self.assertIsNotNone(templates.env)
+
+    def test_post_analyze_cancels_when_client_disconnects(self) -> None:
+        cancellation_port = get_analysis_cancellation_port()
+
+        def disconnecting_receive_getter(request_instance: Request):
+            real_receive = request_instance._receive
+
+            async def wrapped_receive():
+                if not getattr(request_instance, "_stream_consumed", False):
+                    return await real_receive()
+                return {"type": "http.disconnect"}
+
+            return wrapped_receive
+
+        def fake_use_case_execute(*args, **kwargs):
+            for _ in range(100):
+                if cancellation_port.is_cancellation_requested():
+                    raise AnalysisCancelled()
+                threading_sleep(0.01)
+            raise TimeoutError("Cancellation was not requested within timeout")
+
+        self.mock_analyze.execute.side_effect = fake_use_case_execute
+
+        with patch.object(Request, "receive", property(disconnecting_receive_getter)):
+            file_payload = b"valid docx binary content for test"
+            response = self.client.post(
+                "/analyze",
+                files={
+                    "file": (
+                        "test.docx",
+                        BytesIO(file_payload),
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    )
+                },
+            )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("The analysis was cancelled because the client disconnected.", response.text)
+        self.assertFalse(cancellation_port.is_cancellation_requested())
