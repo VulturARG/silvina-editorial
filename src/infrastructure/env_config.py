@@ -2,6 +2,7 @@ from os import getenv
 from pathlib import Path
 
 from src.domain.dtos.recommendation_settings_dto import RecommendationSettingsDTO
+from src.domain.enums.app_mode import AppMode
 
 _VERSION_FILE_PATH = Path(__file__).resolve().parents[2] / "version.txt"
 
@@ -66,6 +67,11 @@ class EnvConfig:
         )
         self.ollama_base_url: str = getenv("OLLAMA_BASE_URL", "http://localhost:11434")
         self.ollama_think: bool = self._parse_boolean("OLLAMA_THINK", "false")
+        self.app_mode: AppMode = AppMode(getenv("APP_MODE", "PROD").strip().upper())
+        self.metrics_database_path: str = self._get_required_env("METRICS_DATABASE_PATH")
+        self.log_file_path: str = self._get_required_env("LOG_FILE_PATH")
+        self.log_level: str = getenv("LOG_LEVEL", "INFO").strip().upper()
+        self.log_retention_days: int = int(getenv("LOG_RETENTION_DAYS", "14"))
 
         # Recommendation thresholds: drive PublicationVerdictEvaluator and
         # the recommendation builder's publish/quality gating.
@@ -114,6 +120,12 @@ class EnvConfig:
             critical_quality_threshold=self.critical_quality_threshold,
             critical_grammar_threshold=self.critical_grammar_threshold,
         )
+
+    def _get_required_env(self, name: str) -> str:
+        value = getenv(name, "").strip()
+        if not value:
+            raise ValueError(f"Required environment variable {name} is not set")
+        return value
 
     def _resolve_version(self) -> str:
         """Resolves the application version.

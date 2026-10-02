@@ -32,6 +32,7 @@ from src.infrastructure.wirings.analyze_document_use_case_wiring import (
 )
 from src.infrastructure.wirings.export_report_wiring import ExportReportWiring
 from src.infrastructure.wirings.json_report_wiring import JsonReportWiring
+from src.infrastructure.wirings.logging_config_wiring import LoggingConfigWiring
 
 
 class SilvinaEditorialAssistant:
@@ -202,6 +203,7 @@ def _build_argument_parser() -> ArgumentParser:
 
 def main():
     """Main execution function."""
+    LoggingConfigWiring().create_logging_config().configure()
     print("\n" + "=" * 80)
     print("   SILVINA EDITORIAL ASSISTANT v0.9")
     print("   Asistente de Análisis Editorial para Documentos Académicos")

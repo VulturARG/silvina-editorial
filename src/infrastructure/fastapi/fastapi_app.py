@@ -19,6 +19,7 @@ from src.domain.exceptions.base_src_error import (
 )
 from src.domain.exceptions.document_errors import DocumentNotFound
 from src.infrastructure.fastapi.src.config.dependencies import get_templates
+from src.infrastructure.fastapi.src.middleware import RequestTimingMiddleware
 from src.infrastructure.fastapi.src.routes import (
     analyze_router,
     page_router,
@@ -118,6 +119,7 @@ def create_app(auto_open_browser: bool = True) -> FastAPI:
 
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
     register_exception_handlers(app)
+    app.add_middleware(RequestTimingMiddleware)
 
     app.include_router(page_router)
     app.include_router(analyze_router)

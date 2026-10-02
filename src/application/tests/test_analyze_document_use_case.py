@@ -5,7 +5,15 @@ from src.application.analyze_document_use_case import AnalyzeDocumentUseCase
 from src.domain.dtos.eumic_violation_dto import EumicViolationDTO
 from src.domain.dtos.report_input_dto import ReportInputDTO
 from src.domain.dtos.structure_validation_result_dto import StructureValidationResultDTO
+from src.domain.enums.analysis_stage import AnalysisStage
 from src.domain.enums.article_type import ArticleType
+from src.domain.enums.execution_status import ExecutionStatus
+from src.domain.enums.section_name import SectionName
+from src.domain.exceptions.base_src_error import SrcGenericError
+from src.domain.metrics.analysis_metrics_recorder import AnalysisMetricsRecorder
+from src.domain.metrics.analysis_tracker import AnalysisTracker
+from src.domain.tests.metrics.fake_analysis_context_port import FakeAnalysisContextPort
+from src.domain.tests.metrics.fake_analysis_metrics_port import FakeAnalysisMetricsPort
 
 
 def _make_classification(article_type=ArticleType.POPULAR_SCIENCE, reasoning="Test"):
@@ -36,6 +44,20 @@ class TestAnalyzeDocumentUseCase(TestCase):
         citation_matcher = MagicMock()
         recommendation_builder = MagicMock()
 
+        fake_metrics_port = overrides.pop("fake_metrics_port", FakeAnalysisMetricsPort())
+        fake_context_port = overrides.pop("fake_context_port", FakeAnalysisContextPort())
+        metrics_recorder = overrides.pop(
+            "metrics_recorder",
+            AnalysisMetricsRecorder(metrics_port=fake_metrics_port),
+        )
+        analysis_tracker = overrides.pop(
+            "analysis_tracker",
+            AnalysisTracker(
+                metrics_recorder=metrics_recorder,
+                analysis_context_port=fake_context_port,
+            ),
+        )
+
         document_content_extractor.extract_content.return_value = _make_content()
         citation_extractor.extract_citations_and_references.return_value = ([], [], "Referencias")
         apa_validator.validate_all_citations.return_value = []
@@ -62,9 +84,24 @@ class TestAnalyzeDocumentUseCase(TestCase):
             "structure_validator": structure_validator,
             "citation_matcher": citation_matcher,
             "recommendation_builder": recommendation_builder,
+            "analysis_tracker": analysis_tracker,
+            "fake_metrics_port": fake_metrics_port,
+            "fake_context_port": fake_context_port,
         }
         mocks.update(overrides)
-        use_case = AnalyzeDocumentUseCase(**mocks)
+        use_case = AnalyzeDocumentUseCase(
+            document_content_extractor=mocks["document_content_extractor"],
+            citation_extractor=mocks["citation_extractor"],
+            document_format_inspector=mocks["document_format_inspector"],
+            grammar_checker=mocks["grammar_checker"],
+            apa_validator=mocks["apa_validator"],
+            article_classifier=mocks["article_classifier"],
+            quality_analyzer=mocks["quality_analyzer"],
+            structure_validator=mocks["structure_validator"],
+            citation_matcher=mocks["citation_matcher"],
+            recommendation_builder=mocks["recommendation_builder"],
+            analysis_tracker=mocks["analysis_tracker"],
+        )
         return use_case, mocks
 
     def test_execute_returns_report_input_dto(self):
@@ -189,8 +226,6 @@ class TestAnalyzeDocumentUseCase(TestCase):
         use_case, mocks = self._make_use_case(citation_extractor=citation_extractor)
         use_case.execute(document_path="test.docx")
 
-        from src.domain.enums.section_name import SectionName
-
         match_call = mocks["citation_matcher"].match_citations_to_references.call_args
         self.assertEqual(match_call.kwargs["section_type"], SectionName.REFERENCES)
 
@@ -203,3 +238,117 @@ class TestAnalyzeDocumentUseCase(TestCase):
         result = use_case.execute(document_path="test.docx")
 
         self.assertIs(result.structure, expected)
+
+    def test_execute_records_telemetry_for_start_stages_and_successful_completion(self):
+        use_case, mocks = self._make_use_case()
+        result = use_case.execute(document_path="test.docx")
+
+        fake_metrics_port: FakeAnalysisMetricsPort = mocks["fake_metrics_port"]
+        self.assertEqual(len(fake_metrics_port.recorded_starts), 1)
+        start_event = fake_metrics_port.recorded_starts[0]
+        self.assertEqual(start_event.document_name, "test.docx")
+
+        expected_stages = [
+            AnalysisStage.EXTRACT_CONTENT,
+            AnalysisStage.EXTRACT_CITATIONS,
+            AnalysisStage.VALIDATE_APA,
+            AnalysisStage.CHECK_GRAMMAR,
+            AnalysisStage.CLASSIFY_ARTICLE,
+            AnalysisStage.ANALYZE_QUALITY,
+            AnalysisStage.VALIDATE_STRUCTURE,
+            AnalysisStage.MATCH_CITATIONS,
+            AnalysisStage.INSPECT_FORMAT,
+            AnalysisStage.BUILD_RECOMMENDATIONS,
+        ]
+        self.assertEqual(len(fake_metrics_port.recorded_stage_durations), 10)
+        recorded_stages = [
+            stage_event.stage_name for stage_event in fake_metrics_port.recorded_stage_durations
+        ]
+        self.assertEqual(recorded_stages, expected_stages)
+
+        for stage_event in fake_metrics_port.recorded_stage_durations:
+            self.assertEqual(stage_event.analysis_id, start_event.analysis_id)
+            self.assertGreaterEqual(stage_event.duration_ms, 0)
+
+        self.assertEqual(len(fake_metrics_port.recorded_completions), 1)
+        completion_event = fake_metrics_port.recorded_completions[0]
+        self.assertEqual(completion_event.analysis_id, start_event.analysis_id)
+        self.assertEqual(completion_event.document_name, "test.docx")
+        self.assertEqual(completion_event.status, ExecutionStatus.SUCCESS)
+        self.assertEqual(completion_event.word_count, result.document_content.word_count)
+        self.assertEqual(completion_event.char_count, result.document_content.char_count)
+        self.assertEqual(
+            completion_event.article_type, result.classification.effective_structure_type
+        )
+        self.assertEqual(completion_event.verdict, result.verdict.verdict)
+        self.assertGreaterEqual(completion_event.total_duration_ms, 0)
+
+    def test_analysis_id_is_accessible_to_collaborators_during_pipeline_and_cleared_afterwards(
+        self,
+    ):
+        captured_analysis_id = None
+        fake_context_port = FakeAnalysisContextPort()
+
+        def capture_analysis_id(*args, **kwargs):
+            nonlocal captured_analysis_id
+            captured_analysis_id = fake_context_port.get_analysis_id()
+            return _make_classification()
+
+        article_classifier = MagicMock()
+        article_classifier.classify.side_effect = capture_analysis_id
+
+        use_case, mocks = self._make_use_case(
+            fake_context_port=fake_context_port,
+            article_classifier=article_classifier,
+        )
+        use_case.execute(document_path="test.docx")
+
+        fake_metrics_port: FakeAnalysisMetricsPort = mocks["fake_metrics_port"]
+        active_analysis_id = fake_metrics_port.recorded_starts[0].analysis_id
+        self.assertIsNotNone(captured_analysis_id)
+        self.assertEqual(captured_analysis_id, active_analysis_id)
+        self.assertIsNone(fake_context_port.get_analysis_id())
+
+    def test_execute_records_failure_telemetry_and_clears_context_when_stage_fails(self):
+        grammar_checker = MagicMock()
+        grammar_checker.check_grammar.side_effect = ValueError("Syntax inspection failed")
+
+        use_case, mocks = self._make_use_case(grammar_checker=grammar_checker)
+        fake_metrics_port: FakeAnalysisMetricsPort = mocks["fake_metrics_port"]
+        fake_context_port: FakeAnalysisContextPort = mocks["fake_context_port"]
+
+        with self.assertRaises(SrcGenericError):
+            use_case.execute(document_path="test.docx")
+
+        self.assertEqual(len(fake_metrics_port.recorded_starts), 1)
+        active_analysis_id = fake_metrics_port.recorded_starts[0].analysis_id
+
+        recorded_stages = [
+            stage_event.stage_name for stage_event in fake_metrics_port.recorded_stage_durations
+        ]
+        expected_stages = [
+            AnalysisStage.EXTRACT_CONTENT,
+            AnalysisStage.EXTRACT_CITATIONS,
+            AnalysisStage.VALIDATE_APA,
+            AnalysisStage.CHECK_GRAMMAR,
+        ]
+        self.assertEqual(recorded_stages, expected_stages)
+
+        self.assertEqual(len(fake_metrics_port.recorded_completions), 1)
+        completion_event = fake_metrics_port.recorded_completions[0]
+        self.assertEqual(completion_event.analysis_id, active_analysis_id)
+        self.assertEqual(completion_event.status, ExecutionStatus.ERROR)
+        self.assertIsNone(completion_event.word_count)
+        self.assertIsNone(completion_event.char_count)
+        self.assertIsNone(completion_event.article_type)
+        self.assertIsNone(completion_event.verdict)
+        self.assertGreaterEqual(completion_event.total_duration_ms, 0)
+        self.assertIsNone(fake_context_port.get_analysis_id())
+
+    def test_execute_records_base_name_as_document_name(self):
+        use_case, mocks = self._make_use_case()
+        use_case.execute(document_path="/nested/directory/path/manuscript.docx")
+
+        fake_metrics_port: FakeAnalysisMetricsPort = mocks["fake_metrics_port"]
+        self.assertEqual(fake_metrics_port.recorded_starts[0].document_name, "manuscript.docx")
+        self.assertEqual(fake_metrics_port.recorded_completions[0].document_name, "manuscript.docx")
