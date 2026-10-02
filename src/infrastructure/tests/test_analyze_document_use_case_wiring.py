@@ -33,6 +33,9 @@ from src.infrastructure.adapters.metrics.sqlite_analysis_metrics_adapter import 
 from src.infrastructure.wirings.analyze_document_use_case_wiring import (
     AnalyzeDocumentUseCaseWiring,
 )
+from src.infrastructure.wirings.external_llm_generator_loader import (
+    ExternalLlmGeneratorLoader,
+)
 
 
 class TestAnalyzeDocumentUseCaseWiring(TestCase):
@@ -351,3 +354,73 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         generator = result._article_classifier._llm_generator._generator
         self.assertIsInstance(generator, OllamaGeneratorAdapter)
         self.assertTrue(generator._think)
+
+    def test_default_wiring_uses_ollama_generator_and_provider(self):
+        use_case = AnalyzeDocumentUseCaseWiring().create_use_case()
+        classifier_generator = use_case._article_classifier._llm_generator
+        self.assertIsInstance(classifier_generator, AuditedLlmGeneratorAdapter)
+        self.assertEqual(classifier_generator._provider, AiProvider.OLLAMA)
+        self.assertIsInstance(classifier_generator._generator, OllamaGeneratorAdapter)
+
+    def test_debug_mode_with_claude_provider_wires_external_llm_generator(self):
+        fake_generator = FakeLlmGeneratorAdapter(responses=["test response"])
+        with patch.dict(
+            environ,
+            {
+                "APP_MODE": "DEBUG",
+                "LLM_PROVIDER": "claude",
+                "EXTERNAL_LLM_MODEL_NAME": "claude-3-7-sonnet",
+            },
+        ):
+            with patch.object(
+                ExternalLlmGeneratorLoader,
+                "load",
+                return_value=fake_generator,
+            ) as mock_load:
+                use_case = AnalyzeDocumentUseCaseWiring().create_use_case()
+
+        classifier_generator = use_case._article_classifier._llm_generator
+        quality_generator = use_case._quality_analyzer._llm_generator
+        editorial_generator = (
+            use_case._quality_analyzer._editorial_suitability_analyzer._llm_generator
+        )
+
+        self.assertIsInstance(classifier_generator, AuditedLlmGeneratorAdapter)
+        self.assertEqual(classifier_generator._provider, AiProvider.CLAUDE)
+        self.assertEqual(classifier_generator._model_name, "claude-3-7-sonnet")
+        self.assertIs(classifier_generator._generator, fake_generator)
+
+        self.assertIsInstance(quality_generator, AuditedLlmGeneratorAdapter)
+        self.assertEqual(quality_generator._provider, AiProvider.CLAUDE)
+        self.assertEqual(quality_generator._model_name, "claude-3-7-sonnet")
+        self.assertIs(quality_generator._generator, fake_generator)
+
+        self.assertIsInstance(editorial_generator, AuditedLlmGeneratorAdapter)
+        self.assertEqual(editorial_generator._provider, AiProvider.CLAUDE)
+        self.assertEqual(editorial_generator._model_name, "claude-3-7-sonnet")
+        self.assertIs(editorial_generator._generator, fake_generator)
+
+        mock_load.assert_called_once_with(
+            provider=AiProvider.CLAUDE,
+            model_name="claude-3-7-sonnet",
+        )
+
+    def test_production_mode_with_claude_provider_stays_ollama(self):
+        with patch.dict(
+            environ,
+            {
+                "APP_MODE": "PROD",
+                "LLM_PROVIDER": "claude",
+            },
+        ):
+            with patch.object(
+                ExternalLlmGeneratorLoader,
+                "load",
+            ) as mock_load:
+                use_case = AnalyzeDocumentUseCaseWiring().create_use_case()
+
+        classifier_generator = use_case._article_classifier._llm_generator
+        self.assertIsInstance(classifier_generator, AuditedLlmGeneratorAdapter)
+        self.assertEqual(classifier_generator._provider, AiProvider.OLLAMA)
+        self.assertIsInstance(classifier_generator._generator, OllamaGeneratorAdapter)
+        mock_load.assert_not_called()

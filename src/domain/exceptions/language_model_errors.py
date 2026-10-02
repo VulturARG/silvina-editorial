@@ -24,3 +24,12 @@ class LanguageModelLoadFailed(LanguageModelError):
         "The language model could not be loaded or run by the backend. "
         "Check the available memory and the backend log."
     )
+
+
+class LanguageModelBackendNotInstalled(LanguageModelError):
+    """Raised when the optional language model backend dependency is not installed."""
+
+    MESSAGE = (
+        "The optional language model backend is not installed. "
+        "Install debug dependencies with: pip install -r requirements-debug.txt"
+    )
