@@ -52,14 +52,15 @@ class AnalyzeDocumentUseCase:
         self._analysis_tracker = analysis_tracker
 
     @generic_error_handler
-    def execute(self, document_path: str) -> ReportInputDTO:
+    def execute(self, document_path: str, document_name: str | None = None) -> ReportInputDTO:
         """Run the complete document analysis pipeline and return aggregated results."""
+        display_name = document_name if document_name is not None else document_path
         return self._analysis_tracker.track_analysis(
-            document_name=document_path,
-            pipeline=partial(self._run_pipeline, document_path),
+            document_name=display_name,
+            pipeline=partial(self._run_pipeline, document_path, display_name),
         )
 
-    def _run_pipeline(self, document_path: str) -> ReportInputDTO:
+    def _run_pipeline(self, document_path: str, display_name: str) -> ReportInputDTO:
         document_content = self._analysis_tracker.track_stage(
             AnalysisStage.EXTRACT_CONTENT,
             self._document_content_extractor.extract_content,
@@ -132,7 +133,7 @@ class AnalyzeDocumentUseCase:
         )
 
         return ReportInputDTO(
-            filename=document_path,
+            filename=display_name,
             document_content=document_content,
             classification=classification,
             quality=quality,

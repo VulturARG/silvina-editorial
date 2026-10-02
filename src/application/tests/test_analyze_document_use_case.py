@@ -352,3 +352,41 @@ class TestAnalyzeDocumentUseCase(TestCase):
         fake_metrics_port: FakeAnalysisMetricsPort = mocks["fake_metrics_port"]
         self.assertEqual(fake_metrics_port.recorded_starts[0].document_name, "manuscript.docx")
         self.assertEqual(fake_metrics_port.recorded_completions[0].document_name, "manuscript.docx")
+
+    def test_execute_with_custom_document_name_uses_it_for_metrics_and_report(self):
+        use_case, mocks = self._make_use_case()
+        result = use_case.execute(
+            document_path="/temp/path/upload_tmp123.docx",
+            document_name="original_manuscript.docx",
+        )
+
+        self.assertEqual(result.filename, "original_manuscript.docx")
+        mocks["document_content_extractor"].extract_content.assert_called_once_with(
+            docx_path="/temp/path/upload_tmp123.docx"
+        )
+        mocks["citation_extractor"].extract_citations_and_references.assert_called_once_with(
+            docx_path="/temp/path/upload_tmp123.docx"
+        )
+        mocks["document_format_inspector"].inspect.assert_called_once_with(
+            docx_path="/temp/path/upload_tmp123.docx",
+            word_count=result.document_content.word_count,
+        )
+
+        fake_metrics_port: FakeAnalysisMetricsPort = mocks["fake_metrics_port"]
+        self.assertEqual(
+            fake_metrics_port.recorded_starts[0].document_name,
+            "original_manuscript.docx",
+        )
+        self.assertEqual(
+            fake_metrics_port.recorded_completions[0].document_name,
+            "original_manuscript.docx",
+        )
+
+    def test_execute_without_document_name_falls_back_to_document_path(self):
+        use_case, mocks = self._make_use_case()
+        result = use_case.execute(document_path="/nested/path/manuscript.docx")
+
+        self.assertEqual(result.filename, "/nested/path/manuscript.docx")
+        fake_metrics_port: FakeAnalysisMetricsPort = mocks["fake_metrics_port"]
+        self.assertEqual(fake_metrics_port.recorded_starts[0].document_name, "manuscript.docx")
+        self.assertEqual(fake_metrics_port.recorded_completions[0].document_name, "manuscript.docx")
