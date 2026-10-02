@@ -2,6 +2,7 @@ from os import getenv
 from pathlib import Path
 
 from src.domain.dtos.recommendation_settings_dto import RecommendationSettingsDTO
+from src.domain.enums.ai_provider import AiProvider
 from src.domain.enums.app_mode import AppMode
 
 _VERSION_FILE_PATH = Path(__file__).resolve().parents[2] / "version.txt"
@@ -68,6 +69,10 @@ class EnvConfig:
         self.ollama_base_url: str = getenv("OLLAMA_BASE_URL", "http://localhost:11434")
         self.ollama_think: bool = self._parse_boolean("OLLAMA_THINK", "false")
         self.app_mode: AppMode = AppMode(getenv("APP_MODE", "PROD").strip().upper())
+        self.llm_provider: AiProvider = self._parse_llm_provider(self.app_mode)
+        self.external_llm_model_name: str | None = self._parse_external_llm_model_name(
+            self.app_mode, self.llm_provider
+        )
         self.metrics_database_path: str = self._get_required_env("METRICS_DATABASE_PATH")
         self.log_file_path: str = self._get_required_env("LOG_FILE_PATH")
         self.log_level: str = getenv("LOG_LEVEL", "INFO").strip().upper()
@@ -150,3 +155,31 @@ class EnvConfig:
         raise ValueError(
             f"Invalid boolean value for environment variable {variable_name}: '{raw_value}' (expected 'true' or 'false')"
         )
+
+    def _parse_llm_provider(self, app_mode: AppMode) -> AiProvider:
+        raw_value = getenv("LLM_PROVIDER", AiProvider.OLLAMA.value).strip().lower()
+        try:
+            requested_provider = AiProvider(raw_value)
+        except ValueError:
+            accepted_values = ", ".join(repr(member.value) for member in AiProvider)
+            raise ValueError(
+                f"Invalid value for environment variable LLM_PROVIDER: '{raw_value}' "
+                f"(accepted values: {accepted_values})"
+            ) from None
+
+        if app_mode is AppMode.PROD and requested_provider is not AiProvider.OLLAMA:
+            return AiProvider.OLLAMA
+
+        return requested_provider
+
+    def _parse_external_llm_model_name(self, app_mode: AppMode, provider: AiProvider) -> str | None:
+        raw_value = getenv("EXTERNAL_LLM_MODEL_NAME", "").strip()
+        model_name = raw_value if raw_value else None
+
+        if app_mode is AppMode.DEBUG and provider is not AiProvider.OLLAMA and model_name is None:
+            raise ValueError(
+                f"Environment variable EXTERNAL_LLM_MODEL_NAME is required when "
+                f"LLM_PROVIDER is '{provider.value}' in DEBUG mode"
+            )
+
+        return model_name
