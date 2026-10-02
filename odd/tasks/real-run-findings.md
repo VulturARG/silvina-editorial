@@ -88,8 +88,36 @@ Test document used throughout: `capacidades_razonamiento_emergente_LLMs.docx` (3
 - **Why it was hidden**: before F-01 was fixed the confidence was almost always `None`; only the IMRyD override path carried a value. Populating the references made it the normal case for every scientific article.
 - **Fix**: `ClassificationConfidence.__format__` delegates to the float value (one place, consumers untouched), with enum, DTO and real Word-export regression tests.
 
+### F-14 (MEDIUM-HIGH, OPEN) The quality evaluation sees only the first 32 % of the text, so "Conclusiones" is scored without the conclusion
+- **Symptom** (report of 2026-10-02 14:57): "Conclusiones 7.0/10. Al no existir una sección formal de 'Conclusiones'... fragmento incompleto". The source document **does** have a "Conclusion" section (paragraphs 50 to 52 of 86). Yesterday's report had the same flaw (8.0).
+- **Evidence**: the stored prompt of the call (`ai_interactions` id 21, `DEBUG` mode) ends the text sample in the middle of the paper and never contains the conclusion. `QualityTextSampler` was reproduced with the real `.env` values and its 8,279-character result is contained verbatim in that prompt.
+- **Root cause**: the "strategic" sample (title + 3 leading + 2 middle paragraphs + conclusion) is only **250 words** for this document because the picked leading and middle paragraphs are short title, author and heading lines (20+11+8+9+4+6 words; the conclusion adds 1+115+76). `QUALITY_MIN_SAMPLE_WORD_COUNT=400`, so `build_sample` discards it and returns `_join_to_paragraph_boundary` of all paragraphs, i.e. the first 8,000 characters of the document (32 %, up to paragraph 25). The sampler had found the conclusion and then threw it away.
+- **Impact**: both quality calls (prompts of 9,222 and 9,264 characters) judge only the first third; it affects any document whose leading and middle paragraphs are short, which is common. The two editorial-suitability calls (ids 22 and 23) were not examined.
+- **Proposed action**: choose the leading and middle paragraphs by content (skip headings and short lines) and/or make the fallback keep the conclusion; lowering the minimum is the weakest option. Regression test with this document.
+
+### F-15 (MEDIUM-LOW, OPEN) A citation whose reference exists is reported as unmatched (organization author glued to the previous reference)
+- **Symptom**: "1 citas no tienen referencia correspondiente: (OpenAI, 2023)", match rate 96.4 % instead of 100 %, and a spurious medium recommendation. The reference `OpenAI. (2023). GPT-4 technical report...` is in the document.
+- **Evidence** (real extractors): no extracted entry starts with "OpenAI"; the reference was glued to the previous one in a single 166-character entry: `Progress measures for grokking via mechanistic interpretability. International Conference on Learning Representations. https://arxiv.org/abs/2301.05217OpenAI. (2023).` That entry is then keyed `__non_author__` by the `CitationMatcher` pattern `^\w.*\d{4}.*\d{4}` (two 4-digit numbers).
+- **Root cause**: `DocxReferenceAdapter` recognizes the start of a reference by the "Surname, I." shape; organization authors ("OpenAI.") do not have it and are not recognized as a new reference.
+- **Methodological note**: a first simulation on raw paragraphs gave a misleading "30 of 32 references flagged"; the pipeline matches on `ReferenceDTO`, whose text is only the author-year head (`Anderson, P. W. (1972).`). Real figure: 2 of 34.
+- **Proposed action**: recognize organization-author references as the start of a new entry; regression test with this document (28 of 28 matched).
+
+### F-16 (LOW-MEDIUM, OPEN, product decision) "Gramática y Ortografía" covers about 19 % of the text and drops spelling
+- `LanguageToolAdapter` checks only the first 20 paragraphs and 5,000 characters (`_MAX_PARAGRAPHS`, `_MAX_CHARS`) of about 26,000, and discards every `misspelling` match, while the report section is titled "Gramática y Ortografía 8.5/10". The source has systematic missing accents (`Introduccion`, `Conclusion`, `Revision Sistematica`) that are never reported; the three reported errors are the same missing-`¿` rule, and its suggestion (`¿En`) is placed before "En" instead of before "cuáles".
+- The `_MAX_*` values are module-level constants that predate the no-constants rule. It was not checked whether this matches the legacy behavior in `main`.
+- **Decision needed**: check the whole text or keep a limit (and make it configurable), and show spelling or rename the section.
+
+### F-17 (LOW, OPEN, product decision inherited from TASK-04) The report says CIENTÍFICO but validates the structure as popular science
+- The report shows "Categoría: CIENTÍFICO" and "Estructura válida según normas EUMIC", while `analyses.article_type` stores `divulgación`: `effective_structure_type` validates a `SCIENTIFIC` article without IMRyD wording as `POPULAR_SCIENCE`. The source sections are Resumen, Introducción, Enfoques teóricos, Transiciones de fase, Conclusión and Referencias (no Método or Resultados).
+- **Decision needed**: should a scientific article without IMRyD be validated as scientific?
+
+### F-18 (LOW, OPEN) A simple expected error writes three ERROR entries and two identical tracebacks
+- With Ollama stopped, the first attempt (14:53:57) wrote the tracker line plus two identical full tracebacks (`Unhandled exception` and `ERROR MESSAGE`, about 7 KB) from `@generic_error_handler`; two of the three entries carry `analysis_id=-` (known: the context is already cleared).
+- **Proposed action** (optional): log expected domain errors without the full traceback, or only once.
+
 ### Unexplained observation
 - `GET /` took 6.3 s while an analysis was running (2026-10-01 19:23:51); the logs do not explain it.
+- The application measures about 1.2 s more per language-model call than Ollama's own server log (5 calls, about 6 s of 142 s, 2026-10-02); not investigated.
 
 ---
 
@@ -171,14 +199,24 @@ Test document used throughout: `capacidades_razonamiento_emergente_LLMs.docx` (3
   - **Decided to leave as is (by design, 2026-10-02, user decision)**: the editorial-alignment "Justificación" ends with an ellipsis because `EditorialSuitabilityParser` deliberately keeps the first sentence and at most 120 characters (the complete model answer stays stored); and `Confianza: -` is printed only when the category has no confidence, which after F-01 is the expected case for popular science and opinion. Not touched: the parser's module-level length constants predate the no-constants rule.
   - **Outcome (2026-10-02, implemented, uncommitted)**: whole suite 1018 passed, `ruff check` clean; the rendered footer reads `Silvina Editorial Assistant v0.95`; `git check-ignore` confirms both patterns. The LanguageTool JVM crash itself (memory pressure) was not investigated: only the dumps are ignored.
 
+- [ ] **TASK-10: Fix the quality text sample** (F-14)
+  - **Status**: proposed, not scheduled. Own branch and PR. Scope: `QualityTextSampler` and its tests; regression test with `capacidades_razonamiento_emergente_LLMs.docx` (the sample must contain the conclusion). Examine the two editorial-suitability calls first.
+
+- [ ] **TASK-11: Recognize organization-author references** (F-15)
+  - **Status**: proposed, not scheduled. Own branch and PR. Scope: `DocxReferenceAdapter` and its tests; regression test with the same document (28 of 28 citations matched).
+
+- [ ] **TASK-12: Product decisions** (F-16, F-17) and optional log cleanup (F-18)
+  - **Status**: proposed, not scheduled. F-16 and F-17 need a decision before any code; F-18 is optional.
+
 ---
 
 ## 5. Progress & Verification Log
 
 - **Current Status**: findings documented (2026-10-01). TASK-01 and TASK-02 delivered. User decisions so far: do not fix F-01 yet; verify the S2a/S2b behavior in `main` first; this document is the single record.
-- **Next Step**: the user decides which of TASK-05 to TASK-09 to schedule; TASK-03 and TASK-04 are delivered (commit `0d0df1d` on `fix/classifier-references-s2a-s2b`).
+- **Next Step**: TASK-01 to TASK-09 are delivered. The review of the report of 2026-10-02 added F-14 to F-18 and the proposed TASK-10 to TASK-12; the user decides which to schedule (recommended order: F-14, then F-15; F-16 and F-17 are product decisions).
 
 ### Verification History
+- **2026-10-02, review of a real report** (`capacidades_razonamiento_emergente_LLMs_analisis (1).docx`, generated 14:57 by the web application) cross-checked against `silvina.log`, `data/metrics.db`, the Ollama server log and the source document. The log, the audit and the report agree (first attempt failed in 7.5 s with Ollama stopped; second analysis 142 s, 5 model calls, all `done_reason=stop`, 1,942 to 2,348 prompt tokens against a 4,096 context, model load 54 s). Working: F-01 (CIENTÍFICO, 90 %), original file name and per-analysis folder (TASK-06), token and `done_reason` columns (TASK-08), footer version. Findings F-14 to F-18 above. Full write-up in Spanish: `E:\Python\silvina-doc\revision_informe_corrida_2026-10-02.md`. Three of the first hypotheses were wrong and were discarded after reproducing with the real components (an earlier paragraph matching `conclusi`; the 8,000-character cap cutting the conclusion; 30 of 32 references flagged).
 - **2026-10-01, real runs** (metrics database, `silvina.log`, `ollama.log`): reasoning on vs off, 4,096 vs 32,768 context, two concurrent analyses, Ollama unreachable, Ollama model-load failure; full measurements in F-02.
 - **2026-10-02, TASK-03 extraction parity** (legacy `ReferenceParser.parse_from_docx` at `main` 0c9631b vs current `DocxReferenceAdapter`, same documents; recency = share of references whose latest year is >= current year - 4):
 
