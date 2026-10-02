@@ -209,6 +209,25 @@ pip install -r requirements.txt
 ollama pull hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:UD-IQ4_XS
 ```
 
+### Optional: external LLM for debugging (Claude)
+
+In `APP_MODE=DEBUG` the analysis can use Claude through the Claude Agent SDK instead of Ollama, with a Claude subscription (no API key):
+
+```bash
+pip install -r requirements-debug.txt
+claude login
+```
+
+Then set in `.env`:
+
+```dotenv
+APP_MODE=DEBUG
+LLM_PROVIDER=claude
+EXTERNAL_LLM_MODEL_NAME=<claude model name>
+```
+
+`EXTERNAL_LLM_MODEL_NAME` is independent from `OLLAMA_MODEL_NAME` and is required for external providers. With `APP_MODE=PROD` an external provider is ignored and Ollama is used. The Ollama generation options (`temperature`, `num_predict`) are not applied to external providers.
+
 ---
 
 ## 🚀 Usage
