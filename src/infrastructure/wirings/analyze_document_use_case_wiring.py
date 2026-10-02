@@ -139,6 +139,7 @@ class AnalyzeDocumentUseCaseWiring:
             document_text_port=self._get_document_text_port(),
             content_extraction_port=self._get_content_extraction_port(),
             character_count_port=self._get_character_count_port(),
+            reference_extraction_port=self._get_reference_extraction_port(),
         )
 
     def _get_citation_extractor(self) -> CitationExtractor:

@@ -60,7 +60,7 @@ Migrate `data_access/content_extractor.py` and `data_access/word_counter.py` int
 
 ### Requirement: ParagraphContentAdapter — Structural Extraction
 
-`ParagraphContentAdapter` MUST implement `ContentExtractionPort`. It MUST extract `title`, `authors` (None if not found), `abstract`, `keywords`, and `sections` from paragraphs using heuristics from `extraction_vocabulary.py`. `references` MUST always be `[]`. `_extract_sections()` MUST be called exactly once per `extract()` invocation (fixes legacy double-call bug).
+`ParagraphContentAdapter` MUST implement `ContentExtractionPort`. It MUST extract `title`, `authors` (None if not found), `abstract`, `keywords`, and `sections` from paragraphs using heuristics from `extraction_vocabulary.py`. In this adapter, `references` MUST always be `[]`; references are populated downstream by `DocumentContentExtractor` via `ReferenceExtractionPort`. `_extract_sections()` MUST be called exactly once per `extract()` invocation (fixes legacy double-call bug).
 
 #### Scenario: Successful structural extraction
 
@@ -154,6 +154,47 @@ from the extraction port MUST be kept unchanged.
 - WHEN `_extract_content(paragraphs, docx_path)` is called
 - THEN no exception MUST propagate to the caller
 - AND the returned DTO MUST contain text-based counts
+
+---
+
+### Requirement: DocumentContentExtractor — Reference Population and Count Refinement
+
+`DocumentContentExtractor` MUST reside in `src/domain/document/document_content_extractor.py`. It MUST receive `DocumentTextPort`, `ContentExtractionPort`, `CharacterCountPort`, and `ReferenceExtractionPort` via its constructor. In `extract_content(docx_path)`, it MUST read paragraphs via `DocumentTextPort`, obtain base content from `ContentExtractionPort`, extract references via `ReferenceExtractionPort.extract_references(docx_path=docx_path)`, and set `references` on the returned `DocumentContentDTO` via `dataclasses.replace`. This reference population MUST apply both when accurate counts are available and when character counting falls back (`CharacterCountPort` raises `CharacterCountUnavailable` or returns `None`). Errors raised by `ReferenceExtractionPort` MUST propagate without being swallowed.
+
+#### Scenario: Accurate counts available and references populated
+
+- GIVEN a valid `.docx` path
+- AND `ReferenceExtractionPort` returns a non-empty list of references
+- AND `CharacterCountPort` returns valid accurate counts
+- WHEN `extract_content(docx_path)` is called
+- THEN the returned `DocumentContentDTO` MUST contain the accurate counts
+- AND its `references` MUST match the extracted references
+
+#### Scenario: Character count unavailable falls back but populates references
+
+- GIVEN a valid `.docx` path
+- AND `ReferenceExtractionPort` returns a non-empty list of references
+- AND `CharacterCountPort` raises `CharacterCountUnavailable`
+- WHEN `extract_content(docx_path)` is called
+- THEN no count exception MUST propagate
+- AND the returned `DocumentContentDTO` MUST contain text-based counts
+- AND its `references` MUST match the extracted references
+
+#### Scenario: Character count returns None falls back but populates references
+
+- GIVEN a valid `.docx` path
+- AND `ReferenceExtractionPort` returns a non-empty list of references
+- AND `CharacterCountPort` returns `None`
+- WHEN `extract_content(docx_path)` is called
+- THEN the returned `DocumentContentDTO` MUST contain text-based counts
+- AND its `references` MUST match the extracted references
+
+#### Scenario: Reference extraction error propagates
+
+- GIVEN a valid `.docx` path
+- AND `ReferenceExtractionPort` raises an exception
+- WHEN `extract_content(docx_path)` is called
+- THEN the exception MUST propagate to the caller
 
 ---
 

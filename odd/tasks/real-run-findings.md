@@ -82,6 +82,12 @@ Test document used throughout: `capacidades_razonamiento_emergente_LLMs.docx` (3
 ### F-12 (OPERATIONAL, DONE) Stopping Ollama by killing only `ollama.exe` leaves GPU-holding orphans
 - The `llama-server.exe` children survived three times and retained 15.1 of 16 GB of VRAM; the next load failed with `cudaMalloc failed: out of memory` (see F-04). Correct procedure: terminate the whole process tree and verify that no `llama-server.exe` remains and that VRAM dropped. Recorded in the project memory (#2508).
 
+### F-13 (HIGH, FIXED in this branch) The Word report crashed whenever the classification had a confidence value
+- **Symptom** (found by the full end-to-end run after the F-01 fix): `Error al guardar reporte Word:` (empty message), CLI exit code 1, JSON written but no `.docx`. Log: `ValueError: Unknown format code '%' for object of type 'str'` at `docx_report_adapter.py:311` (`f"{classification.confidence:.1%}"`).
+- **Root cause**: `ClassificationConfidence(float, Enum)` loses its numeric `format()` on Python 3.12+ (the venv runs 3.14): `Enum.__format__` falls back to `str(member)`. Three production sites format it with `:.1%` (Word report, `ClassificationResultDTO.__str__`, `ConfidenceRule`).
+- **Why it was hidden**: before F-01 was fixed the confidence was almost always `None`; only the IMRyD override path carried a value. Populating the references made it the normal case for every scientific article.
+- **Fix**: `ClassificationConfidence.__format__` delegates to the float value (one place, consumers untouched), with enum, DTO and real Word-export regression tests.
+
 ### Unexplained observation
 - `GET /` took 6.3 s while an analysis was running (2026-10-01 19:23:51); the logs do not explain it.
 
@@ -107,15 +113,34 @@ Test document used throughout: `capacidades_razonamiento_emergente_LLMs.docx` (3
 - [x] **TASK-02: Make the model reasoning mode configurable and disabled by default** (F-02)
   - **Outcome**: PR #55 merged (`4d638ff`); `OLLAMA_THINK` documented in the spec and `.env.example`.
 
-- [ ] **TASK-03: Verify S2a/S2b extraction parity against `main`** (F-01, requested by the user)
+- [x] **TASK-03: Verify S2a/S2b extraction parity against `main`** (F-01, requested by the user)
   - **Route**: direct inline (read-only investigation)
   - **Scope**: run the legacy `ReferenceParser.parse_from_docx` (from `main`, in a scratch worktree) and `DocxReferenceAdapter` over the sample documents in `silvina-doc/Archivos de prueba/`; compare counts and recency per document; record differences.
-  - **Verification**: a comparison table in the progress log.
+  - **Outcome (2026-10-02)**: S2a and S2b are identical for legacy and current extraction on all 10 documents; see the comparison table in section 5. The current extractor never finds fewer references than the legacy one, so the pitfall "fewer references, signals still fail" does not materialize.
+  - **Verification**: comparison table in the progress log.
 
-- [ ] **TASK-04: Populate `DocumentContentDTO.references` for the classifier** (F-01)
+- [x] **TASK-04: Populate `DocumentContentDTO.references` for the classifier** (F-01)
   - **Route**: subagent delegation (`gentle-ai-worker`), own branch and PR
   - **Scope**: see F-01 proposed action; update `openspec/specs/extract-content/spec.md`; add a regression test with a real `.docx` that has references (S2a and S2b true, category `SCIENTIFIC`); evaluate the effect on structure validation and recommendations for the sample documents and document any behavior change.
   - **Verification**: full repository suite; before/after classification of every sample document.
+  - **Outcome (2026-10-02, implemented, commit `0d0df1d`)**: `DocumentContentExtractor` now receives `ReferenceExtractionPort` and fills `references` with `dataclasses.replace` before the count refinement, so both the accurate-count and the fallback paths carry them; wiring updated; `extract-content` spec updated; unit tests plus a real-fixture regression test (34 references, S2a and S2b true, `SCIENTIFIC` with a stubbed `S4/S5/S6: SI` answer). Whole suite 951 passed, `ruff check` clean. References are now parsed twice per analysis (here and in `CitationExtractor`); both are cheap regex passes and the duplication was accepted to keep each domain service self-contained.
+  - **End-to-end run (2026-10-02)**: real CLI analysis of `capacidades_razonamiento_emergente_LLMs.docx` (145 s, model already warm): `SCIENTIFIC`, `Confianza: 90.0%`, reasoning cites S2a and S2b; Word and JSON reports saved. The first attempt failed in the Word export, which uncovered F-13 (fixed). Added the smoke test `tests/smoke/test_extract_content_references_parity.py` (3 sample documents: 34, 11 and 4 references; S2a/S2b true only for the scientific one); verified to fail when the reference population is removed. Whole suite 960 passed, `ruff check` clean.
+  - **Real-model before/after (2026-10-02)**: classification only (one real Ollama call per document, same model answer for both sides; "before" = `references=[]`, "after" = the extractor output), `gemma4-26b-adapted`, `think=false`:
+
+    | Document | Refs | S2a | S2b | Before | After | Effective structure type |
+    | --- | --- | --- | --- | --- | --- | --- |
+    | Test_1 / 1. test_Cientifico | 34 | T | T | POPULAR_SCIENCE, no confidence | SCIENTIFIC, FULL_SIGNAL_MATCH | POPULAR_SCIENCE (unchanged) |
+    | Test_1 / 2. test_divulgacion_v2 | 11 | F | F | POPULAR_SCIENCE | POPULAR_SCIENCE | unchanged |
+    | Test_1 / 3. test_opinion_v2 | 4 | F | F | OPINION | OPINION | unchanged |
+    | Test_2 / test_1_cientifico_095 | 17 | T | T | POPULAR_SCIENCE, no confidence | SCIENTIFIC, FULL_SIGNAL_MATCH | POPULAR_SCIENCE (unchanged) |
+    | Test_2 / test_2_cientifico_090 | 16 | T | T | POPULAR_SCIENCE, no confidence | SCIENTIFIC, FULL_SIGNAL_MATCH | POPULAR_SCIENCE (unchanged) |
+    | Test_2 / test_3_cientifico_083 | 14 | T | F | POPULAR_SCIENCE, no confidence | SCIENTIFIC, SUFFICIENT_REFERENCE_COUNT | POPULAR_SCIENCE (unchanged) |
+    | Test_2 / test_4_divulgacion_caso9 | 10 | F | F | POPULAR_SCIENCE | POPULAR_SCIENCE | unchanged |
+    | Test_2 / test_5_divulgacion_caso16 | 7 | F | F | POPULAR_SCIENCE | POPULAR_SCIENCE | unchanged |
+    | Test_2 / test_6_opinion_caso19 | 4 | F | F | OPINION | OPINION | unchanged |
+    | capacidades_razonamiento_emergente_LLMs | 34 | T | T | POPULAR_SCIENCE, no confidence | SCIENTIFIC, FULL_SIGNAL_MATCH | POPULAR_SCIENCE (unchanged) |
+
+    Reading: the 5 scientific samples are now classified correctly (they were all `POPULAR_SCIENCE`); the 5 divulgacion/opinion samples are unchanged, so there are no false positives. `ClassificationResultDTO.effective_structure_type` keeps a `SCIENTIFIC` article that lacks IMRyD wording in its reasoning validated as `POPULAR_SCIENCE` (legacy behavior, covered by existing tests), so structure validation does not change for any sample; the recommendation code does not read the article type. The visible change is the category, confidence and reasoning shown in the report. Whether a `SCIENTIFIC` article without IMRyD should be validated as scientific is a separate product question, not part of this fix.
 
 - [ ] **TASK-05: Specific language-model error messages** (F-04) and **TASK-06: Original file name and unique report names** (F-05, F-06) and **TASK-07: Cancel or serialize analyses** (F-07)
   - **Route**: one branch and PR each; scopes as in the findings.
@@ -130,8 +155,24 @@ Test document used throughout: `capacidades_razonamiento_emergente_LLMs.docx` (3
 ## 5. Progress & Verification Log
 
 - **Current Status**: findings documented (2026-10-01). TASK-01 and TASK-02 delivered. User decisions so far: do not fix F-01 yet; verify the S2a/S2b behavior in `main` first; this document is the single record.
-- **Next Step**: user decides which of TASK-03 to TASK-09 to schedule; TASK-03 is the prerequisite for TASK-04.
+- **Next Step**: the user decides which of TASK-05 to TASK-09 to schedule; TASK-03 and TASK-04 are delivered (commit `0d0df1d` on `fix/classifier-references-s2a-s2b`).
 
 ### Verification History
 - **2026-10-01, real runs** (metrics database, `silvina.log`, `ollama.log`): reasoning on vs off, 4,096 vs 32,768 context, two concurrent analyses, Ollama unreachable, Ollama model-load failure; full measurements in F-02.
+- **2026-10-02, TASK-03 extraction parity** (legacy `ReferenceParser.parse_from_docx` at `main` 0c9631b vs current `DocxReferenceAdapter`, same documents; recency = share of references whose latest year is >= current year - 4):
+
+  | Document | Legacy refs | Current refs | Legacy recency | Current recency | S2a legacy / current | Identical lists |
+  | --- | --- | --- | --- | --- | --- | --- |
+  | Test_1 / 1. test_Cientifico | 33 | 34 | 0.67 | 0.65 | True / True | no |
+  | Test_1 / 2. test_divulgacion_v2 | 10 | 11 | 0.00 | 0.00 | False / False | no |
+  | Test_1 / 3. test_opinion_v2 | 3 | 4 | 0.00 | 0.00 | False / False | no |
+  | Test_2 / test_1_cientifico_095 | 17 | 17 | 0.53 | 0.53 | True / True | yes |
+  | Test_2 / test_2_cientifico_090 | 16 | 16 | 0.62 | 0.62 | True / True | yes |
+  | Test_2 / test_3_cientifico_083 | 14 | 14 | 0.00 | 0.00 | True / True | yes |
+  | Test_2 / test_4_divulgacion_caso9 | 10 | 10 | 0.00 | 0.00 | False / False | yes |
+  | Test_2 / test_5_divulgacion_caso16 | 6 | 7 | 0.17 | 0.14 | False / False | no |
+  | Test_2 / test_6_opinion_caso19 | 3 | 4 | 0.00 | 0.00 | False / False | no |
+  | capacidades_razonamiento_emergente_LLMs | 33 | 34 | 0.67 | 0.65 | True / True | no |
+
+  Cause of the +1: the legacy parser discards any reference of 30 characters or fewer (`len(current_ref) > 30`), which drops a short leading entry such as `Anderson, P. W. (1972).`; the current adapter keeps it (34 is the real count of the test document). Both parsers share the same splitting artifact (a title tail can become its own item). No threshold (>= 12 references, >= 50 % recent) is crossed differently by any document.
 - **2026-10-01, S2a/S2b**: algorithm in `main` confirmed identical to the current one; in `main` the references reached the classifier through `ContentExtractor.extract_content(paragraphs, docx_path)` (step 5, `ReferenceParser`); in the hexagonal code they never do (`paragraph_content_adapter.py:39`); offline reproduction flips the category from `POPULAR_SCIENCE` to `SCIENTIFIC` when the 34 references are supplied.

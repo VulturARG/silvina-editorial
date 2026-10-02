@@ -5,6 +5,7 @@ from src.domain.dtos.base_dto import BaseDTO
 from src.domain.dtos.classification_result_dto import ClassificationResultDTO
 from src.domain.enums.article_size import ArticleSize
 from src.domain.enums.article_type import ArticleType
+from src.domain.enums.classification_confidence import ClassificationConfidence
 
 
 class TestClassificationResultDTO(TestCase):
@@ -119,3 +120,13 @@ class TestClassificationResultDTO(TestCase):
         self.assertIn("científico", string_repr)
         self.assertIn("largo", string_repr)
         self.assertIn("%", string_repr)
+
+    def test_str_with_classification_confidence_member_contains_percentage(self):
+        result = ClassificationResultDTO(
+            article_type=ArticleType.SCIENTIFIC,
+            article_size=ArticleSize.LONG,
+            confidence=ClassificationConfidence.FULL_SIGNAL_MATCH,
+            reasoning="Test",
+        )
+        string_representation = str(result)
+        self.assertIn("90.0%", string_representation)
