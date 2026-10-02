@@ -1,9 +1,11 @@
 from unittest import TestCase
 
+from src.domain.dtos.llm_generation_dto import LlmGenerationDTO
 from src.domain.enums.ai_provider import AiProvider
 from src.domain.enums.ai_purpose import AiPurpose
 from src.domain.enums.app_mode import AppMode
 from src.domain.enums.execution_status import ExecutionStatus
+from src.domain.enums.llm_done_reason import LlmDoneReason
 from src.domain.metrics.audit_payload_policy import AuditPayloadPolicy
 from src.domain.ports.llm_generator_port import LlmGeneratorPort
 from src.domain.tests.classification.fake_llm_generator_adapter import FakeLlmGeneratorAdapter
@@ -385,3 +387,165 @@ class TestAuditedLlmGeneratorAdapter(TestCase):
             adapter.generate(prompt="failing prompt")
 
         self.assertIs(error_context.exception, original_exception)
+
+    def test_generate_with_usage_returns_dto_and_records_interaction_with_metadata(
+        self,
+    ) -> None:
+        expected_generation = LlmGenerationDTO(
+            text="generated answer",
+            prompt_tokens=120,
+            completion_tokens=45,
+            done_reason=LlmDoneReason.STOP.value,
+        )
+        stub_generator = StubLlmGeneratorWithUsage(generation_result=expected_generation)
+        adapter = self._create_adapter(generator=stub_generator)
+
+        result = adapter.generate_with_usage(prompt="test prompt")
+
+        self.assertEqual(result, expected_generation)
+        self.assertEqual(len(self.metrics_port.recorded_ai_interactions), 1)
+        interaction = self.metrics_port.recorded_ai_interactions[0]
+        self.assertEqual(interaction.prompt_tokens, 120)
+        self.assertEqual(interaction.completion_tokens, 45)
+        self.assertEqual(interaction.done_reason, LlmDoneReason.STOP.value)
+
+    def test_generate_still_records_interaction_with_usage_metadata_and_returns_text(
+        self,
+    ) -> None:
+        expected_generation = LlmGenerationDTO(
+            text="only text response",
+            prompt_tokens=80,
+            completion_tokens=20,
+            done_reason=LlmDoneReason.STOP.value,
+        )
+        stub_generator = StubLlmGeneratorWithUsage(generation_result=expected_generation)
+        adapter = self._create_adapter(generator=stub_generator)
+
+        result = adapter.generate(prompt="prompt for generate")
+
+        self.assertEqual(result, "only text response")
+        self.assertEqual(len(self.metrics_port.recorded_ai_interactions), 1)
+        interaction = self.metrics_port.recorded_ai_interactions[0]
+        self.assertEqual(interaction.prompt_tokens, 80)
+        self.assertEqual(interaction.completion_tokens, 20)
+        self.assertEqual(interaction.done_reason, LlmDoneReason.STOP.value)
+
+    def test_generate_with_usage_records_none_tokens_and_done_reason_on_failure(
+        self,
+    ) -> None:
+        original_exception = RuntimeError("network failure")
+        failing_generator = FailingLlmGeneratorAdapter(exception=original_exception)
+        adapter = self._create_adapter(generator=failing_generator)
+
+        with self.assertRaises(RuntimeError):
+            adapter.generate_with_usage(prompt="failing prompt")
+
+        self.assertEqual(len(self.metrics_port.recorded_ai_interactions), 1)
+        interaction = self.metrics_port.recorded_ai_interactions[0]
+        self.assertEqual(interaction.status, ExecutionStatus.ERROR)
+        self.assertIsNone(interaction.prompt_tokens)
+        self.assertIsNone(interaction.completion_tokens)
+        self.assertIsNone(interaction.done_reason)
+
+    def test_generate_with_usage_logs_warning_when_done_reason_is_length(self) -> None:
+        truncated_generation = LlmGenerationDTO(
+            text="truncated secret response",
+            prompt_tokens=256,
+            completion_tokens=512,
+            done_reason=LlmDoneReason.LENGTH.value,
+        )
+        stub_generator = StubLlmGeneratorWithUsage(generation_result=truncated_generation)
+        adapter = self._create_adapter(generator=stub_generator)
+
+        with self.assertLogs(
+            "src.infrastructure.adapters.llm_generator.audited_llm_generator_adapter",
+            level="WARNING",
+        ) as captured_logs:
+            adapter.generate_with_usage(prompt="secret prompt content")
+
+        self.assertEqual(len(captured_logs.records), 1)
+        log_record = captured_logs.records[0]
+        log_message = log_record.getMessage()
+        self.assertIn("truncated", log_message.lower())
+        self.assertIn(self.purpose.value, log_message)
+        self.assertIn(self.model_name, log_message)
+        self.assertIn("256", log_message)
+        self.assertIn("512", log_message)
+        self.assertNotIn("secret prompt content", log_message)
+        self.assertNotIn("truncated secret response", log_message)
+
+    def test_generate_with_usage_does_not_log_warning_when_done_reason_is_stop_or_none(
+        self,
+    ) -> None:
+        stop_generation = LlmGenerationDTO(
+            text="complete response",
+            prompt_tokens=50,
+            completion_tokens=25,
+            done_reason=LlmDoneReason.STOP.value,
+        )
+        stub_generator = StubLlmGeneratorWithUsage(generation_result=stop_generation)
+        adapter = self._create_adapter(generator=stub_generator)
+
+        with self.assertNoLogs(
+            "src.infrastructure.adapters.llm_generator.audited_llm_generator_adapter",
+            level="WARNING",
+        ):
+            adapter.generate_with_usage(prompt="normal prompt")
+
+        none_generation = LlmGenerationDTO(
+            text="response without reason",
+            prompt_tokens=None,
+            completion_tokens=None,
+            done_reason=None,
+        )
+        stub_generator_none = StubLlmGeneratorWithUsage(generation_result=none_generation)
+        adapter_none = self._create_adapter(generator=stub_generator_none)
+
+        with self.assertNoLogs(
+            "src.infrastructure.adapters.llm_generator.audited_llm_generator_adapter",
+            level="WARNING",
+        ):
+            adapter_none.generate_with_usage(prompt="normal prompt")
+
+    def test_tokens_and_done_reason_preserved_unredacted_in_production_mode(
+        self,
+    ) -> None:
+        policy = AuditPayloadPolicy(app_mode=AppMode.PROD)
+        generation = LlmGenerationDTO(
+            text="confidential response text",
+            prompt_tokens=300,
+            completion_tokens=150,
+            done_reason=LlmDoneReason.LENGTH.value,
+        )
+        stub_generator = StubLlmGeneratorWithUsage(generation_result=generation)
+        adapter = self._create_adapter(generator=stub_generator, audit_payload_policy=policy)
+
+        with self.assertLogs(
+            "src.infrastructure.adapters.llm_generator.audited_llm_generator_adapter",
+            level="WARNING",
+        ):
+            adapter.generate_with_usage(prompt="confidential manuscript text")
+
+        interaction = self.metrics_port.recorded_ai_interactions[0]
+        self.assertEqual(interaction.prompt_tokens, 300)
+        self.assertEqual(interaction.completion_tokens, 150)
+        self.assertEqual(interaction.done_reason, LlmDoneReason.LENGTH.value)
+        self.assertNotIn("confidential manuscript text", interaction.input_payload)
+        self.assertNotIn("confidential response text", interaction.output_payload)
+
+
+class StubLlmGeneratorWithUsage(LlmGeneratorPort):
+    def __init__(self, generation_result: LlmGenerationDTO) -> None:
+        self._generation_result = generation_result
+        self.received_prompts: list[str] = []
+        self.received_options: list[dict | None] = []
+
+    def generate(self, prompt: str, options: dict | None = None) -> str:
+        self.received_prompts.append(prompt)
+        self.received_options.append(options)
+        return self._generation_result.text
+
+    def generate_with_usage(self, prompt: str, options: dict | None = None) -> LlmGenerationDTO:
+        self.received_prompts.append(prompt)
+        self.received_options.append(options)
+        return self._generation_result

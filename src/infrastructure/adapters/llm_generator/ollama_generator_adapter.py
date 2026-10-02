@@ -2,6 +2,7 @@ from http import HTTPStatus
 
 import ollama
 
+from src.domain.dtos.llm_generation_dto import LlmGenerationDTO
 from src.domain.exceptions.language_model_errors import (
     LanguageModelError,
     LanguageModelLoadFailed,
@@ -25,6 +26,10 @@ class OllamaGeneratorAdapter(LlmGeneratorPort):
 
     def generate(self, prompt: str, options: dict | None = None) -> str:
         """Return Ollama's generated text for the given prompt."""
+        return self.generate_with_usage(prompt=prompt, options=options).text
+
+    def generate_with_usage(self, prompt: str, options: dict | None = None) -> LlmGenerationDTO:
+        """Return Ollama's generated text and usage metadata for the given prompt."""
         try:
             client = ollama.Client(host=self._base_url)
             response = client.generate(
@@ -36,7 +41,12 @@ class OllamaGeneratorAdapter(LlmGeneratorPort):
         except (ollama.RequestError, ollama.ResponseError, ConnectionError) as exc:
             mapped_exception = self._map_backend_exception(exc)
             raise mapped_exception from exc
-        return response.get("response", "").strip()
+        return LlmGenerationDTO(
+            text=response.get("response", "").strip(),
+            prompt_tokens=response.get("prompt_eval_count"),
+            completion_tokens=response.get("eval_count"),
+            done_reason=response.get("done_reason"),
+        )
 
     def _map_backend_exception(
         self,

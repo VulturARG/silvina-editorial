@@ -69,7 +69,10 @@ class SqliteAnalysisMetricsAdapter(AnalysisMetricsPort):
                         output_payload TEXT NOT NULL,
                         duration_ms REAL NOT NULL,
                         status TEXT NOT NULL,
-                        recorded_at TEXT NOT NULL
+                        recorded_at TEXT NOT NULL,
+                        prompt_tokens INTEGER,
+                        completion_tokens INTEGER,
+                        done_reason TEXT
                     );
                     """
                 )
@@ -78,6 +81,18 @@ class SqliteAnalysisMetricsAdapter(AnalysisMetricsPort):
                     CREATE INDEX IF NOT EXISTS index_ai_interactions_analysis_id ON ai_interactions(analysis_id);
                     """
                 )
+                cursor = connection.execute("PRAGMA table_info(ai_interactions);")
+                existing_columns = {row[1] for row in cursor.fetchall()}
+                if "prompt_tokens" not in existing_columns:
+                    connection.execute(
+                        "ALTER TABLE ai_interactions ADD COLUMN prompt_tokens INTEGER;"
+                    )
+                if "completion_tokens" not in existing_columns:
+                    connection.execute(
+                        "ALTER TABLE ai_interactions ADD COLUMN completion_tokens INTEGER;"
+                    )
+                if "done_reason" not in existing_columns:
+                    connection.execute("ALTER TABLE ai_interactions ADD COLUMN done_reason TEXT;")
 
     def record_analysis_start(self, start_data: AnalysisStartDTO) -> None:
         """Record the beginning of a document analysis."""
@@ -139,8 +154,11 @@ class SqliteAnalysisMetricsAdapter(AnalysisMetricsPort):
                         output_payload,
                         duration_ms,
                         status,
-                        recorded_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+                        recorded_at,
+                        prompt_tokens,
+                        completion_tokens,
+                        done_reason
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
                     """,
                     (
                         ai_interaction.analysis_id,
@@ -152,6 +170,9 @@ class SqliteAnalysisMetricsAdapter(AnalysisMetricsPort):
                         ai_interaction.duration_ms,
                         self._enum_value(ai_interaction.status),
                         recorded_at,
+                        ai_interaction.prompt_tokens,
+                        ai_interaction.completion_tokens,
+                        ai_interaction.done_reason,
                     ),
                 )
 

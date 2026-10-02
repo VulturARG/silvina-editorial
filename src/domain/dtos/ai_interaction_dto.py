@@ -18,3 +18,6 @@ class AiInteractionDTO(BaseDTO):
     output_payload: str
     duration_ms: float
     status: ExecutionStatus
+    prompt_tokens: int | None = None
+    completion_tokens: int | None = None
+    done_reason: str | None = None
