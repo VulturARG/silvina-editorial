@@ -59,6 +59,7 @@ class TestEnvConfig(TestCase):
         self.assertEqual(config.report_context_truncation_limit, 150)
         self.assertEqual(config.report_max_replacements, 3)
         self.assertEqual(config.upload_max_size_bytes, 26214400)
+        self.assertFalse(config.use_external_llm)
         self.assertEqual(config.app_mode, AppMode.PROD)
         self.assertEqual(config.llm_provider, AiProvider.OLLAMA)
         self.assertIsNone(config.external_llm_model_name)
@@ -340,91 +341,149 @@ class TestEnvConfig(TestCase):
     def test_llm_provider_defaults_to_ollama_when_environment_is_empty(self):
         with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
             config = EnvConfig()
+        self.assertFalse(config.use_external_llm)
         self.assertEqual(config.llm_provider, AiProvider.OLLAMA)
         self.assertIsNone(config.external_llm_model_name)
 
-    def test_debug_mode_with_claude_and_external_model_sets_attributes(self):
+    def test_use_external_llm_flag_true_in_debug_mode_with_claude_sets_attributes(self):
         environment = {
             **self.REQUIRED_ENVIRONMENT,
             "APP_MODE": "DEBUG",
+            "USE_EXTERNAL_LLM": "true",
             "LLM_PROVIDER": "claude",
             "EXTERNAL_LLM_MODEL_NAME": "claude-3-5-sonnet",
         }
         with patch.dict(environ, environment, clear=True):
             config = EnvConfig()
+        self.assertTrue(config.use_external_llm)
         self.assertEqual(config.llm_provider, AiProvider.CLAUDE)
         self.assertEqual(config.external_llm_model_name, "claude-3-5-sonnet")
 
-    def test_debug_mode_with_claude_without_external_model_raises_value_error(self):
+    def test_debug_mode_with_external_llm_enabled_without_provider_raises_value_error(self):
         environment = {
             **self.REQUIRED_ENVIRONMENT,
             "APP_MODE": "DEBUG",
-            "LLM_PROVIDER": "claude",
-        }
-        with patch.dict(environ, environment, clear=True):
-            with self.assertRaises(ValueError) as context:
-                EnvConfig()
-        self.assertIn("EXTERNAL_LLM_MODEL_NAME", str(context.exception))
-
-    def test_debug_mode_with_claude_and_blank_external_model_raises_value_error(self):
-        environment = {
-            **self.REQUIRED_ENVIRONMENT,
-            "APP_MODE": "DEBUG",
-            "LLM_PROVIDER": "claude",
-            "EXTERNAL_LLM_MODEL_NAME": "   ",
-        }
-        with patch.dict(environ, environment, clear=True):
-            with self.assertRaises(ValueError) as context:
-                EnvConfig()
-        self.assertIn("EXTERNAL_LLM_MODEL_NAME", str(context.exception))
-
-    def test_prod_mode_with_claude_uses_ollama_without_raising_when_model_unset(self):
-        environment = {
-            **self.REQUIRED_ENVIRONMENT,
-            "APP_MODE": "PROD",
-            "LLM_PROVIDER": "claude",
-        }
-        with patch.dict(environ, environment, clear=True):
-            config = EnvConfig()
-        self.assertEqual(config.llm_provider, AiProvider.OLLAMA)
-        self.assertIsNone(config.external_llm_model_name)
-
-    def test_invalid_llm_provider_raises_value_error(self):
-        environment = {
-            **self.REQUIRED_ENVIRONMENT,
-            "LLM_PROVIDER": "invalid_provider",
+            "USE_EXTERNAL_LLM": "true",
+            "EXTERNAL_LLM_MODEL_NAME": "claude-3-5-sonnet",
         }
         with patch.dict(environ, environment, clear=True):
             with self.assertRaises(ValueError) as context:
                 EnvConfig()
         self.assertIn("LLM_PROVIDER", str(context.exception))
-        self.assertIn("ollama", str(context.exception).lower())
-        self.assertIn("claude", str(context.exception).lower())
 
-    def test_blank_external_llm_model_name_evaluates_to_none(self):
+    def test_debug_mode_with_external_llm_enabled_and_blank_provider_raises_value_error(self):
         environment = {
             **self.REQUIRED_ENVIRONMENT,
+            "APP_MODE": "DEBUG",
+            "USE_EXTERNAL_LLM": "true",
+            "LLM_PROVIDER": "   ",
+            "EXTERNAL_LLM_MODEL_NAME": "claude-3-5-sonnet",
+        }
+        with patch.dict(environ, environment, clear=True):
+            with self.assertRaises(ValueError) as context:
+                EnvConfig()
+        self.assertIn("LLM_PROVIDER", str(context.exception))
+
+    def test_debug_mode_with_external_llm_enabled_and_ollama_provider_raises_value_error(self):
+        environment = {
+            **self.REQUIRED_ENVIRONMENT,
+            "APP_MODE": "DEBUG",
+            "USE_EXTERNAL_LLM": "true",
+            "LLM_PROVIDER": "ollama",
+            "EXTERNAL_LLM_MODEL_NAME": "claude-3-5-sonnet",
+        }
+        with patch.dict(environ, environment, clear=True):
+            with self.assertRaises(ValueError) as context:
+                EnvConfig()
+        self.assertIn("LLM_PROVIDER", str(context.exception))
+        self.assertIn("claude", str(context.exception).lower())
+
+    def test_debug_mode_with_external_llm_enabled_without_model_raises_value_error(self):
+        environment = {
+            **self.REQUIRED_ENVIRONMENT,
+            "APP_MODE": "DEBUG",
+            "USE_EXTERNAL_LLM": "true",
+            "LLM_PROVIDER": "claude",
+        }
+        with patch.dict(environ, environment, clear=True):
+            with self.assertRaises(ValueError) as context:
+                EnvConfig()
+        self.assertIn("EXTERNAL_LLM_MODEL_NAME", str(context.exception))
+
+    def test_debug_mode_with_external_llm_enabled_and_blank_model_raises_value_error(self):
+        environment = {
+            **self.REQUIRED_ENVIRONMENT,
+            "APP_MODE": "DEBUG",
+            "USE_EXTERNAL_LLM": "true",
+            "LLM_PROVIDER": "claude",
+            "EXTERNAL_LLM_MODEL_NAME": "   ",
+        }
+        with patch.dict(environ, environment, clear=True):
+            with self.assertRaises(ValueError) as context:
+                EnvConfig()
+        self.assertIn("EXTERNAL_LLM_MODEL_NAME", str(context.exception))
+
+    def test_prod_mode_with_external_llm_flag_true_uses_ollama_and_ignores_provider_and_model(self):
+        environment = {
+            **self.REQUIRED_ENVIRONMENT,
+            "APP_MODE": "PROD",
+            "USE_EXTERNAL_LLM": "true",
+            "LLM_PROVIDER": "invalid_provider",
             "EXTERNAL_LLM_MODEL_NAME": "   ",
         }
         with patch.dict(environ, environment, clear=True):
             config = EnvConfig()
+        self.assertTrue(config.use_external_llm)
+        self.assertEqual(config.llm_provider, AiProvider.OLLAMA)
         self.assertIsNone(config.external_llm_model_name)
 
-    def test_external_llm_model_name_is_stripped_when_provided(self):
+    def test_debug_mode_with_external_llm_flag_false_ignores_invalid_provider_without_raising(self):
         environment = {
             **self.REQUIRED_ENVIRONMENT,
             "APP_MODE": "DEBUG",
-            "LLM_PROVIDER": "claude",
-            "EXTERNAL_LLM_MODEL_NAME": "  claude-3-5-sonnet  ",
+            "USE_EXTERNAL_LLM": "false",
+            "LLM_PROVIDER": "invalid_provider",
         }
         with patch.dict(environ, environment, clear=True):
             config = EnvConfig()
-        self.assertEqual(config.external_llm_model_name, "claude-3-5-sonnet")
+        self.assertFalse(config.use_external_llm)
+        self.assertEqual(config.llm_provider, AiProvider.OLLAMA)
+        self.assertIsNone(config.external_llm_model_name)
 
-    def test_llm_provider_accepts_case_and_whitespace_variations(self):
+    def test_debug_mode_with_external_llm_flag_false_and_claude_set_uses_ollama_and_none_model(
+        self,
+    ):
         environment = {
             **self.REQUIRED_ENVIRONMENT,
             "APP_MODE": "DEBUG",
+            "USE_EXTERNAL_LLM": "false",
+            "LLM_PROVIDER": "claude",
+            "EXTERNAL_LLM_MODEL_NAME": "claude-3-5-sonnet",
+        }
+        with patch.dict(environ, environment, clear=True):
+            config = EnvConfig()
+        self.assertFalse(config.use_external_llm)
+        self.assertEqual(config.llm_provider, AiProvider.OLLAMA)
+        self.assertIsNone(config.external_llm_model_name)
+
+    def test_invalid_use_external_llm_value_raises_value_error(self):
+        invalid_values = ["yes", "1", "disabled", ""]
+        for invalid_value in invalid_values:
+            with self.subTest(invalid_value=invalid_value):
+                environment = {
+                    **self.REQUIRED_ENVIRONMENT,
+                    "USE_EXTERNAL_LLM": invalid_value,
+                }
+                with patch.dict(environ, environment, clear=True):
+                    with self.assertRaises(ValueError) as context:
+                        EnvConfig()
+                    self.assertIn("USE_EXTERNAL_LLM", str(context.exception))
+
+    def test_external_llm_provider_accepts_case_and_whitespace_variations(self):
+        environment = {
+            **self.REQUIRED_ENVIRONMENT,
+            "APP_MODE": "DEBUG",
+            "USE_EXTERNAL_LLM": "true",
             "LLM_PROVIDER": "  CLAUDE  ",
             "EXTERNAL_LLM_MODEL_NAME": "claude-3-5-sonnet",
         }
@@ -432,10 +491,38 @@ class TestEnvConfig(TestCase):
             config = EnvConfig()
         self.assertEqual(config.llm_provider, AiProvider.CLAUDE)
 
-        environment_ollama = {
+    def test_invalid_external_llm_provider_raises_value_error_listing_accepted_providers(self):
+        environment = {
             **self.REQUIRED_ENVIRONMENT,
-            "LLM_PROVIDER": "  Ollama  ",
+            "APP_MODE": "DEBUG",
+            "USE_EXTERNAL_LLM": "true",
+            "LLM_PROVIDER": "invalid_provider",
+            "EXTERNAL_LLM_MODEL_NAME": "claude-3-5-sonnet",
         }
-        with patch.dict(environ, environment_ollama, clear=True):
-            config_ollama = EnvConfig()
-        self.assertEqual(config_ollama.llm_provider, AiProvider.OLLAMA)
+        with patch.dict(environ, environment, clear=True):
+            with self.assertRaises(ValueError) as context:
+                EnvConfig()
+        self.assertIn("LLM_PROVIDER", str(context.exception))
+        self.assertIn("claude", str(context.exception).lower())
+
+    def test_external_llm_model_name_is_stripped_when_provided(self):
+        environment = {
+            **self.REQUIRED_ENVIRONMENT,
+            "APP_MODE": "DEBUG",
+            "USE_EXTERNAL_LLM": "true",
+            "LLM_PROVIDER": "claude",
+            "EXTERNAL_LLM_MODEL_NAME": "  claude-3-5-sonnet  ",
+        }
+        with patch.dict(environ, environment, clear=True):
+            config = EnvConfig()
+        self.assertEqual(config.external_llm_model_name, "claude-3-5-sonnet")
+
+    def test_blank_external_llm_model_name_evaluates_to_none_when_external_llm_inactive(self):
+        environment = {
+            **self.REQUIRED_ENVIRONMENT,
+            "USE_EXTERNAL_LLM": "false",
+            "EXTERNAL_LLM_MODEL_NAME": "   ",
+        }
+        with patch.dict(environ, environment, clear=True):
+            config = EnvConfig()
+        self.assertIsNone(config.external_llm_model_name)

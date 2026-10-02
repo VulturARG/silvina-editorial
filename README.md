@@ -222,11 +222,12 @@ Then set in `.env`:
 
 ```dotenv
 APP_MODE=DEBUG
+USE_EXTERNAL_LLM=true
 LLM_PROVIDER=claude
 EXTERNAL_LLM_MODEL_NAME=<claude model name>
 ```
 
-`EXTERNAL_LLM_MODEL_NAME` is independent from `OLLAMA_MODEL_NAME` and is required for external providers. With `APP_MODE=PROD` an external provider is ignored and Ollama is used. The Ollama generation options (`temperature`, `num_predict`) are not applied to external providers.
+`USE_EXTERNAL_LLM` (`true` or `false`, default `false`) enables the external LLM instead of Ollama. `LLM_PROVIDER` names only the external provider (`claude`) and `EXTERNAL_LLM_MODEL_NAME` is its model, independent from `OLLAMA_MODEL_NAME`; both are required when the flag is `true`. With the flag `false`, or with `APP_MODE=PROD`, Ollama is used and `LLM_PROVIDER` and `EXTERNAL_LLM_MODEL_NAME` are ignored. The Ollama generation options (`temperature`, `num_predict`) are not applied to external providers.
 
 ---
 

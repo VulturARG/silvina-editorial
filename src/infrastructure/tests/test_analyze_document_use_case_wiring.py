@@ -368,6 +368,7 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
             environ,
             {
                 "APP_MODE": "DEBUG",
+                "USE_EXTERNAL_LLM": "true",
                 "LLM_PROVIDER": "claude",
                 "EXTERNAL_LLM_MODEL_NAME": "claude-3-7-sonnet",
             },
@@ -410,6 +411,7 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
             environ,
             {
                 "APP_MODE": "PROD",
+                "USE_EXTERNAL_LLM": "true",
                 "LLM_PROVIDER": "claude",
             },
         ):
