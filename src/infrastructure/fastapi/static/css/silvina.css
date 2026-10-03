@@ -399,6 +399,10 @@ body {
     padding-left: 16px;
 }
 
+.feedback-block-item.level-2 {
+    padding-left: 32px;
+}
+
 .feedback-block-marker {
     color: var(--text-muted);
     font-weight: 600;
@@ -413,6 +417,10 @@ body {
 
 .feedback-block-text.level-1 {
     padding-left: 16px;
+}
+
+.feedback-block-text.level-2 {
+    padding-left: 32px;
 }
 
 /* Error Callout / Alerts */

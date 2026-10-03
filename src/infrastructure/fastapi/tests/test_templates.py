@@ -286,3 +286,37 @@ class TestFastApiTemplates(TestCase):
         self.assertIn("Dimensión clásica con <strong>texto plano</strong>.", rendered)
         self.assertNotIn("feedback-block-title", rendered)
         self.assertNotIn("feedback-block-item", rendered)
+
+    def test_results_template_renders_level_two_block_with_level_two_class(self) -> None:
+        quality = ReportFixtures.make_quality_mock()
+        quality.dimension_scores = {
+            "claridad": {
+                "score": 9.0,
+                "feedback": "Texto plano de respaldo.",
+                "feedback_blocks": [
+                    {
+                        "kind": "item",
+                        "text": "Elemento hijo de segundo nivel.",
+                        "level": 2,
+                        "marker": "•",
+                    },
+                    {
+                        "kind": "text",
+                        "text": "Párrafo de segundo nivel.",
+                        "level": 2,
+                        "marker": "",
+                    },
+                ],
+            }
+        }
+        report = ReportFixtures.make_report_input_dto(quality=quality)
+
+        template = self.env.get_template("partials/_results.html")
+        rendered = template.render(
+            report=report,
+            word_filename="blocks_analisis.docx",
+            json_filename="blocks_analisis.json",
+        )
+
+        self.assertIn("feedback-block-item level-2", rendered)
+        self.assertIn("feedback-block-text level-2", rendered)

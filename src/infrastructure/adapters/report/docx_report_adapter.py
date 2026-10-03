@@ -84,7 +84,12 @@ class DocxReportAdapter(ReportExportPort):
                 paragraph.add_run(text).bold = True
             elif kind == "item":
                 paragraph = doc.add_paragraph()
-                paragraph.paragraph_format.left_indent = Inches(0.5) if level >= 1 else Inches(0.25)
+                if level >= 2:
+                    paragraph.paragraph_format.left_indent = Inches(0.75)
+                elif level == 1:
+                    paragraph.paragraph_format.left_indent = Inches(0.5)
+                else:
+                    paragraph.paragraph_format.left_indent = Inches(0.25)
                 prefix = f"{marker} " if marker and not marker.endswith(" ") else (marker or "")
                 self._add_markdown_paragraph(doc=doc, text=text, paragraph=paragraph, prefix=prefix)
             else:
