@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from re import compile
 
 from src.domain.dtos.feedback_block_dto import FeedbackBlockDTO
@@ -29,19 +30,27 @@ class FeedbackStructureParser:
         previous_top_level_indentation: int | None = None
         in_unindented_children_mode = False
         child_indentation: int | None = None
+        has_seen_non_empty_line = False
+        previous_line_was_blank = False
 
-        for index, raw_line in enumerate(lines):
-            line_without_blockquote = _BLOCKQUOTE_MARKER_PATTERN.sub("", raw_line)
-            stripped_line = line_without_blockquote.strip()
+        prepared_lines = self._prepare_lines(lines)
 
+        for index, (stripped_line, indentation) in enumerate(prepared_lines):
             if not stripped_line:
+                previous_line_was_blank = True
                 continue
 
             if _HORIZONTAL_RULE_PATTERN.match(stripped_line) is not None:
                 break
 
             if stripped_line.startswith("|"):
+                previous_line_was_blank = False
+                has_seen_non_empty_line = True
                 continue
+
+            is_preceded_by_blank_or_first = not has_seen_non_empty_line or previous_line_was_blank
+            has_seen_non_empty_line = True
+            previous_line_was_blank = False
 
             heading_match = _HEADING_LINE_PATTERN.match(stripped_line)
             if heading_match is not None:
@@ -80,8 +89,10 @@ class FeedbackStructureParser:
                 previous_top_level_indentation = None
                 continue
 
-            next_non_empty = self._find_next_non_empty_line(lines, index)
-            if self._is_plain_line_title(stripped_line, next_non_empty):
+            next_non_empty = self._find_next_non_empty_line(prepared_lines, index)
+            if self._is_plain_line_title(
+                stripped_line, next_non_empty, is_preceded_by_blank_or_first
+            ):
                 in_unindented_children_mode = False
                 child_indentation = None
                 if current_title is not None or current_blocks:
@@ -97,7 +108,6 @@ class FeedbackStructureParser:
                 previous_top_level_indentation = None
                 continue
 
-            indentation = len(line_without_blockquote) - len(line_without_blockquote.lstrip())
             bullet_match = _BULLET_ITEM_PATTERN.match(stripped_line)
             numbered_match = _NUMBERED_ITEM_PATTERN.match(stripped_line)
             is_list_item = bullet_match is not None or numbered_match is not None
@@ -242,8 +252,13 @@ class FeedbackStructureParser:
         return tuple(result_blocks)
 
     def _is_plain_line_title(
-        self, stripped_line: str, next_non_empty: tuple[str, int] | None
+        self,
+        stripped_line: str,
+        next_non_empty: tuple[str, int] | None,
+        is_preceded_by_blank_or_first: bool,
     ) -> bool:
+        if not is_preceded_by_blank_or_first:
+            return False
         if not stripped_line.endswith(":"):
             return False
         if len(stripped_line) > _MAXIMUM_PLAIN_TITLE_LENGTH:
@@ -291,15 +306,26 @@ class FeedbackStructureParser:
         )
 
     def _find_next_non_empty_line(
-        self, lines: list[str], current_index: int
+        self, prepared_lines: Sequence[tuple[str, int]], current_index: int
     ) -> tuple[str, int] | None:
-        for future_line in lines[current_index + 1 :]:
-            line_without_blockquote = _BLOCKQUOTE_MARKER_PATTERN.sub("", future_line)
-            stripped_future_line = line_without_blockquote.strip()
+        for future_index in range(current_index + 1, len(prepared_lines)):
+            stripped_future_line, indentation = prepared_lines[future_index]
             if stripped_future_line:
-                indentation = len(line_without_blockquote) - len(line_without_blockquote.lstrip())
                 return stripped_future_line, indentation
         return None
+
+    def _prepare_lines(self, lines: list[str]) -> list[tuple[str, int]]:
+        prepared_lines: list[tuple[str, int]] = []
+        for raw_line in lines:
+            line_without_blockquote = _BLOCKQUOTE_MARKER_PATTERN.sub("", raw_line)
+            stripped_line = line_without_blockquote.strip()
+            indentation = (
+                len(line_without_blockquote) - len(line_without_blockquote.lstrip())
+                if stripped_line
+                else 0
+            )
+            prepared_lines.append((stripped_line, indentation))
+        return prepared_lines
 
     def _clean_title_text(self, raw_text: str) -> str:
         cleaned = raw_text.strip()

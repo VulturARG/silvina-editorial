@@ -195,3 +195,104 @@ class TestEditorialSuitabilityParserAlignment(TestCase):
         self.assertEqual(verdict, "ALINEADO")
         self.assertEqual(lines, "Línea 4 (ciberespacio) y Línea 6 (inteligencia).")
         self.assertEqual(justification, "Justificación breve y directa.")
+
+    def test_multiline_list_under_lineas_label_with_blank_lines_before_list_is_captured(
+        self,
+    ):
+        raw = (
+            "VEREDICTO: PARCIALMENTE ALINEADO\n\n"
+            "LINEAS:\n\n"
+            "- Línea 4: Ciberespacio e inteligencia artificial\n"
+            "- Línea 6: Ciclo de inteligencia y toma de decisiones\n\n"
+            "JUSTIFICACION: Conexión temática identificada.\n"
+        )
+
+        verdict, lines, justification = self.parser.parse_alignment(raw)
+
+        self.assertEqual(verdict, "PARCIALMENTE ALINEADO")
+        self.assertEqual(
+            lines,
+            "Línea 4: Ciberespacio e inteligencia artificial; Línea 6: Ciclo de inteligencia y toma de decisiones",
+        )
+        self.assertEqual(justification, "Conexión temática identificada.")
+
+    def test_multiline_numbered_list_with_multiple_blank_lines_before_list_is_captured(
+        self,
+    ):
+        raw = (
+            "VEREDICTO: ALINEADO\n\n"
+            "**LINEAS:**\n\n\n"
+            "1. Primera línea de investigación aplicada\n"
+            "2. Segunda línea de investigación aplicada\n\n"
+            "JUSTIFICACION: Justificación clara.\n"
+        )
+
+        verdict, lines, justification = self.parser.parse_alignment(raw)
+
+        self.assertEqual(verdict, "ALINEADO")
+        self.assertEqual(
+            lines,
+            "Primera línea de investigación aplicada; Segunda línea de investigación aplicada",
+        )
+        self.assertEqual(justification, "Justificación clara.")
+
+    def test_sentence_ending_with_number_period_is_cut_at_period(self):
+        raw = (
+            "VEREDICTO: ALINEADO\n"
+            "LINEAS: Se identifica alineación con la prioridad en la línea 4. Otra oración que debe descartarse.\n"
+            "JUSTIFICACION: Justificación breve.\n"
+        )
+
+        verdict, lines, justification = self.parser.parse_alignment(raw)
+
+        self.assertEqual(verdict, "ALINEADO")
+        self.assertEqual(
+            lines,
+            "Se identifica alineación con la prioridad en la línea 4.",
+        )
+        self.assertEqual(justification, "Justificación breve.")
+
+    def test_list_number_after_colon_stays_whole(self):
+        raw = (
+            "VEREDICTO: ALINEADO\n"
+            "LINEAS: prioridades: 3. Recursos humanos para la defensa. Otra oración no relevante.\n"
+            "JUSTIFICACION: Justificación breve.\n"
+        )
+
+        verdict, lines, justification = self.parser.parse_alignment(raw)
+
+        self.assertEqual(verdict, "ALINEADO")
+        self.assertEqual(
+            lines,
+            "prioridades: 3. Recursos humanos para la defensa.",
+        )
+        self.assertEqual(justification, "Justificación breve.")
+
+    def test_list_number_after_hyphen_stays_whole(self):
+        raw = (
+            "VEREDICTO: ALINEADO\n"
+            "LINEAS: - 3. Item relevante de investigación aplicada. Otra oración no relevante.\n"
+            "JUSTIFICACION: Justificación breve.\n"
+        )
+
+        verdict, lines, justification = self.parser.parse_alignment(raw)
+
+        self.assertEqual(verdict, "ALINEADO")
+        self.assertEqual(
+            lines,
+            "- 3. Item relevante de investigación aplicada.",
+        )
+        self.assertEqual(justification, "Justificación breve.")
+
+    def test_list_number_at_start_of_second_line_stays_whole(self):
+        multiline_text = (
+            "Línea introductoria\n"
+            "3. Recursos humanos para la defensa. Segunda oración no relevante."
+        )
+
+        first_sentence = self.parser._extract_first_sentence(multiline_text)
+
+        self.assertEqual(
+            first_sentence,
+            "Línea introductoria\n3. Recursos humanos para la defensa.",
+        )
