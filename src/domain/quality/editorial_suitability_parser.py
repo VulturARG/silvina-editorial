@@ -4,7 +4,10 @@ _VERDICT_PATTERN = re_compile(r"(?:\*\*)?VEREDICTO\s*(?:\*\*)?\s*:[*\s:]*([^*:\s
 _CONTRIBUTION_PATTERN = re_compile(
     r"(?:\*\*)?CONTRIBUCI[OÓ]N\s*(?:\*\*)?\s*:[*\s:]*([^*:\s].*)", IGNORECASE
 )
-_LINES_PATTERN = re_compile(r"(?:\*\*)?L[IÍ]NEAS\s*(?:\*\*)?\s*:[*\s:]*([^*:\s].*)", IGNORECASE)
+_LINES_PATTERN = re_compile(r"(?:\*\*)?L[IÍ]NEAS\s*(?:\*\*)?\s*:[* \t:]*([^*\s\r\n].*)", IGNORECASE)
+_LINES_LABEL_PATTERN = re_compile(r"(?:\*\*)?L[IÍ]NEAS\s*(?:\*\*)?\s*:", IGNORECASE)
+_NEXT_LABEL_PATTERN = re_compile(r"(?:\*\*)?[A-ZÁÉÍÓÚ]+\s*(?:\*\*)?\s*:", IGNORECASE)
+_LIST_MARKER_PATTERN = re_compile(r"^[ \t]*(?:[-*+]|\d+\.)[ \t]+(.*)")
 _JUSTIFICATION_PATTERN = re_compile(
     r"(?:\*\*)?JUSTIFICACI[OÓ]N\s*(?:\*\*)?\s*:[*\s:]*([^*:\s].*)", IGNORECASE
 )
@@ -16,7 +19,7 @@ _ALIGNMENT_VERDICTS = ("NO ALINEADO", "PARCIALMENTE ALINEADO", "ALINEADO")
 _PHRASE_MAX_LENGTH = 120
 _OBSERVATION_MAX_LENGTH = 120
 _JUSTIFICATION_MAX_LENGTH = 120
-_LINES_MAX_LENGTH = 80
+_LINES_MAX_LENGTH = 200
 
 _NOT_SUSTAINED_OBSERVATION = "Sin contribución observada o declarada."
 _PARTIAL_OBSERVATION = "Contribución declarada pero no suficientemente sustentada."
@@ -38,7 +41,7 @@ class EditorialSuitabilityParser:
     def parse_alignment(self, text: str) -> tuple[str, str, str]:
         """Return (alignment_verdict, alignment_lines, alignment_justification)."""
         verdict = self._extract_verdict(text, _ALIGNMENT_VERDICTS)
-        lines = self._truncate_field(self._extract_field(text, _LINES_PATTERN), _LINES_MAX_LENGTH)
+        lines = self._truncate_field(self._extract_lines_field(text), _LINES_MAX_LENGTH)
         justification = self._truncate_field(
             self._extract_field(text, _JUSTIFICATION_PATTERN), _JUSTIFICATION_MAX_LENGTH
         )
@@ -69,6 +72,37 @@ class EditorialSuitabilityParser:
             return ""
         return match.group(1).replace("**", "").lstrip("* :").strip()
 
+    def _extract_lines_field(self, text: str) -> str:
+        same_line_value = self._extract_field(text, _LINES_PATTERN)
+        if same_line_value:
+            return same_line_value
+
+        label_match = _LINES_LABEL_PATTERN.search(text)
+        if not label_match:
+            return ""
+
+        remaining_text = text[label_match.end() :]
+        first_line, _, subsequent_lines = remaining_text.partition("\n")
+        cleaned_first_line = first_line.replace("**", "").lstrip("* :").strip()
+        if cleaned_first_line:
+            return cleaned_first_line
+
+        list_items: list[str] = []
+        for raw_line in subsequent_lines.split("\n"):
+            stripped_line = raw_line.strip()
+            if not stripped_line:
+                break
+            if _NEXT_LABEL_PATTERN.match(stripped_line):
+                break
+            list_match = _LIST_MARKER_PATTERN.match(stripped_line)
+            if not list_match:
+                break
+            item_content = list_match.group(1).replace("**", "").strip()
+            if item_content:
+                list_items.append(item_content)
+
+        return "; ".join(list_items)
+
     def _truncate_field(self, raw_text: str, max_length: int) -> str:
         if not raw_text:
             return raw_text
@@ -78,10 +112,43 @@ class EditorialSuitabilityParser:
         return self._truncate_to_word_boundary(sentence, max_length)
 
     def _extract_first_sentence(self, text: str) -> str:
-        match = _SENTENCE_END_PATTERN.search(text)
-        if match:
-            return text[: match.start() + 1].strip()
+        for match in _SENTENCE_END_PATTERN.finditer(text):
+            punctuation = match.group()
+            if punctuation in ("!", "?"):
+                return text[: match.end()].strip()
+
+            index = match.start()
+            if self._is_period_between_digits(text, index):
+                continue
+            if self._is_list_number_period(text, index):
+                continue
+
+            return text[: match.end()].strip()
+
         return text.strip()
+
+    def _is_period_between_digits(self, text: str, index: int) -> bool:
+        return (
+            index > 0
+            and index + 1 < len(text)
+            and text[index - 1].isdigit()
+            and text[index + 1].isdigit()
+        )
+
+    def _is_list_number_period(self, text: str, index: int) -> bool:
+        if index == 0:
+            return False
+        digit_end = index
+        digit_start = digit_end
+        while digit_start > 0 and text[digit_start - 1].isdigit():
+            digit_start -= 1
+        digit_count = digit_end - digit_start
+        if not (1 <= digit_count <= 2):
+            return False
+        if digit_start == 0:
+            return True
+        previous_character = text[digit_start - 1]
+        return previous_character.isspace() or previous_character in "([;,-"
 
     def _truncate_to_word_boundary(self, text: str, max_length: int) -> str:
         limit = max_length - 2

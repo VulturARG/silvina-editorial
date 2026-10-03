@@ -10,8 +10,13 @@ from src.domain.tests.quality.feedback_fixtures import (
     FIXTURE_D_COHERENCIA_ELLIPSIS_ITEM,
     FIXTURE_E_SAME_LEVEL_HEADING_ENDS_BLOCK,
     FIXTURE_F_MID_SENTENCE_BOLD_STAYS_INLINE,
-    FIXTURE_G_MORE_THAN_THREE_ITEMS_SECTION,
+    FIXTURE_G_MORE_THAN_EIGHT_ITEMS_SECTION,
     FIXTURE_H_GENERAL_SYNTHESIS_OVERWRITE_REGRESSION,
+    FIXTURE_I_SONNET_STYLE_PLAIN_TITLES,
+    FIXTURE_J_HAIKU_ID_60_PARAGRAPH_FLUSH_BULLETS,
+    FIXTURE_K_GEMMA_STYLE_PLAIN_WEAKNESS_TITLE,
+    FIXTURE_L_PLAIN_FORTALEZAS_DEBILIDADES_TITLES,
+    FIXTURE_M_OPUS_ID_70_PARAGRAPH_FLUSH_BULLETS_WITH_SUB_BULLETS,
 )
 
 VALID_RESPONSE_TWO = """**1. Argumentación** [Puntuación: 8/10]
@@ -117,13 +122,18 @@ Las ideas se conectan logicamente entre las distintas secciones del texto.
         self.assertEqual(result.scores[QualityDimension.CLARITY].feedback, "No disponible")
         self.assertEqual(result.scores[QualityDimension.CLARITY].feedback_blocks, ())
 
-    def test_feedback_with_more_than_three_items_in_section_is_capped(self):
+    def test_feedback_with_more_than_eight_items_in_section_is_capped(self):
         response = """**1. Claridad** [Puntuación: 8/10]
 - Primera observación larga y descriptiva sobre claridad.
 - Segunda observación también relevante sobre el texto.
 - Tercera observación analítica complementaria.
-- Cuarta observación descartada por superar el límite.
-- Quinta observación descartada por superar el límite.
+- Cuarta observación que continúa la exposición analítica.
+- Quinta observación que consolida la revisión de estilo.
+- Sexta observación sobre precisión terminológica en el marco.
+- Séptima observación sobre coherencia en los conceptos clave.
+- Octava observación que cierra el límite de items.
+- Novena observación descartada por superar el límite.
+- Décima observación descartada por superar el límite.
 
 **2. Coherencia** [Puntuación: 8/10]
 Las ideas se conectan logicamente entre las distintas secciones del texto.
@@ -134,12 +144,17 @@ Las ideas se conectan logicamente entre las distintas secciones del texto.
 
         feedback = result.scores[QualityDimension.CLARITY].feedback
         blocks = result.scores[QualityDimension.CLARITY].feedback_blocks
-        self.assertEqual(len(blocks), 3)
+        self.assertEqual(len(blocks), 8)
         self.assertIn("Primera observación", feedback)
         self.assertIn("Segunda observación", feedback)
         self.assertIn("Tercera observación", feedback)
-        self.assertNotIn("Cuarta observación", feedback)
-        self.assertNotIn("Quinta observación", feedback)
+        self.assertIn("Cuarta observación", feedback)
+        self.assertIn("Quinta observación", feedback)
+        self.assertIn("Sexta observación", feedback)
+        self.assertIn("Séptima observación", feedback)
+        self.assertIn("Octava observación", feedback)
+        self.assertNotIn("Novena observación", feedback)
+        self.assertNotIn("Décima observación", feedback)
 
     def test_argumentacion_block_is_not_misclassified_as_claridad(self):
         response = """**1. Argumentación** [Puntuación: 8/10]
@@ -407,7 +422,7 @@ Evaluación del cierre presentado.
         title_blocks = [b for b in clarity.feedback_blocks if b.kind == FeedbackBlockKind.TITLE]
         item_blocks = [b for b in clarity.feedback_blocks if b.kind == FeedbackBlockKind.ITEM]
         self.assertEqual(len(title_blocks), 2)
-        self.assertEqual(len(item_blocks), 6)
+        self.assertEqual(len(item_blocks), 11)
 
     def test_fixture_nested_numbered_sub_list_keeps_nested_items_without_counting_them(self):
         parser = QualityResponseParser()
@@ -419,9 +434,11 @@ Evaluación del cierre presentado.
         self.assertIn("Composición estadística", argumentation.feedback)
         self.assertIn("Andamiaje implícito", argumentation.feedback)
         self.assertIn("Transiciones de fase", argumentation.feedback)
-        self.assertNotIn("Cuarto item descartable", argumentation.feedback)
-        nested_items = [b for b in argumentation.feedback_blocks if b.level == 1]
+        self.assertNotIn("Noveno item descartable", argumentation.feedback)
+        nested_items = [b for b in argumentation.feedback_blocks if b.level == 2]
         self.assertEqual(len(nested_items), 3)
+        level_one_items = [b for b in argumentation.feedback_blocks if b.level == 1]
+        self.assertEqual(len(level_one_items), 8)
 
     def test_fixture_horizontal_rule_drops_everything_after_rule_including_table(self):
         parser = QualityResponseParser()
@@ -463,18 +480,23 @@ Evaluación del cierre presentado.
         self.assertEqual(len(clarity.feedback_blocks), 1)
         self.assertEqual(clarity.feedback_blocks[0].kind, FeedbackBlockKind.TEXT)
 
-    def test_fixture_more_than_three_items_keeps_first_three_whole(self):
+    def test_fixture_more_than_eight_items_keeps_first_eight_whole(self):
         parser = QualityResponseParser()
-        result = parser.parse(FIXTURE_G_MORE_THAN_THREE_ITEMS_SECTION)
+        result = parser.parse(FIXTURE_G_MORE_THAN_EIGHT_ITEMS_SECTION)
         argumentation = result.scores[QualityDimension.ARGUMENTATION]
         self.assertEqual(argumentation.score, 8.0)
         self.assertIn("Primer argumento", argumentation.feedback)
         self.assertIn("Segundo argumento", argumentation.feedback)
         self.assertIn("Tercer argumento", argumentation.feedback)
-        self.assertNotIn("Cuarto argumento", argumentation.feedback)
-        self.assertNotIn("Quinto argumento", argumentation.feedback)
+        self.assertIn("Cuarto argumento", argumentation.feedback)
+        self.assertIn("Quinto argumento", argumentation.feedback)
+        self.assertIn("Sexto argumento", argumentation.feedback)
+        self.assertIn("Séptimo argumento", argumentation.feedback)
+        self.assertIn("Octavo argumento", argumentation.feedback)
+        self.assertNotIn("Noveno argumento", argumentation.feedback)
+        self.assertNotIn("Décimo argumento", argumentation.feedback)
         item_blocks = [b for b in argumentation.feedback_blocks if b.kind == FeedbackBlockKind.ITEM]
-        self.assertEqual(len(item_blocks), 3)
+        self.assertEqual(len(item_blocks), 8)
 
     def test_fixture_response_fifty_five_general_synthesis_does_not_overwrite_parsed_dimensions(
         self,
@@ -547,3 +569,83 @@ Evaluación del cierre presentado.
         self.assertNotEqual(argumentation.feedback, "No disponible")
         self.assertIn("Fortalezas:", argumentation.feedback)
         self.assertGreater(len(argumentation.feedback_blocks), 0)
+
+    def test_sonnet_style_response_weaknesses_survive_and_cap_of_eight_applies(self):
+        parser = QualityResponseParser()
+        result = parser.parse(FIXTURE_I_SONNET_STYLE_PLAIN_TITLES)
+        clarity = result.scores[QualityDimension.CLARITY]
+
+        self.assertEqual(clarity.score, 8.0)
+        self.assertIn("Lo que funciona bien:", clarity.feedback)
+        self.assertIn("Lo que necesita mejorar:", clarity.feedback)
+        self.assertIn("Octavo aspecto débil", clarity.feedback)
+        self.assertNotIn("Noveno aspecto débil", clarity.feedback)
+
+        titles = [b.text for b in clarity.feedback_blocks if b.kind == FeedbackBlockKind.TITLE]
+        self.assertIn("Lo que funciona bien", titles)
+        self.assertIn("Lo que necesita mejorar", titles)
+
+        improving_items = [
+            b
+            for b in clarity.feedback_blocks
+            if b.kind == FeedbackBlockKind.ITEM and "aspecto débil" in b.text
+        ]
+        self.assertEqual(len(improving_items), 8)
+
+    def test_opus_id_70_fixture_preserves_two_level_hierarchy_under_cap_eight(self):
+        parser = QualityResponseParser()
+        result = parser.parse(FIXTURE_M_OPUS_ID_70_PARAGRAPH_FLUSH_BULLETS_WITH_SUB_BULLETS)
+        argumentation = result.scores[QualityDimension.ARGUMENTATION]
+
+        self.assertEqual(argumentation.score, 6.0)
+        level_one_items = [b for b in argumentation.feedback_blocks if b.level == 1]
+        level_two_items = [b for b in argumentation.feedback_blocks if b.level == 2]
+
+        self.assertEqual(len(level_one_items), 6)
+        self.assertEqual(len(level_two_items), 7)
+        self.assertIn("Contradicción numérica sin resolver", argumentation.feedback)
+        self.assertIn("Bai et al.", argumentation.feedback)
+
+    def test_haiku_sixty_style_flush_bullets_survive_as_children_and_subsequent_paragraphs_kept(
+        self,
+    ):
+        parser = QualityResponseParser()
+        result = parser.parse(FIXTURE_J_HAIKU_ID_60_PARAGRAPH_FLUSH_BULLETS)
+        argumentation = result.scores[QualityDimension.ARGUMENTATION]
+
+        self.assertEqual(argumentation.score, 8.0)
+        self.assertIn("Composición estadística parsimoniosa", argumentation.feedback)
+        self.assertIn("Andamiaje implícito de cadena", argumentation.feedback)
+        self.assertIn("Transiciones de fase representacionales", argumentation.feedback)
+        self.assertIn("Identificación de tensiones teóricas", argumentation.feedback)
+
+        children = [b for b in argumentation.feedback_blocks if b.level == 1]
+        self.assertEqual(len(children), 3)
+
+    def test_gemma_style_weakness_section_survives_as_title_with_single_bullet(self):
+        parser = QualityResponseParser()
+        result = parser.parse(FIXTURE_K_GEMMA_STYLE_PLAIN_WEAKNESS_TITLE)
+        clarity = result.scores[QualityDimension.CLARITY]
+
+        self.assertEqual(clarity.score, 9.0)
+        self.assertIn("Lo que funciona muy bien:", clarity.feedback)
+        self.assertIn("Lo que podría mejorar:", clarity.feedback)
+        self.assertIn("La transición hacia las transiciones de fase", clarity.feedback)
+
+        titles = [b.text for b in clarity.feedback_blocks if b.kind == FeedbackBlockKind.TITLE]
+        self.assertIn("Lo que funciona muy bien", titles)
+        self.assertIn("Lo que podría mejorar", titles)
+
+    def test_plain_fortalezas_and_debilidades_titles_both_parsed_as_titles(self):
+        parser = QualityResponseParser()
+        result = parser.parse(FIXTURE_L_PLAIN_FORTALEZAS_DEBILIDADES_TITLES)
+        argumentation = result.scores[QualityDimension.ARGUMENTATION]
+
+        self.assertEqual(argumentation.score, 7.0)
+        self.assertIn("Fortalezas:", argumentation.feedback)
+        self.assertIn("Debilidades:", argumentation.feedback)
+
+        titles = [
+            b.text for b in argumentation.feedback_blocks if b.kind == FeedbackBlockKind.TITLE
+        ]
+        self.assertEqual(titles, ["Fortalezas", "Debilidades"])

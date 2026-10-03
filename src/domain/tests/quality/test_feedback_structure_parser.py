@@ -2,6 +2,10 @@ from unittest import TestCase
 
 from src.domain.enums.feedback_block_kind import FeedbackBlockKind
 from src.domain.quality.feedback_structure_parser import FeedbackStructureParser
+from src.domain.tests.quality.feedback_fixtures import (
+    FIXTURE_B_NESTED_NUMBERED_SUB_LIST,
+    FIXTURE_M_OPUS_ID_70_PARAGRAPH_FLUSH_BULLETS_WITH_SUB_BULLETS,
+)
 
 
 class TestFeedbackStructureParser(TestCase):
@@ -301,3 +305,266 @@ class TestFeedbackStructureParser(TestCase):
         self.assertEqual(blocks[1].text, "Viñeta previa")
         self.assertEqual(blocks[2].text, "Fortalezas")
         self.assertEqual(blocks[3].text, "Viñeta posterior")
+
+    def test_default_maximum_items_per_section_is_eight(self):
+        lines = [
+            "- Primer elemento",
+            "- Segundo elemento",
+            "- Tercer elemento",
+            "- Cuarto elemento",
+            "- Quinto elemento",
+            "- Sexto elemento",
+            "- Séptimo elemento",
+            "- Octavo elemento",
+            "- Noveno elemento descartable",
+        ]
+        parser = FeedbackStructureParser()
+        blocks = parser.parse(lines=lines, dimension_heading_level=0)
+
+        self.assertEqual(len(blocks), 8)
+        self.assertEqual(blocks[7].text, "Octavo elemento")
+
+    def test_plain_line_ending_in_colon_under_sixty_chars_followed_by_list_is_title(self):
+        lines = [
+            "Lo que funciona bien:",
+            "- Primer aspecto positivo",
+            "- Segundo aspecto positivo",
+        ]
+        parser = FeedbackStructureParser()
+        blocks = parser.parse(lines=lines, dimension_heading_level=0)
+
+        self.assertEqual(len(blocks), 3)
+        self.assertEqual(blocks[0].kind, FeedbackBlockKind.TITLE)
+        self.assertEqual(blocks[0].text, "Lo que funciona bien")
+        self.assertEqual(blocks[1].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[1].level, 0)
+        self.assertEqual(blocks[2].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[2].level, 0)
+
+    def test_plain_line_ending_in_colon_with_sentence_punctuation_is_not_title(self):
+        lines = [
+            "Párrafo 1. Observaciones principales:",
+            "- Primer elemento listado",
+        ]
+        parser = FeedbackStructureParser()
+        blocks = parser.parse(lines=lines, dimension_heading_level=0)
+
+        self.assertEqual(len(blocks), 2)
+        self.assertEqual(blocks[0].kind, FeedbackBlockKind.TEXT)
+        self.assertEqual(blocks[0].text, "Párrafo 1. Observaciones principales:")
+
+    def test_plain_line_ending_in_colon_longer_than_sixty_chars_is_not_title(self):
+        long_line = (
+            "A lo largo de la exposición teórica del manuscrito se evidencian múltiples "
+            "aspectos críticos:"
+        )
+        lines = [
+            long_line,
+            "- Primer elemento listado",
+        ]
+        parser = FeedbackStructureParser()
+        blocks = parser.parse(lines=lines, dimension_heading_level=0)
+
+        self.assertEqual(len(blocks), 2)
+        self.assertEqual(blocks[0].kind, FeedbackBlockKind.TEXT)
+        self.assertEqual(blocks[0].text, long_line)
+
+    def test_plain_line_ending_in_colon_not_followed_by_list_is_not_title(self):
+        lines = [
+            "Aspectos a considerar en el análisis:",
+            "Este es un párrafo de texto normal que continúa la explicación sin lista.",
+        ]
+        parser = FeedbackStructureParser()
+        blocks = parser.parse(lines=lines, dimension_heading_level=0)
+
+        self.assertEqual(len(blocks), 2)
+        self.assertEqual(blocks[0].kind, FeedbackBlockKind.TEXT)
+        self.assertEqual(blocks[0].text, "Aspectos a considerar en el análisis:")
+        self.assertEqual(blocks[1].kind, FeedbackBlockKind.TEXT)
+
+    def test_unindented_flush_bullets_under_paragraph_ending_in_colon_become_children_level_one(
+        self,
+    ):
+        lines = [
+            (
+                "**Síntesis de mecanismos**: Los autores presentan tres hipótesis "
+                "competentes sin privilegiar una:"
+            ),
+            "- Composición estadística parsimoniosa pero insuficiente",
+            "- Andamiaje implícito de cadena de pensamiento sensible",
+            "- Transiciones de fase representacionales con evidencia",
+            "",
+            "Cada una se presenta con su base empírica y limitaciones correspondientes.",
+        ]
+        parser = FeedbackStructureParser()
+        blocks = parser.parse(lines=lines, dimension_heading_level=0)
+
+        self.assertEqual(len(blocks), 5)
+        self.assertEqual(blocks[0].kind, FeedbackBlockKind.TEXT)
+        self.assertEqual(blocks[0].level, 0)
+        self.assertEqual(blocks[1].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[1].level, 1)
+        self.assertEqual(blocks[2].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[2].level, 1)
+        self.assertEqual(blocks[3].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[3].level, 1)
+        self.assertEqual(blocks[4].kind, FeedbackBlockKind.TEXT)
+        self.assertEqual(blocks[4].level, 0)
+
+    def test_plain_titles_with_weaknesses_survive_as_sections_with_items(self):
+        lines = [
+            "Lo que funciona bien:",
+            "- Fortaleza uno",
+            "- Fortaleza dos",
+            "",
+            "Lo que necesita mejorar:",
+            "- Debilidad uno",
+            "- Debilidad dos",
+        ]
+        parser = FeedbackStructureParser()
+        blocks = parser.parse(lines=lines, dimension_heading_level=0)
+
+        self.assertEqual(len(blocks), 6)
+        self.assertEqual(blocks[0].kind, FeedbackBlockKind.TITLE)
+        self.assertEqual(blocks[0].text, "Lo que funciona bien")
+        self.assertEqual(blocks[1].text, "Fortaleza uno")
+        self.assertEqual(blocks[2].text, "Fortaleza dos")
+        self.assertEqual(blocks[3].kind, FeedbackBlockKind.TITLE)
+        self.assertEqual(blocks[3].text, "Lo que necesita mejorar")
+        self.assertEqual(blocks[4].text, "Debilidad uno")
+        self.assertEqual(blocks[5].text, "Debilidad dos")
+
+    def test_bullet_item_ending_in_colon_followed_by_flush_bullets_makes_them_children_level_one(
+        self,
+    ):
+        lines = [
+            "- **Etiqueta principal**:",
+            "- Primer aspecto derivado",
+            "- Segundo aspecto derivado",
+        ]
+        parser = FeedbackStructureParser()
+        blocks = parser.parse(lines=lines, dimension_heading_level=0)
+
+        self.assertEqual(len(blocks), 3)
+        self.assertEqual(blocks[0].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[0].level, 0)
+        self.assertEqual(blocks[1].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[1].level, 1)
+        self.assertEqual(blocks[2].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[2].level, 1)
+
+    def test_numbered_item_ending_in_colon_followed_by_flush_items_makes_them_children_level_one(
+        self,
+    ):
+        lines = [
+            "1. **Etiqueta principal**:",
+            "1. Primer aspecto derivado",
+            "2. Segundo aspecto derivado",
+        ]
+        parser = FeedbackStructureParser()
+        blocks = parser.parse(lines=lines, dimension_heading_level=0)
+
+        self.assertEqual(len(blocks), 3)
+        self.assertEqual(blocks[0].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[0].level, 0)
+        self.assertEqual(blocks[0].marker, "1.")
+        self.assertEqual(blocks[1].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[1].level, 1)
+        self.assertEqual(blocks[2].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[2].level, 1)
+
+    def test_bullet_item_ending_in_colon_followed_by_more_indented_list_handled_as_nested_rule(
+        self,
+    ):
+        lines = [
+            "- Viñeta principal:",
+            "  - Primer sub-elemento más indentado",
+            "  - Segundo sub-elemento más indentado",
+            "- Siguiente elemento al nivel principal",
+        ]
+        parser = FeedbackStructureParser()
+        blocks = parser.parse(lines=lines, dimension_heading_level=0)
+
+        self.assertEqual(len(blocks), 4)
+        self.assertEqual(blocks[0].level, 0)
+        self.assertEqual(blocks[1].level, 1)
+        self.assertEqual(blocks[2].level, 1)
+        self.assertEqual(blocks[3].level, 0)
+
+    def test_children_mode_resets_at_next_non_list_line(self):
+        lines = [
+            "A lo largo de la exposición se identifican diversos aspectos críticos:",
+            "- Hijo dependiente uno",
+            "- Hijo dependiente dos",
+            "",
+            "Párrafo siguiente de texto plano que no termina en dos puntos.",
+            "",
+            "- Viñeta independiente uno",
+            "- Viñeta independiente dos",
+        ]
+        parser = FeedbackStructureParser()
+        blocks = parser.parse(lines=lines, dimension_heading_level=0)
+
+        self.assertEqual(len(blocks), 6)
+        self.assertEqual(blocks[0].kind, FeedbackBlockKind.TEXT)
+        self.assertEqual(blocks[0].level, 0)
+        self.assertEqual(blocks[1].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[1].level, 1)
+        self.assertEqual(blocks[2].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[2].level, 1)
+        self.assertEqual(blocks[3].kind, FeedbackBlockKind.TEXT)
+        self.assertEqual(blocks[3].level, 0)
+        self.assertEqual(blocks[4].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[4].level, 0)
+        self.assertEqual(blocks[5].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[5].level, 0)
+
+    def test_fixture_b_nested_numbered_sub_list_hierarchy(self):
+        lines: list[str] = [
+            str(line) for line in FIXTURE_B_NESTED_NUMBERED_SUB_LIST.split("\n")[2:]
+        ]
+        parser = FeedbackStructureParser()
+        blocks = parser.parse(lines=lines, dimension_heading_level=2)
+
+        level_one_blocks = [b for b in blocks if b.level == 1]
+        level_two_blocks = [b for b in blocks if b.level == 2]
+
+        self.assertEqual(len(level_one_blocks), 8)
+        self.assertEqual(len(level_two_blocks), 3)
+
+    def test_opus_id_70_hierarchy_keeps_level_one_and_level_two_items_under_cap_eight(self):
+        lines: list[str] = [
+            str(line)
+            for line in FIXTURE_M_OPUS_ID_70_PARAGRAPH_FLUSH_BULLETS_WITH_SUB_BULLETS.split("\n")[
+                2:
+            ]
+        ]
+        parser = FeedbackStructureParser(maximum_items_per_section=8)
+        blocks = parser.parse(lines=lines, dimension_heading_level=2)
+
+        level_zero_blocks = [b for b in blocks if b.level == 0]
+        level_one_blocks = [b for b in blocks if b.level == 1]
+        level_two_blocks = [b for b in blocks if b.level == 2]
+
+        self.assertEqual(len(level_zero_blocks), 1)
+        self.assertEqual(len(level_one_blocks), 6)
+        self.assertEqual(len(level_two_blocks), 7)
+
+    def test_opus_id_70_hierarchy_caps_level_one_children_when_cap_is_five(self):
+        lines: list[str] = [
+            str(line)
+            for line in FIXTURE_M_OPUS_ID_70_PARAGRAPH_FLUSH_BULLETS_WITH_SUB_BULLETS.split("\n")[
+                2:
+            ]
+        ]
+        parser = FeedbackStructureParser(maximum_items_per_section=5)
+        blocks = parser.parse(lines=lines, dimension_heading_level=2)
+
+        level_zero_blocks = [b for b in blocks if b.level == 0]
+        level_one_blocks = [b for b in blocks if b.level == 1]
+        level_two_blocks = [b for b in blocks if b.level == 2]
+
+        self.assertEqual(len(level_zero_blocks), 1)
+        self.assertEqual(len(level_one_blocks), 5)
+        self.assertEqual(len(level_two_blocks), 7)
+        self.assertNotIn("Falta de contraste entre hipótesis", [b.text for b in blocks])
