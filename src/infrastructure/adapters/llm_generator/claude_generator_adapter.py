@@ -53,6 +53,20 @@ class ClaudeGeneratorAdapter(LlmGeneratorPort):
             return token_count
         return None
 
+    def _extract_prompt_tokens(self, usage: Any) -> int | None:
+        input_tokens = self._extract_token_count(usage=usage, key="input_tokens")
+        if input_tokens is None:
+            return None
+        cache_read_tokens = self._extract_token_count(usage=usage, key="cache_read_input_tokens")
+        cache_creation_tokens = self._extract_token_count(
+            usage=usage, key="cache_creation_input_tokens"
+        )
+        return (
+            input_tokens
+            + (cache_read_tokens if cache_read_tokens is not None else 0)
+            + (cache_creation_tokens if cache_creation_tokens is not None else 0)
+        )
+
     async def _execute_query(self, prompt: str) -> LlmGenerationDTO:
         """Execute the asynchronous query against Claude Agent SDK and assemble the result."""
         text_fragments: list[str] = []
@@ -83,7 +97,7 @@ class ClaudeGeneratorAdapter(LlmGeneratorPort):
                 final_result_message = message
 
         raw_usage = final_result_message.usage if final_result_message is not None else None
-        prompt_tokens: int | None = self._extract_token_count(usage=raw_usage, key="input_tokens")
+        prompt_tokens: int | None = self._extract_prompt_tokens(usage=raw_usage)
         completion_tokens: int | None = self._extract_token_count(
             usage=raw_usage, key="output_tokens"
         )

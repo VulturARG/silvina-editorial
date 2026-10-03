@@ -868,3 +868,242 @@ class TestClaudeGeneratorAdapter(TestCase):
 
         self.assertIsNone(result.prompt_tokens)
         self.assertIsNone(result.completion_tokens)
+
+    @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
+    def test_generate_with_usage_sums_input_and_cache_read_and_cache_creation_tokens(
+        self, mock_query: MagicMock
+    ) -> None:
+        mock_query.side_effect = self._create_fake_query(
+            [
+                ResultMessage(
+                    subtype="success",
+                    duration_ms=100,
+                    duration_api_ms=90,
+                    is_error=False,
+                    num_turns=1,
+                    session_id="test-session-identifier",
+                    usage={
+                        "input_tokens": 100,
+                        "cache_read_input_tokens": 20,
+                        "cache_creation_input_tokens": 30,
+                        "output_tokens": 50,
+                    },
+                ),
+            ]
+        )
+
+        result = self.adapter.generate_with_usage(prompt=self.sample_prompt)
+
+        self.assertEqual(result.prompt_tokens, 150)
+        self.assertEqual(result.completion_tokens, 50)
+
+    @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
+    def test_generate_with_usage_sums_input_tokens_when_only_cache_read_is_present(
+        self, mock_query: MagicMock
+    ) -> None:
+        mock_query.side_effect = self._create_fake_query(
+            [
+                ResultMessage(
+                    subtype="success",
+                    duration_ms=100,
+                    duration_api_ms=90,
+                    is_error=False,
+                    num_turns=1,
+                    session_id="test-session-identifier",
+                    usage={
+                        "input_tokens": 100,
+                        "cache_read_input_tokens": 25,
+                        "output_tokens": 50,
+                    },
+                ),
+            ]
+        )
+
+        result = self.adapter.generate_with_usage(prompt=self.sample_prompt)
+
+        self.assertEqual(result.prompt_tokens, 125)
+        self.assertEqual(result.completion_tokens, 50)
+
+    @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
+    def test_generate_with_usage_sums_input_tokens_when_only_cache_creation_is_present(
+        self, mock_query: MagicMock
+    ) -> None:
+        mock_query.side_effect = self._create_fake_query(
+            [
+                ResultMessage(
+                    subtype="success",
+                    duration_ms=100,
+                    duration_api_ms=90,
+                    is_error=False,
+                    num_turns=1,
+                    session_id="test-session-identifier",
+                    usage={
+                        "input_tokens": 100,
+                        "cache_creation_input_tokens": 35,
+                        "output_tokens": 50,
+                    },
+                ),
+            ]
+        )
+
+        result = self.adapter.generate_with_usage(prompt=self.sample_prompt)
+
+        self.assertEqual(result.prompt_tokens, 135)
+        self.assertEqual(result.completion_tokens, 50)
+
+    @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
+    def test_generate_with_usage_uses_only_input_tokens_when_cache_keys_are_absent(
+        self, mock_query: MagicMock
+    ) -> None:
+        mock_query.side_effect = self._create_fake_query(
+            [
+                ResultMessage(
+                    subtype="success",
+                    duration_ms=100,
+                    duration_api_ms=90,
+                    is_error=False,
+                    num_turns=1,
+                    session_id="test-session-identifier",
+                    usage={
+                        "input_tokens": 100,
+                        "output_tokens": 50,
+                    },
+                ),
+            ]
+        )
+
+        result = self.adapter.generate_with_usage(prompt=self.sample_prompt)
+
+        self.assertEqual(result.prompt_tokens, 100)
+        self.assertEqual(result.completion_tokens, 50)
+
+    @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
+    def test_generate_with_usage_treats_invalid_type_cache_keys_as_zero(
+        self, mock_query: MagicMock
+    ) -> None:
+        invalid_cache_values = [
+            "invalid_string",
+            12.5,
+            True,
+            False,
+            None,
+            {"nested": 10},
+            [10],
+        ]
+        for invalid_cache_value in invalid_cache_values:
+            mock_query.side_effect = self._create_fake_query(
+                [
+                    ResultMessage(
+                        subtype="success",
+                        duration_ms=100,
+                        duration_api_ms=90,
+                        is_error=False,
+                        num_turns=1,
+                        session_id="test-session-identifier",
+                        usage={
+                            "input_tokens": 100,
+                            "cache_read_input_tokens": invalid_cache_value,
+                            "cache_creation_input_tokens": invalid_cache_value,
+                            "output_tokens": 50,
+                        },
+                    ),
+                ]
+            )
+
+            result = self.adapter.generate_with_usage(prompt=self.sample_prompt)
+
+            self.assertEqual(result.prompt_tokens, 100)
+            self.assertEqual(result.completion_tokens, 50)
+
+    @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
+    def test_generate_with_usage_returns_none_prompt_tokens_when_input_tokens_is_missing_despite_valid_cache_keys(
+        self, mock_query: MagicMock
+    ) -> None:
+        mock_query.side_effect = self._create_fake_query(
+            [
+                ResultMessage(
+                    subtype="success",
+                    duration_ms=100,
+                    duration_api_ms=90,
+                    is_error=False,
+                    num_turns=1,
+                    session_id="test-session-identifier",
+                    usage={
+                        "cache_read_input_tokens": 20,
+                        "cache_creation_input_tokens": 30,
+                        "output_tokens": 50,
+                    },
+                ),
+            ]
+        )
+
+        result = self.adapter.generate_with_usage(prompt=self.sample_prompt)
+
+        self.assertIsNone(result.prompt_tokens)
+        self.assertEqual(result.completion_tokens, 50)
+
+    @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
+    def test_generate_with_usage_returns_none_prompt_tokens_when_input_tokens_is_invalid_despite_valid_cache_keys(
+        self, mock_query: MagicMock
+    ) -> None:
+        invalid_input_token_values = [
+            "100",
+            12.5,
+            True,
+            False,
+            None,
+            {"count": 100},
+            [100],
+        ]
+        for invalid_input_token_value in invalid_input_token_values:
+            mock_query.side_effect = self._create_fake_query(
+                [
+                    ResultMessage(
+                        subtype="success",
+                        duration_ms=100,
+                        duration_api_ms=90,
+                        is_error=False,
+                        num_turns=1,
+                        session_id="test-session-identifier",
+                        usage={
+                            "input_tokens": invalid_input_token_value,
+                            "cache_read_input_tokens": 20,
+                            "cache_creation_input_tokens": 30,
+                            "output_tokens": 50,
+                        },
+                    ),
+                ]
+            )
+
+            result = self.adapter.generate_with_usage(prompt=self.sample_prompt)
+
+            self.assertIsNone(result.prompt_tokens)
+            self.assertEqual(result.completion_tokens, 50)
+
+    @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
+    def test_generate_with_usage_preserves_zero_values_for_input_and_cache_tokens(
+        self, mock_query: MagicMock
+    ) -> None:
+        mock_query.side_effect = self._create_fake_query(
+            [
+                ResultMessage(
+                    subtype="success",
+                    duration_ms=100,
+                    duration_api_ms=90,
+                    is_error=False,
+                    num_turns=1,
+                    session_id="test-session-identifier",
+                    usage={
+                        "input_tokens": 0,
+                        "cache_read_input_tokens": 0,
+                        "cache_creation_input_tokens": 0,
+                        "output_tokens": 0,
+                    },
+                ),
+            ]
+        )
+
+        result = self.adapter.generate_with_usage(prompt=self.sample_prompt)
+
+        self.assertEqual(result.prompt_tokens, 0)
+        self.assertEqual(result.completion_tokens, 0)
