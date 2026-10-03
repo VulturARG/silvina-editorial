@@ -412,6 +412,7 @@ body {
 .feedback-block-marker {
     display: inline-block;
     min-width: var(--feedback-marker-width);
+    text-indent: 0;
     color: var(--text-muted);
     font-weight: 600;
 }

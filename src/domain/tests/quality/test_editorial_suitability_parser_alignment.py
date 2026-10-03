@@ -296,3 +296,29 @@ class TestEditorialSuitabilityParserAlignment(TestCase):
             first_sentence,
             "Línea introductoria\n3. Recursos humanos para la defensa.",
         )
+
+    def test_sentence_ending_with_hyphenated_numbers_is_cut_at_period(self):
+        raw = (
+            "VEREDICTO: ALINEADO\n"
+            "LINEAS: líneas 3-5. Otra oración no relevante.\n"
+            "JUSTIFICACION: Justificación breve.\n"
+        )
+
+        verdict, lines, justification = self.parser.parse_alignment(raw)
+
+        self.assertEqual(verdict, "ALINEADO")
+        self.assertEqual(lines, "líneas 3-5.")
+        self.assertEqual(justification, "Justificación breve.")
+
+    def test_sentence_ending_with_ratio_numbers_is_cut_at_period(self):
+        raw = (
+            "VEREDICTO: ALINEADO\n"
+            "LINEAS: relación 3:4. Otra cosa no relevante.\n"
+            "JUSTIFICACION: Justificación breve.\n"
+        )
+
+        verdict, lines, justification = self.parser.parse_alignment(raw)
+
+        self.assertEqual(verdict, "ALINEADO")
+        self.assertEqual(lines, "relación 3:4.")
+        self.assertEqual(justification, "Justificación breve.")

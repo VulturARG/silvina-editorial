@@ -374,16 +374,21 @@ class TestFastApiTemplates(TestCase):
         )
 
     def test_stylesheet_defines_hanging_indent_rules_for_feedback_block_items(self) -> None:
-        """Verify stylesheet defines negative text-indent for item levels and marker width."""
+        """Verify stylesheet defines negative text-indent, marker zero indent, and text block rules."""
         stylesheet_path = Path(__file__).resolve().parent.parent / "static" / "css" / "silvina.css"
         stylesheet_content = stylesheet_path.read_text(encoding="utf-8")
+
+        hanging_indent_pattern = (
+            r"text-indent\s*:\s*calc\(-1\s*\*\s*var\(--feedback-marker-width\)\)"
+        )
+        marker_width_padding_pattern = r"padding-left\s*:[^;]*var\(--feedback-marker-width\)"
 
         level_zero_match = search(r"\.feedback-block-item\s*\{([^}]+)\}", stylesheet_content)
         self.assertIsNotNone(level_zero_match)
         assert level_zero_match is not None
         level_zero_body = level_zero_match.group(1)
-        self.assertIn("text-indent:", level_zero_body)
-        self.assertTrue("-" in level_zero_body or "calc(-" in level_zero_body)
+        self.assertRegex(level_zero_body, hanging_indent_pattern)
+        self.assertRegex(level_zero_body, marker_width_padding_pattern)
 
         level_one_match = search(
             r"\.feedback-block-item\.level-1\s*\{([^}]+)\}", stylesheet_content
@@ -391,8 +396,8 @@ class TestFastApiTemplates(TestCase):
         self.assertIsNotNone(level_one_match)
         assert level_one_match is not None
         level_one_body = level_one_match.group(1)
-        self.assertIn("text-indent:", level_one_body)
-        self.assertTrue("-" in level_one_body or "calc(-" in level_one_body)
+        self.assertRegex(level_one_body, hanging_indent_pattern)
+        self.assertRegex(level_one_body, marker_width_padding_pattern)
 
         level_two_match = search(
             r"\.feedback-block-item\.level-2\s*\{([^}]+)\}", stylesheet_content
@@ -400,18 +405,23 @@ class TestFastApiTemplates(TestCase):
         self.assertIsNotNone(level_two_match)
         assert level_two_match is not None
         level_two_body = level_two_match.group(1)
-        self.assertIn("text-indent:", level_two_body)
-        self.assertTrue("-" in level_two_body or "calc(-" in level_two_body)
+        self.assertRegex(level_two_body, hanging_indent_pattern)
+        self.assertRegex(level_two_body, marker_width_padding_pattern)
 
         marker_match = search(r"\.feedback-block-marker\s*\{([^}]+)\}", stylesheet_content)
         self.assertIsNotNone(marker_match)
         assert marker_match is not None
         marker_body = marker_match.group(1)
-        self.assertIn("display: inline-block", marker_body)
-        self.assertIn("min-width:", marker_body)
+        self.assertRegex(marker_body, r"display\s*:\s*inline-block")
+        self.assertRegex(marker_body, r"min-width\s*:[^;]*var\(--feedback-marker-width\)")
+        self.assertRegex(marker_body, r"text-indent\s*:\s*0\b")
 
-        text_match = search(r"\.feedback-block-text\s*\{([^}]+)\}", stylesheet_content)
-        self.assertIsNotNone(text_match)
-        assert text_match is not None
-        text_body = text_match.group(1)
-        self.assertNotIn("text-indent", text_body)
+        for selector in (
+            r"\.feedback-block-text\s*\{([^}]+)\}",
+            r"\.feedback-block-text\.level-1\s*\{([^}]+)\}",
+            r"\.feedback-block-text\.level-2\s*\{([^}]+)\}",
+        ):
+            text_match = search(selector, stylesheet_content)
+            self.assertIsNotNone(text_match)
+            assert text_match is not None
+            self.assertNotIn("text-indent", text_match.group(1))
