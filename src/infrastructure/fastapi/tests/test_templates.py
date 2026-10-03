@@ -1,7 +1,4 @@
-from pathlib import Path
 from unittest import TestCase
-
-from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from src.domain.dtos.editorial_suitability_dto import EditorialSuitabilityDTO
 from src.domain.dtos.recommendation_dto import RecommendationDTO
@@ -13,17 +10,13 @@ from src.infrastructure.fastapi.src.config.dependencies import (
 )
 from src.infrastructure.tests.adapters.report.fixtures import ReportFixtures
 
-TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
-
 
 class TestFastApiTemplates(TestCase):
     """Unit tests for Jinja2 templates rendering and structure."""
 
     def setUp(self) -> None:
-        self.env = Environment(
-            loader=FileSystemLoader(str(TEMPLATES_DIR)),
-            autoescape=select_autoescape(["html", "xml"]),
-        )
+        self.templates = get_templates()
+        self.env = self.templates.env
 
     def test_base_template_renders_structure_and_assets(self) -> None:
         template = self.env.get_template("base.html")
@@ -169,3 +162,44 @@ class TestFastApiTemplates(TestCase):
 
         self.assertIn("El documento está vacío o dañado.", rendered)
         self.assertIn("error-callout", rendered)
+
+    def test_results_template_renders_inline_bold_across_feedback_fields(self) -> None:
+        quality = ReportFixtures.make_quality_mock()
+        quality.dimension_scores = {
+            "claridad": {
+                "score": 9.0,
+                "feedback": "Dimensión con **claridad conceptual excelente** demostrada.",
+            }
+        }
+        quality.editorial_suitability = EditorialSuitabilityDTO(
+            contribution_verdict="SUSTENTADA",
+            contribution_phrase="Aporte metodológico claro.",
+            contribution_observation="Aporte **altamente sustentado** en datos.",
+            alignment_verdict="ALINEADO",
+            alignment_lines="Línea 1",
+            alignment_justification="Tema **perfectamente alineado** con el área.",
+        )
+        recommendation = RecommendationDTO(
+            priority=RecommendationPriority.HIGH,
+            message="Problema crítico: resolver **de inmediato** la sección.",
+        )
+        report = ReportFixtures.make_report_input_dto(
+            quality=quality,
+            recommendations=[recommendation],
+        )
+
+        template = self.env.get_template("partials/_results.html")
+        rendered = template.render(
+            report=report,
+            word_filename="bold_analisis.docx",
+            json_filename="bold_analisis.json",
+        )
+
+        self.assertIn("<strong>claridad conceptual excelente</strong>", rendered)
+        self.assertIn("<strong>altamente sustentado</strong>", rendered)
+        self.assertIn("<strong>perfectamente alineado</strong>", rendered)
+        self.assertIn("<strong>de inmediato</strong>", rendered)
+        self.assertNotIn("**claridad conceptual excelente**", rendered)
+        self.assertNotIn("**altamente sustentado**", rendered)
+        self.assertNotIn("**perfectamente alineado**", rendered)
+        self.assertNotIn("**de inmediato**", rendered)

@@ -91,7 +91,7 @@
                     <div class="progress-fill" style="width: {{ [score * 10, 100] | min }}%;"></div>
                 </div>
                 {% if feedback %}
-                    <div class="progress-feedback">{{ feedback }}</div>
+                    <div class="progress-feedback">{{ feedback | inline_bold }}</div>
                 {% endif %}
             </div>
         {% endfor %}
@@ -111,7 +111,7 @@
                 {{ report.quality.editorial_suitability.contribution_verdict }}
             </span>
             <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 8px;">
-                {{ report.quality.editorial_suitability.contribution_observation }}
+                {{ report.quality.editorial_suitability.contribution_observation | inline_bold }}
             </div>
         </div>
         <div>
@@ -120,7 +120,7 @@
                 {{ report.quality.editorial_suitability.alignment_verdict }}
             </span>
             <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 8px;">
-                {{ report.quality.editorial_suitability.alignment_justification }}
+                {{ report.quality.editorial_suitability.alignment_justification | inline_bold }}
             </div>
             <div style="font-size: 0.82rem; color: #888; margin-top: 6px;">
                 Líneas: {{ report.quality.editorial_suitability.alignment_lines }}
@@ -145,7 +145,7 @@
     <h4>⚠️ Problemas Críticos Detectados</h4>
     <ul>
         {% for rec in critical_recs %}
-            <li>{{ rec.message }}</li>
+            <li>{{ rec.message | inline_bold }}</li>
         {% endfor %}
     </ul>
 </div>
