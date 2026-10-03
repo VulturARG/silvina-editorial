@@ -10,6 +10,8 @@ from claude_agent_sdk import (
     ClaudeAgentOptions,
     ClaudeSDKError,
     ProcessError,
+    RateLimitEvent,
+    RateLimitInfo,
     ResultMessage,
     TextBlock,
     ThinkingBlock,
@@ -18,6 +20,9 @@ from claude_agent_sdk import (
 from src.domain.dtos.llm_generation_dto import LlmGenerationDTO
 from src.domain.enums.llm_done_reason import LlmDoneReason
 from src.domain.exceptions.language_model_errors import LanguageModelUnavailable
+from src.infrastructure.adapters.llm_generator.claude_backend_reported_error import (
+    ClaudeBackendReportedError,
+)
 from src.infrastructure.adapters.llm_generator.claude_generator_adapter import (
     ClaudeGeneratorAdapter,
 )
@@ -558,8 +563,11 @@ class TestClaudeGeneratorAdapter(TestCase):
             ]
         )
 
-        with self.assertRaises(LanguageModelUnavailable):
+        with self.assertRaises(LanguageModelUnavailable) as context:
             self.adapter.generate(prompt=self.sample_prompt)
+
+        self.assertIsInstance(context.exception.__cause__, ClaudeBackendReportedError)
+        self.assertEqual(str(context.exception.__cause__), "assistant error: rate_limit")
 
     @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
     def test_generate_raises_language_model_unavailable_on_result_message_error(
@@ -578,8 +586,309 @@ class TestClaudeGeneratorAdapter(TestCase):
             ]
         )
 
-        with self.assertRaises(LanguageModelUnavailable):
+        with self.assertRaises(LanguageModelUnavailable) as context:
             self.adapter.generate(prompt=self.sample_prompt)
+
+        self.assertIsInstance(context.exception.__cause__, ClaudeBackendReportedError)
+        self.assertEqual(
+            str(context.exception.__cause__),
+            "result error: subtype=error_during_execution, api_error_status=None, errors=None",
+        )
+
+    @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
+    def test_generate_includes_all_fields_in_result_error_cause(
+        self, mock_query: MagicMock
+    ) -> None:
+        mock_query.side_effect = self._create_fake_query(
+            [
+                ResultMessage(
+                    subtype="api_error",
+                    duration_ms=50,
+                    duration_api_ms=50,
+                    is_error=True,
+                    num_turns=1,
+                    session_id="test-session-identifier",
+                    api_error_status=429,
+                    errors=["rate limit exceeded"],
+                ),
+            ]
+        )
+
+        with self.assertRaises(LanguageModelUnavailable) as context:
+            self.adapter.generate(prompt=self.sample_prompt)
+
+        self.assertIsInstance(context.exception.__cause__, ClaudeBackendReportedError)
+        self.assertEqual(
+            str(context.exception.__cause__),
+            "result error: subtype=api_error, api_error_status=429, errors=['rate limit exceeded']",
+        )
+
+    @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
+    def test_generate_appends_rate_limit_rejected_suffix_to_assistant_error_when_status_is_rejected(
+        self, mock_query: MagicMock
+    ) -> None:
+        mock_query.side_effect = self._create_fake_query(
+            [
+                RateLimitEvent(
+                    rate_limit_info=RateLimitInfo(
+                        status="rejected",
+                        rate_limit_type="five_hour",
+                        resets_at=1735689600,
+                    ),
+                    uuid="rate-limit-uuid",
+                    session_id="test-session-identifier",
+                ),
+                AssistantMessage(
+                    content=[TextBlock(text="API error")],
+                    model=self.model_name,
+                    error="rate_limit",
+                ),
+            ]
+        )
+
+        with self.assertRaises(LanguageModelUnavailable) as context:
+            self.adapter.generate(prompt=self.sample_prompt)
+
+        self.assertIsInstance(context.exception.__cause__, ClaudeBackendReportedError)
+        self.assertEqual(
+            str(context.exception.__cause__),
+            "assistant error: rate_limit; rate limit rejected (type=five_hour, resets_at=1735689600)",
+        )
+
+    @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
+    def test_generate_appends_rate_limit_rejected_suffix_to_result_error_when_status_is_rejected(
+        self, mock_query: MagicMock
+    ) -> None:
+        mock_query.side_effect = self._create_fake_query(
+            [
+                RateLimitEvent(
+                    rate_limit_info=RateLimitInfo(
+                        status="rejected",
+                        rate_limit_type="seven_day",
+                        resets_at=1735690000,
+                    ),
+                    uuid="rate-limit-uuid",
+                    session_id="test-session-identifier",
+                ),
+                ResultMessage(
+                    subtype="error_during_execution",
+                    duration_ms=50,
+                    duration_api_ms=50,
+                    is_error=True,
+                    num_turns=1,
+                    session_id="test-session-identifier",
+                    api_error_status=529,
+                    errors=["overloaded"],
+                ),
+            ]
+        )
+
+        with self.assertRaises(LanguageModelUnavailable) as context:
+            self.adapter.generate(prompt=self.sample_prompt)
+
+        self.assertIsInstance(context.exception.__cause__, ClaudeBackendReportedError)
+        self.assertEqual(
+            str(context.exception.__cause__),
+            "result error: subtype=error_during_execution, api_error_status=529, errors=['overloaded']; rate limit rejected (type=seven_day, resets_at=1735690000)",
+        )
+
+    @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
+    def test_generate_omits_rate_limit_suffix_when_status_is_allowed(
+        self, mock_query: MagicMock
+    ) -> None:
+        mock_query.side_effect = self._create_fake_query(
+            [
+                RateLimitEvent(
+                    rate_limit_info=RateLimitInfo(
+                        status="allowed",
+                        rate_limit_type="five_hour",
+                        resets_at=1735689600,
+                    ),
+                    uuid="rate-limit-uuid",
+                    session_id="test-session-identifier",
+                ),
+                AssistantMessage(
+                    content=[TextBlock(text="API error")],
+                    model=self.model_name,
+                    error="server_error",
+                ),
+            ]
+        )
+
+        with self.assertRaises(LanguageModelUnavailable) as context:
+            self.adapter.generate(prompt=self.sample_prompt)
+
+        self.assertIsInstance(context.exception.__cause__, ClaudeBackendReportedError)
+        self.assertEqual(str(context.exception.__cause__), "assistant error: server_error")
+
+    @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
+    def test_generate_omits_rate_limit_suffix_when_status_is_allowed_warning(
+        self, mock_query: MagicMock
+    ) -> None:
+        mock_query.side_effect = self._create_fake_query(
+            [
+                RateLimitEvent(
+                    rate_limit_info=RateLimitInfo(
+                        status="allowed_warning",
+                        rate_limit_type="five_hour",
+                        resets_at=1735689600,
+                    ),
+                    uuid="rate-limit-uuid",
+                    session_id="test-session-identifier",
+                ),
+                AssistantMessage(
+                    content=[TextBlock(text="API error")],
+                    model=self.model_name,
+                    error="server_error",
+                ),
+            ]
+        )
+
+        with self.assertRaises(LanguageModelUnavailable) as context:
+            self.adapter.generate(prompt=self.sample_prompt)
+
+        self.assertIsInstance(context.exception.__cause__, ClaudeBackendReportedError)
+        self.assertEqual(str(context.exception.__cause__), "assistant error: server_error")
+
+    @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
+    def test_generate_omits_rate_limit_suffix_when_no_rate_limit_event_seen(
+        self, mock_query: MagicMock
+    ) -> None:
+        mock_query.side_effect = self._create_fake_query(
+            [
+                AssistantMessage(
+                    content=[TextBlock(text="API error")],
+                    model=self.model_name,
+                    error="authentication_failed",
+                ),
+            ]
+        )
+
+        with self.assertRaises(LanguageModelUnavailable) as context:
+            self.adapter.generate(prompt=self.sample_prompt)
+
+        self.assertIsInstance(context.exception.__cause__, ClaudeBackendReportedError)
+        self.assertEqual(str(context.exception.__cause__), "assistant error: authentication_failed")
+
+    @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
+    def test_generate_tracks_latest_rate_limit_event_in_stream(self, mock_query: MagicMock) -> None:
+        mock_query.side_effect = self._create_fake_query(
+            [
+                RateLimitEvent(
+                    rate_limit_info=RateLimitInfo(
+                        status="rejected",
+                        rate_limit_type="five_hour",
+                        resets_at=1735689600,
+                    ),
+                    uuid="rate-limit-uuid-1",
+                    session_id="test-session-identifier",
+                ),
+                RateLimitEvent(
+                    rate_limit_info=RateLimitInfo(
+                        status="allowed",
+                        rate_limit_type="five_hour",
+                        resets_at=1735689600,
+                    ),
+                    uuid="rate-limit-uuid-2",
+                    session_id="test-session-identifier",
+                ),
+                AssistantMessage(
+                    content=[TextBlock(text="API error")],
+                    model=self.model_name,
+                    error="unknown",
+                ),
+            ]
+        )
+
+        with self.assertRaises(LanguageModelUnavailable) as context:
+            self.adapter.generate(prompt=self.sample_prompt)
+
+        self.assertIsInstance(context.exception.__cause__, ClaudeBackendReportedError)
+        self.assertEqual(str(context.exception.__cause__), "assistant error: unknown")
+
+    @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
+    def test_generate_detail_never_contains_prompt_or_response_text(
+        self, mock_query: MagicMock
+    ) -> None:
+        distinctive_prompt = "DISTINCTIVE_PROMPT_PAYLOAD_ABC123"
+        distinctive_assistant_text = "DISTINCTIVE_ASSISTANT_CONTENT_DEF456"
+        distinctive_result_text = "DISTINCTIVE_RESULT_OUTPUT_GHI789"
+        mock_query.side_effect = self._create_fake_query(
+            [
+                AssistantMessage(
+                    content=[TextBlock(text=distinctive_assistant_text)],
+                    model=self.model_name,
+                ),
+                ResultMessage(
+                    subtype="execution_failure",
+                    duration_ms=50,
+                    duration_api_ms=50,
+                    is_error=True,
+                    num_turns=1,
+                    session_id="test-session-identifier",
+                    result=distinctive_result_text,
+                    api_error_status=500,
+                    errors=["internal_error"],
+                ),
+            ]
+        )
+
+        with self.assertRaises(LanguageModelUnavailable) as context:
+            self.adapter.generate(prompt=distinctive_prompt)
+
+        self.assertIsInstance(context.exception.__cause__, ClaudeBackendReportedError)
+        cause_message = str(context.exception.__cause__)
+        self.assertNotIn(distinctive_prompt, cause_message)
+        self.assertNotIn(distinctive_assistant_text, cause_message)
+        self.assertNotIn(distinctive_result_text, cause_message)
+
+    @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
+    def test_generate_with_usage_raises_language_model_unavailable_with_cause_on_assistant_error(
+        self, mock_query: MagicMock
+    ) -> None:
+        mock_query.side_effect = self._create_fake_query(
+            [
+                AssistantMessage(
+                    content=[TextBlock(text="API error")],
+                    model=self.model_name,
+                    error="rate_limit",
+                ),
+            ]
+        )
+
+        with self.assertRaises(LanguageModelUnavailable) as context:
+            self.adapter.generate_with_usage(prompt=self.sample_prompt)
+
+        self.assertIsInstance(context.exception.__cause__, ClaudeBackendReportedError)
+        self.assertEqual(str(context.exception.__cause__), "assistant error: rate_limit")
+
+    @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
+    def test_generate_with_usage_raises_language_model_unavailable_with_cause_on_result_error(
+        self, mock_query: MagicMock
+    ) -> None:
+        mock_query.side_effect = self._create_fake_query(
+            [
+                ResultMessage(
+                    subtype="error_during_execution",
+                    duration_ms=50,
+                    duration_api_ms=50,
+                    is_error=True,
+                    num_turns=1,
+                    session_id="test-session-identifier",
+                    api_error_status=429,
+                    errors=["quota exceeded"],
+                ),
+            ]
+        )
+
+        with self.assertRaises(LanguageModelUnavailable) as context:
+            self.adapter.generate_with_usage(prompt=self.sample_prompt)
+
+        self.assertIsInstance(context.exception.__cause__, ClaudeBackendReportedError)
+        self.assertEqual(
+            str(context.exception.__cause__),
+            "result error: subtype=error_during_execution, api_error_status=429, errors=['quota exceeded']",
+        )
 
     @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
     def test_generate_with_usage_raises_language_model_unavailable_on_sdk_error(

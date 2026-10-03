@@ -5,6 +5,7 @@ from claude_agent_sdk import (
     AssistantMessage,
     ClaudeAgentOptions,
     ClaudeSDKError,
+    RateLimitEvent,
     ResultMessage,
     TextBlock,
     query,
@@ -14,6 +15,9 @@ from src.domain.dtos.llm_generation_dto import LlmGenerationDTO
 from src.domain.enums.llm_done_reason import LlmDoneReason
 from src.domain.exceptions.language_model_errors import LanguageModelUnavailable
 from src.domain.ports.llm_generator_port import LlmGeneratorPort
+from src.infrastructure.adapters.llm_generator.claude_backend_reported_error import (
+    ClaudeBackendReportedError,
+)
 
 CLAUDE_STOP_REASON_TO_DONE_REASON: dict[str, str] = {
     "end_turn": LlmDoneReason.STOP.value,
@@ -67,10 +71,34 @@ class ClaudeGeneratorAdapter(LlmGeneratorPort):
             + (cache_creation_tokens if cache_creation_tokens is not None else 0)
         )
 
+    def _format_rate_limit_suffix(self, rate_limit_event: RateLimitEvent | None) -> str:
+        if rate_limit_event is not None and rate_limit_event.rate_limit_info.status == "rejected":
+            rate_limit_info = rate_limit_event.rate_limit_info
+            return f"; rate limit rejected (type={rate_limit_info.rate_limit_type}, resets_at={rate_limit_info.resets_at})"
+        return ""
+
+    def _build_assistant_error_detail(
+        self, message: AssistantMessage, latest_rate_limit_event: RateLimitEvent | None
+    ) -> str:
+        rate_limit_suffix = self._format_rate_limit_suffix(rate_limit_event=latest_rate_limit_event)
+        return f"assistant error: {message.error}{rate_limit_suffix}"
+
+    def _build_result_error_detail(
+        self, message: ResultMessage, latest_rate_limit_event: RateLimitEvent | None
+    ) -> str:
+        rate_limit_suffix = self._format_rate_limit_suffix(rate_limit_event=latest_rate_limit_event)
+        return (
+            f"result error: subtype={message.subtype}, "
+            f"api_error_status={message.api_error_status}, "
+            f"errors={message.errors}"
+            f"{rate_limit_suffix}"
+        )
+
     async def _execute_query(self, prompt: str) -> LlmGenerationDTO:
         """Execute the asynchronous query against Claude Agent SDK and assemble the result."""
         text_fragments: list[str] = []
         final_result_message: ResultMessage | None = None
+        latest_rate_limit_event: RateLimitEvent | None = None
 
         agent_options_parameters: dict[str, Any] = {
             "model": self._model_name,
@@ -85,15 +113,25 @@ class ClaudeGeneratorAdapter(LlmGeneratorPort):
         agent_options = ClaudeAgentOptions(**agent_options_parameters)
 
         async for message in query(prompt=prompt, options=agent_options):
-            if isinstance(message, AssistantMessage):
+            if isinstance(message, RateLimitEvent):
+                latest_rate_limit_event = message
+            elif isinstance(message, AssistantMessage):
                 if message.error is not None:
-                    raise LanguageModelUnavailable()
+                    detail = self._build_assistant_error_detail(
+                        message=message,
+                        latest_rate_limit_event=latest_rate_limit_event,
+                    )
+                    raise LanguageModelUnavailable() from ClaudeBackendReportedError(detail)
                 for block in message.content:
                     if isinstance(block, TextBlock):
                         text_fragments.append(block.text)
             elif isinstance(message, ResultMessage):
                 if message.is_error:
-                    raise LanguageModelUnavailable()
+                    detail = self._build_result_error_detail(
+                        message=message,
+                        latest_rate_limit_event=latest_rate_limit_event,
+                    )
+                    raise LanguageModelUnavailable() from ClaudeBackendReportedError(detail)
                 final_result_message = message
 
         raw_usage = final_result_message.usage if final_result_message is not None else None
