@@ -37,11 +37,161 @@ class TestEditorialSuitabilityParserAlignment(TestCase):
         self.assertLess(len(justification), 120)
         self.assertFalse(justification.endswith("WOR…"))
 
-    def test_long_lines_truncated_to_eighty_characters_at_word_boundary(self):
-        raw = f"VEREDICTO: ALINEADO\nLINEAS: {'WORD ' * 20}END.\n"
+    def test_long_lines_truncated_to_two_hundred_characters_at_word_boundary(self):
+        raw = f"VEREDICTO: ALINEADO\nLINEAS: {'WORD ' * 45}END.\n"
 
         _verdict, lines, _justification = self.parser.parse_alignment(raw)
 
-        expected_prefix = "WORD " * 14 + "WORD"
+        expected_prefix = "WORD " * 38 + "WORD"
         self.assertEqual(lines, expected_prefix + "…")
-        self.assertLess(len(lines), 80)
+        self.assertLess(len(lines), 200)
+
+    def test_bold_labels_with_colon_inside_bold_are_parsed_without_markdown(self):
+        raw = (
+            "**VEREDICTO:** PARCIALMENTE ALINEADO\n"
+            "**LINEAS:** Línea 4 (ciberespacio) y Línea 6 (inteligencia).\n"
+            "**JUSTIFICACION:** El artículo aborda mecanismos de razonamiento emergente.\n"
+        )
+
+        verdict, lines, justification = self.parser.parse_alignment(raw)
+
+        self.assertEqual(verdict, "PARCIALMENTE ALINEADO")
+        self.assertEqual(lines, "Línea 4 (ciberespacio) y Línea 6 (inteligencia).")
+        self.assertEqual(
+            justification,
+            "El artículo aborda mecanismos de razonamiento emergente.",
+        )
+        self.assertFalse(lines.startswith("*"))
+        self.assertFalse(lines.startswith(":"))
+        self.assertFalse(lines.startswith(" "))
+        self.assertNotIn("**", lines)
+        self.assertFalse(justification.startswith("*"))
+        self.assertFalse(justification.startswith(":"))
+        self.assertFalse(justification.startswith(" "))
+        self.assertNotIn("**", justification)
+
+    def test_bold_labels_with_colon_outside_bold_are_parsed_without_markdown(self):
+        raw = (
+            "**VEREDICTO**: PARCIALMENTE ALINEADO\n"
+            "**LINEAS**: Línea 4 (ciberespacio) y Línea 6 (inteligencia).\n"
+            "**JUSTIFICACION**: El artículo aborda mecanismos de razonamiento emergente.\n"
+        )
+
+        verdict, lines, justification = self.parser.parse_alignment(raw)
+
+        self.assertEqual(verdict, "PARCIALMENTE ALINEADO")
+        self.assertEqual(lines, "Línea 4 (ciberespacio) y Línea 6 (inteligencia).")
+        self.assertEqual(
+            justification,
+            "El artículo aborda mecanismos de razonamiento emergente.",
+        )
+        self.assertFalse(lines.startswith("*"))
+        self.assertFalse(lines.startswith(":"))
+        self.assertFalse(lines.startswith(" "))
+        self.assertNotIn("**", lines)
+        self.assertFalse(justification.startswith("*"))
+        self.assertFalse(justification.startswith(":"))
+        self.assertFalse(justification.startswith(" "))
+        self.assertNotIn("**", justification)
+
+    def test_paired_bold_in_middle_of_lines_and_justification_is_stripped(self):
+        raw = (
+            "VEREDICTO: PARCIALMENTE ALINEADO\n"
+            "LINEAS: Línea 4 sobre **ciberespacio** e IA.\n"
+            "JUSTIFICACION: Aborda la **síntesis** de tres modelos.\n"
+        )
+
+        verdict, lines, justification = self.parser.parse_alignment(raw)
+
+        self.assertEqual(verdict, "PARCIALMENTE ALINEADO")
+        self.assertEqual(lines, "Línea 4 sobre ciberespacio e IA.")
+        self.assertEqual(justification, "Aborda la síntesis de tres modelos.")
+        self.assertNotIn("**", lines)
+        self.assertNotIn("**", justification)
+
+    def test_multiline_list_under_lineas_label_joined_with_semicolon(self):
+        raw = (
+            "VEREDICTO: PARCIALMENTE ALINEADO\n\n"
+            "LINEAS: \n"
+            "- Línea 4: Dinámica de los conflictos en el ciberespacio (IA y convergencia ciber-física)\n"
+            "- Línea 6: Inteligencia en los diversos ámbitos de conflicto (IA y ciclo de inteligencia)\n"
+            "- Línea 7: Ciencia, tecnología y producción en la defensa (IA y autonomía tecnológica)\n\n"
+            "JUSTIFICACION: El artículo aborda mecanismos fundamentales de razonamiento emergente.\n"
+        )
+
+        verdict, lines, justification = self.parser.parse_alignment(raw)
+
+        self.assertEqual(verdict, "PARCIALMENTE ALINEADO")
+        self.assertFalse(lines.startswith("-"))
+        self.assertTrue(lines.startswith("Línea 4: Dinámica de los conflictos en el ciberespacio"))
+        self.assertLess(len(lines), 200)
+        self.assertEqual(
+            justification,
+            "El artículo aborda mecanismos fundamentales de razonamiento emergente.",
+        )
+
+    def test_multiline_list_under_bold_lineas_label_joined_with_semicolon(self):
+        raw = (
+            "**VEREDICTO:** PARCIALMENTE ALINEADO\n\n"
+            "**LINEAS:**\n"
+            "- Línea 4: Ciberespacio e inteligencia artificial\n"
+            "- Línea 6: Ciclo de inteligencia y toma de decisiones\n"
+            "**JUSTIFICACION:** Conexión temática identificada.\n"
+        )
+
+        verdict, lines, justification = self.parser.parse_alignment(raw)
+
+        self.assertEqual(verdict, "PARCIALMENTE ALINEADO")
+        self.assertEqual(
+            lines,
+            "Línea 4: Ciberespacio e inteligencia artificial; Línea 6: Ciclo de inteligencia y toma de decisiones",
+        )
+        self.assertEqual(justification, "Conexión temática identificada.")
+
+    def test_numbered_one_line_form_does_not_cut_at_first_number_period(self):
+        raw = (
+            "VEREDICTO: PARCIALMENTE ALINEADO\n\n"
+            "LINEAS: 3. Recursos humanos para la defensa (factores humanos en IA); "
+            "4. Dinámica de los conflictos en el ciberespacio (IA); "
+            "7. Ciencia, tecnología y producción en la defensa (IA, sistemas autónomos).\n\n"
+            "JUSTIFICACION: El artículo es un estudio técnico de ciencia cognitiva computacional.\n"
+        )
+
+        verdict, lines, justification = self.parser.parse_alignment(raw)
+
+        self.assertEqual(verdict, "PARCIALMENTE ALINEADO")
+        self.assertNotEqual(lines, "3.")
+        self.assertTrue(lines.startswith("3. Recursos humanos para la defensa"))
+        self.assertIn("4. Dinámica", lines)
+        self.assertLess(len(lines), 200)
+        self.assertEqual(
+            justification,
+            "El artículo es un estudio técnico de ciencia cognitiva computacional.",
+        )
+
+    def test_extract_first_sentence_does_not_stop_at_decimal_period(self):
+        raw = (
+            "VEREDICTO: ALINEADO\n"
+            "LINEAS: Línea 1.5 de investigación tecnológica prioritaria. Segunda oración no relevante.\n"
+            "JUSTIFICACION: Justificación adecuada.\n"
+        )
+
+        _verdict, lines, _justification = self.parser.parse_alignment(raw)
+
+        self.assertEqual(
+            lines,
+            "Línea 1.5 de investigación tecnológica prioritaria.",
+        )
+
+    def test_plain_one_line_form_still_works(self):
+        raw = (
+            "VEREDICTO: ALINEADO\n"
+            "LINEAS: Línea 4 (ciberespacio) y Línea 6 (inteligencia).\n"
+            "JUSTIFICACION: Justificación breve y directa.\n"
+        )
+
+        verdict, lines, justification = self.parser.parse_alignment(raw)
+
+        self.assertEqual(verdict, "ALINEADO")
+        self.assertEqual(lines, "Línea 4 (ciberespacio) y Línea 6 (inteligencia).")
+        self.assertEqual(justification, "Justificación breve y directa.")

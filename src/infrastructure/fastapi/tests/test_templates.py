@@ -1,7 +1,4 @@
-from pathlib import Path
 from unittest import TestCase
-
-from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from src.domain.dtos.editorial_suitability_dto import EditorialSuitabilityDTO
 from src.domain.dtos.recommendation_dto import RecommendationDTO
@@ -13,17 +10,13 @@ from src.infrastructure.fastapi.src.config.dependencies import (
 )
 from src.infrastructure.tests.adapters.report.fixtures import ReportFixtures
 
-TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
-
 
 class TestFastApiTemplates(TestCase):
     """Unit tests for Jinja2 templates rendering and structure."""
 
     def setUp(self) -> None:
-        self.env = Environment(
-            loader=FileSystemLoader(str(TEMPLATES_DIR)),
-            autoescape=select_autoescape(["html", "xml"]),
-        )
+        self.templates = get_templates()
+        self.env = self.templates.env
 
     def test_base_template_renders_structure_and_assets(self) -> None:
         template = self.env.get_template("base.html")
@@ -35,6 +28,13 @@ class TestFastApiTemplates(TestCase):
         self.assertIn("logo-container", rendered)
         self.assertIn("Silvina - Asistente Editorial", rendered)
         self.assertIn("footer", rendered)
+
+    def test_base_template_renders_stylesheet_with_cache_busting_version(self) -> None:
+        templates = get_templates()
+        template = templates.get_template("base.html")
+        rendered = template.render()
+
+        self.assertIn("silvina.css?v=", rendered)
 
     def test_base_template_renders_configured_version_and_application_name(self) -> None:
         templates = get_templates()
@@ -169,3 +169,154 @@ class TestFastApiTemplates(TestCase):
 
         self.assertIn("El documento está vacío o dañado.", rendered)
         self.assertIn("error-callout", rendered)
+
+    def test_results_template_renders_inline_bold_across_feedback_fields(self) -> None:
+        quality = ReportFixtures.make_quality_mock()
+        quality.dimension_scores = {
+            "claridad": {
+                "score": 9.0,
+                "feedback": "Dimensión con **claridad conceptual excelente** demostrada.",
+            }
+        }
+        quality.editorial_suitability = EditorialSuitabilityDTO(
+            contribution_verdict="SUSTENTADA",
+            contribution_phrase="Aporte metodológico claro.",
+            contribution_observation="Aporte **altamente sustentado** en datos.",
+            alignment_verdict="ALINEADO",
+            alignment_lines="Línea 1",
+            alignment_justification="Tema **perfectamente alineado** con el área.",
+        )
+        recommendation = RecommendationDTO(
+            priority=RecommendationPriority.HIGH,
+            message="Problema crítico: resolver **de inmediato** la sección.",
+        )
+        report = ReportFixtures.make_report_input_dto(
+            quality=quality,
+            recommendations=[recommendation],
+        )
+
+        template = self.env.get_template("partials/_results.html")
+        rendered = template.render(
+            report=report,
+            word_filename="bold_analisis.docx",
+            json_filename="bold_analisis.json",
+        )
+
+        self.assertIn("<strong>claridad conceptual excelente</strong>", rendered)
+        self.assertIn("<strong>altamente sustentado</strong>", rendered)
+        self.assertIn("<strong>perfectamente alineado</strong>", rendered)
+        self.assertIn("<strong>de inmediato</strong>", rendered)
+        self.assertNotIn("**claridad conceptual excelente**", rendered)
+        self.assertNotIn("**altamente sustentado**", rendered)
+        self.assertNotIn("**perfectamente alineado**", rendered)
+        self.assertNotIn("**de inmediato**", rendered)
+
+    def test_results_template_renders_structured_feedback_blocks_when_present(self) -> None:
+        quality = ReportFixtures.make_quality_mock()
+        quality.dimension_scores = {
+            "claridad": {
+                "score": 9.0,
+                "feedback": "Texto plano de respaldo.",
+                "feedback_blocks": [
+                    {
+                        "kind": "title",
+                        "text": "Fortalezas",
+                        "level": 0,
+                        "marker": "",
+                    },
+                    {
+                        "kind": "item",
+                        "text": "Item con <script>alerta</script> y frase **muy relevante**.",
+                        "level": 0,
+                        "marker": "•",
+                    },
+                    {
+                        "kind": "item",
+                        "text": "Segundo item numerado.",
+                        "level": 0,
+                        "marker": "1.",
+                    },
+                    {
+                        "kind": "item",
+                        "text": "Detalle anidado nivel uno.",
+                        "level": 1,
+                        "marker": "•",
+                    },
+                ],
+            }
+        }
+        report = ReportFixtures.make_report_input_dto(quality=quality)
+
+        template = self.env.get_template("partials/_results.html")
+        rendered = template.render(
+            report=report,
+            word_filename="blocks_analisis.docx",
+            json_filename="blocks_analisis.json",
+        )
+
+        self.assertIn('<div class="feedback-block-title">Fortalezas</div>', rendered)
+        self.assertIn("feedback-block-marker", rendered)
+        self.assertIn("•", rendered)
+        self.assertIn("1.", rendered)
+        self.assertIn("<strong>muy relevante</strong>", rendered)
+        self.assertNotIn("**muy relevante**", rendered)
+        self.assertIn("&lt;script&gt;alerta&lt;/script&gt;", rendered)
+        self.assertNotIn("<script>alerta</script>", rendered)
+        self.assertIn("level-1", rendered)
+        self.assertNotIn("Texto plano de respaldo.", rendered)
+
+    def test_results_template_renders_flat_feedback_when_blocks_empty(self) -> None:
+        quality = ReportFixtures.make_quality_mock()
+        quality.dimension_scores = {
+            "claridad": {
+                "score": 8.0,
+                "feedback": "Dimensión clásica con **texto plano**.",
+                "feedback_blocks": [],
+            }
+        }
+        report = ReportFixtures.make_report_input_dto(quality=quality)
+
+        template = self.env.get_template("partials/_results.html")
+        rendered = template.render(
+            report=report,
+            word_filename="flat_analisis.docx",
+            json_filename="flat_analisis.json",
+        )
+
+        self.assertIn("Dimensión clásica con <strong>texto plano</strong>.", rendered)
+        self.assertNotIn("feedback-block-title", rendered)
+        self.assertNotIn("feedback-block-item", rendered)
+
+    def test_results_template_renders_level_two_block_with_level_two_class(self) -> None:
+        quality = ReportFixtures.make_quality_mock()
+        quality.dimension_scores = {
+            "claridad": {
+                "score": 9.0,
+                "feedback": "Texto plano de respaldo.",
+                "feedback_blocks": [
+                    {
+                        "kind": "item",
+                        "text": "Elemento hijo de segundo nivel.",
+                        "level": 2,
+                        "marker": "•",
+                    },
+                    {
+                        "kind": "text",
+                        "text": "Párrafo de segundo nivel.",
+                        "level": 2,
+                        "marker": "",
+                    },
+                ],
+            }
+        }
+        report = ReportFixtures.make_report_input_dto(quality=quality)
+
+        template = self.env.get_template("partials/_results.html")
+        rendered = template.render(
+            report=report,
+            word_filename="blocks_analisis.docx",
+            json_filename="blocks_analisis.json",
+        )
+
+        self.assertIn("feedback-block-item level-2", rendered)
+        self.assertIn("feedback-block-text level-2", rendered)
