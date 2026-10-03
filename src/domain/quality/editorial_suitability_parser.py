@@ -88,10 +88,13 @@ class EditorialSuitabilityParser:
             return cleaned_first_line
 
         list_items: list[str] = []
+        has_started_list = False
         for raw_line in subsequent_lines.split("\n"):
             stripped_line = raw_line.strip()
             if not stripped_line:
-                break
+                if has_started_list:
+                    break
+                continue
             if _NEXT_LABEL_PATTERN.match(stripped_line):
                 break
             list_match = _LIST_MARKER_PATTERN.match(stripped_line)
@@ -100,6 +103,7 @@ class EditorialSuitabilityParser:
             item_content = list_match.group(1).replace("**", "").strip()
             if item_content:
                 list_items.append(item_content)
+                has_started_list = True
 
         return "; ".join(list_items)
 
@@ -145,10 +149,12 @@ class EditorialSuitabilityParser:
         digit_count = digit_end - digit_start
         if not (1 <= digit_count <= 2):
             return False
-        if digit_start == 0:
+        delimiter_index = digit_start - 1
+        while delimiter_index >= 0 and text[delimiter_index] in (" ", "\t"):
+            delimiter_index -= 1
+        if delimiter_index < 0:
             return True
-        previous_character = text[digit_start - 1]
-        return previous_character.isspace() or previous_character in "([;,-"
+        return text[delimiter_index] in (";", ",", "(", "[")
 
     def _truncate_to_word_boundary(self, text: str, max_length: int) -> str:
         limit = max_length - 2

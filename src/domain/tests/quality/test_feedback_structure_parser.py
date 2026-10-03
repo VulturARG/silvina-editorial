@@ -1,3 +1,4 @@
+from time import perf_counter
 from unittest import TestCase
 
 from src.domain.enums.feedback_block_kind import FeedbackBlockKind
@@ -568,3 +569,127 @@ class TestFeedbackStructureParser(TestCase):
         self.assertEqual(len(level_one_blocks), 5)
         self.assertEqual(len(level_two_blocks), 7)
         self.assertNotIn("Falta de contraste entre hipótesis", [b.text for b in blocks])
+
+    def test_plain_line_ending_in_colon_without_preceding_blank_line_does_not_open_section_and_makes_items_children(
+        self,
+    ):
+        lines = [
+            "### Sección Principal",
+            "Párrafo de texto explicativo.",
+            "Por ejemplo:",
+            "- Primer ejemplo ilustrativo",
+            "- Segundo ejemplo ilustrativo",
+        ]
+        parser = FeedbackStructureParser()
+        blocks = parser.parse(lines=lines, dimension_heading_level=0)
+
+        self.assertEqual(len(blocks), 5)
+        self.assertEqual(blocks[0].kind, FeedbackBlockKind.TITLE)
+        self.assertEqual(blocks[0].text, "Sección Principal")
+        self.assertEqual(blocks[1].kind, FeedbackBlockKind.TEXT)
+        self.assertEqual(blocks[1].text, "Párrafo de texto explicativo.")
+        self.assertEqual(blocks[2].kind, FeedbackBlockKind.TEXT)
+        self.assertEqual(blocks[2].text, "Por ejemplo:")
+        self.assertEqual(blocks[2].level, 0)
+        self.assertEqual(blocks[3].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[3].text, "Primer ejemplo ilustrativo")
+        self.assertEqual(blocks[3].level, 1)
+        self.assertEqual(blocks[4].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[4].text, "Segundo ejemplo ilustrativo")
+        self.assertEqual(blocks[4].level, 1)
+        self.assertNotIn(
+            "Por ejemplo",
+            [block.text for block in blocks if block.kind == FeedbackBlockKind.TITLE],
+        )
+
+    def test_plain_line_ending_in_colon_without_preceding_blank_line_does_not_reset_section_cap(
+        self,
+    ):
+        lines = [
+            "### Sección Principal",
+            "- Elemento previo uno",
+            "- Elemento previo dos",
+            "Por ejemplo:",
+            "- Primer ejemplo dependiente",
+        ]
+        parser = FeedbackStructureParser(maximum_items_per_section=2)
+        blocks = parser.parse(lines=lines, dimension_heading_level=0)
+
+        self.assertEqual(len(blocks), 3)
+        self.assertEqual(blocks[0].kind, FeedbackBlockKind.TITLE)
+        self.assertEqual(blocks[1].text, "Elemento previo uno")
+        self.assertEqual(blocks[2].text, "Elemento previo dos")
+        self.assertNotIn("Primer ejemplo dependiente", [block.text for block in blocks])
+
+    def test_plain_line_ending_in_colon_preceded_by_blank_line_is_title(self):
+        lines = [
+            "### Sección Principal",
+            "Párrafo de texto explicativo.",
+            "",
+            "Por ejemplo:",
+            "- Primer ejemplo ilustrativo",
+            "- Segundo ejemplo ilustrativo",
+        ]
+        parser = FeedbackStructureParser()
+        blocks = parser.parse(lines=lines, dimension_heading_level=0)
+
+        self.assertEqual(len(blocks), 5)
+        self.assertEqual(blocks[0].kind, FeedbackBlockKind.TITLE)
+        self.assertEqual(blocks[0].text, "Sección Principal")
+        self.assertEqual(blocks[1].kind, FeedbackBlockKind.TEXT)
+        self.assertEqual(blocks[2].kind, FeedbackBlockKind.TITLE)
+        self.assertEqual(blocks[2].text, "Por ejemplo")
+        self.assertEqual(blocks[3].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[3].text, "Primer ejemplo ilustrativo")
+        self.assertEqual(blocks[3].level, 0)
+        self.assertEqual(blocks[4].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[4].text, "Segundo ejemplo ilustrativo")
+        self.assertEqual(blocks[4].level, 0)
+
+    def test_first_non_empty_line_of_block_ending_in_colon_is_title(self):
+        lines = [
+            "",
+            "Por ejemplo:",
+            "- Primer ejemplo ilustrativo",
+            "- Segundo ejemplo ilustrativo",
+        ]
+        parser = FeedbackStructureParser()
+        blocks = parser.parse(lines=lines, dimension_heading_level=0)
+
+        self.assertEqual(len(blocks), 3)
+        self.assertEqual(blocks[0].kind, FeedbackBlockKind.TITLE)
+        self.assertEqual(blocks[0].text, "Por ejemplo")
+        self.assertEqual(blocks[1].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[1].text, "Primer ejemplo ilustrativo")
+        self.assertEqual(blocks[1].level, 0)
+        self.assertEqual(blocks[2].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[2].text, "Segundo ejemplo ilustrativo")
+        self.assertEqual(blocks[2].level, 0)
+
+    def test_block_of_two_thousand_lines_parses_under_two_seconds_and_matches_small_version(
+        self,
+    ):
+        single_unit_lines = [
+            "### Sección de prueba",
+            "- Elemento de lista principal uno",
+            "- Elemento de lista principal dos",
+            "Párrafo explicativo que introduce detalles:",
+            "- Sub-elemento dependiente alfa",
+            "- Sub-elemento dependiente beta",
+            "",
+        ]
+        parser = FeedbackStructureParser()
+        single_unit_blocks = parser.parse(lines=single_unit_lines, dimension_heading_level=0)
+
+        repeat_count = 350
+        large_lines = single_unit_lines * repeat_count
+        start_time = perf_counter()
+        large_blocks = parser.parse(lines=large_lines, dimension_heading_level=0)
+        elapsed_seconds = perf_counter() - start_time
+
+        self.assertLess(elapsed_seconds, 2.0)
+        self.assertEqual(len(large_blocks), len(single_unit_blocks) * repeat_count)
+        self.assertEqual(
+            [block.text for block in large_blocks[: len(single_unit_blocks)]],
+            [block.text for block in single_unit_blocks],
+        )
