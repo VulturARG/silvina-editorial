@@ -25,8 +25,9 @@ CLAUDE_STOP_REASON_TO_DONE_REASON: dict[str, str] = {
 class ClaudeGeneratorAdapter(LlmGeneratorPort):
     """Generates text via the Claude Agent SDK backend."""
 
-    def __init__(self, model_name: str) -> None:
+    def __init__(self, model_name: str, think: bool) -> None:
         self._model_name = model_name
+        self._think = think
 
     def generate(self, prompt: str, options: dict | None = None) -> str:
         """Return Claude's generated text for the given prompt."""
@@ -57,13 +58,17 @@ class ClaudeGeneratorAdapter(LlmGeneratorPort):
         text_fragments: list[str] = []
         final_result_message: ResultMessage | None = None
 
-        agent_options = ClaudeAgentOptions(
-            model=self._model_name,
-            tools=[],
-            max_turns=1,
-            setting_sources=[],
-            env={"ANTHROPIC_API_KEY": ""},
-        )
+        agent_options_parameters: dict[str, Any] = {
+            "model": self._model_name,
+            "tools": [],
+            "max_turns": 1,
+            "setting_sources": [],
+            "env": {"ANTHROPIC_API_KEY": ""},
+        }
+        if not self._think:
+            agent_options_parameters["thinking"] = {"type": "disabled"}
+
+        agent_options = ClaudeAgentOptions(**agent_options_parameters)
 
         async for message in query(prompt=prompt, options=agent_options):
             if isinstance(message, AssistantMessage):

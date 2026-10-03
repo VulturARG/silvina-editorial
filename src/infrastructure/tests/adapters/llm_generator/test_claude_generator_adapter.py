@@ -30,7 +30,10 @@ class TestClaudeGeneratorAdapter(TestCase):
         self.model_name = "claude-sonnet-4-5-20250929"
         self.sample_prompt = "Analyze this text"
         self.sample_options = {"temperature": 0.2, "num_predict": 500}
-        self.adapter = ClaudeGeneratorAdapter(model_name=self.model_name)
+        self.adapter = ClaudeGeneratorAdapter(
+            model_name=self.model_name,
+            think=False,
+        )
 
     def _create_fake_query(
         self,
@@ -369,6 +372,7 @@ class TestClaudeGeneratorAdapter(TestCase):
             max_turns=1,
             setting_sources=[],
             env={"ANTHROPIC_API_KEY": ""},
+            thinking={"type": "disabled"},
         )
         mock_query.assert_called_once_with(
             prompt=self.sample_prompt,
@@ -396,6 +400,7 @@ class TestClaudeGeneratorAdapter(TestCase):
             max_turns=1,
             setting_sources=[],
             env={"ANTHROPIC_API_KEY": ""},
+            thinking={"type": "disabled"},
         )
         mock_query.assert_called_once_with(
             prompt=self.sample_prompt,
@@ -414,6 +419,70 @@ class TestClaudeGeneratorAdapter(TestCase):
         )
 
         self.adapter.generate(prompt=self.sample_prompt)
+
+        expected_options = ClaudeAgentOptions(
+            model=self.model_name,
+            tools=[],
+            max_turns=1,
+            setting_sources=[],
+            env={"ANTHROPIC_API_KEY": ""},
+            thinking={"type": "disabled"},
+        )
+        mock_query.assert_called_once_with(
+            prompt=self.sample_prompt,
+            options=expected_options,
+        )
+
+    @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
+    def test_generate_passes_claude_agent_options_with_thinking_disabled_when_think_is_false(
+        self, mock_query: MagicMock
+    ) -> None:
+        mock_query.side_effect = self._create_fake_query(
+            [
+                AssistantMessage(
+                    content=[TextBlock(text="answer")],
+                    model=self.model_name,
+                ),
+            ]
+        )
+        adapter = ClaudeGeneratorAdapter(
+            model_name=self.model_name,
+            think=False,
+        )
+
+        adapter.generate(prompt=self.sample_prompt)
+
+        expected_options = ClaudeAgentOptions(
+            model=self.model_name,
+            tools=[],
+            max_turns=1,
+            setting_sources=[],
+            env={"ANTHROPIC_API_KEY": ""},
+            thinking={"type": "disabled"},
+        )
+        mock_query.assert_called_once_with(
+            prompt=self.sample_prompt,
+            options=expected_options,
+        )
+
+    @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
+    def test_generate_passes_claude_agent_options_without_thinking_when_think_is_true(
+        self, mock_query: MagicMock
+    ) -> None:
+        mock_query.side_effect = self._create_fake_query(
+            [
+                AssistantMessage(
+                    content=[TextBlock(text="answer")],
+                    model=self.model_name,
+                ),
+            ]
+        )
+        adapter = ClaudeGeneratorAdapter(
+            model_name=self.model_name,
+            think=True,
+        )
+
+        adapter.generate(prompt=self.sample_prompt)
 
         expected_options = ClaudeAgentOptions(
             model=self.model_name,

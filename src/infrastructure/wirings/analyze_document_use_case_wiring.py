@@ -270,6 +270,7 @@ class AnalyzeDocumentUseCaseWiring:
                 self._llm_backend_generator_instance = ExternalLlmGeneratorLoader().load(
                     provider=env_config.llm_provider,
                     model_name=self._get_active_model_name(),
+                    think=env_config.external_llm_think,
                 )
         return self._llm_backend_generator_instance
 

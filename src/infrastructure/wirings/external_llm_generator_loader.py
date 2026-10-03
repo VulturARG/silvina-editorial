@@ -21,7 +21,12 @@ class ExternalLlmGeneratorLoader:
     ) -> None:
         self._registry = _DEFAULT_REGISTRY if registry is None else registry
 
-    def load(self, provider: AiProvider, model_name: str) -> LlmGeneratorPort:
+    def load(
+        self,
+        provider: AiProvider,
+        model_name: str,
+        think: bool,
+    ) -> LlmGeneratorPort:
         """Instantiate and return an external language model generator adapter."""
         if provider not in self._registry:
             raise ValueError(
@@ -35,5 +40,8 @@ class ExternalLlmGeneratorLoader:
             raise LanguageModelBackendNotInstalled() from exception
 
         adapter_class = getattr(module, class_name)
-        generator_instance: LlmGeneratorPort = adapter_class(model_name=model_name)
+        generator_instance: LlmGeneratorPort = adapter_class(
+            model_name=model_name,
+            think=think,
+        )
         return generator_instance

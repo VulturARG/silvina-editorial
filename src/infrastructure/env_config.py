@@ -68,6 +68,7 @@ class EnvConfig:
         )
         self.ollama_base_url: str = getenv("OLLAMA_BASE_URL", "http://localhost:11434")
         self.ollama_think: bool = self._parse_boolean("OLLAMA_THINK", "false")
+        self.external_llm_think: bool = self._parse_boolean("EXTERNAL_LLM_THINK", "false")
         self.app_mode: AppMode = AppMode(getenv("APP_MODE", "PROD").strip().upper())
         self.use_external_llm: bool = self._parse_boolean("USE_EXTERNAL_LLM", "false")
         self.llm_provider: AiProvider = self._parse_llm_provider(

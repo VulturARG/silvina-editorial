@@ -40,6 +40,7 @@ class TestEnvConfig(TestCase):
         )
         self.assertEqual(config.ollama_base_url, "http://localhost:11434")
         self.assertFalse(config.ollama_think)
+        self.assertFalse(config.external_llm_think)
         self.assertAlmostEqual(config.publish_threshold, 7.0)
         self.assertAlmostEqual(config.quality_threshold, 7.0)
         self.assertAlmostEqual(config.grammar_threshold, 7.0)
@@ -143,6 +144,44 @@ class TestEnvConfig(TestCase):
                     with self.assertRaises(ValueError) as context:
                         EnvConfig()
                     self.assertIn("OLLAMA_THINK", str(context.exception))
+
+    def test_env_var_overrides_external_llm_think_to_true(self):
+        with patch.dict(environ, {"EXTERNAL_LLM_THINK": "true"}):
+            config = EnvConfig()
+        self.assertTrue(config.external_llm_think)
+
+    def test_env_var_accepts_case_and_whitespace_variations_for_external_llm_think(self):
+        with patch.dict(environ, {"EXTERNAL_LLM_THINK": " TRUE "}):
+            config_true = EnvConfig()
+        self.assertTrue(config_true.external_llm_think)
+
+        with patch.dict(environ, {"EXTERNAL_LLM_THINK": "False"}):
+            config_false = EnvConfig()
+        self.assertFalse(config_false.external_llm_think)
+
+        with patch.dict(environ, {"EXTERNAL_LLM_THINK": "  false  "}):
+            config_spaced_false = EnvConfig()
+        self.assertFalse(config_spaced_false.external_llm_think)
+
+    def test_invalid_external_llm_think_value_raises_value_error(self):
+        invalid_values = ["yes", "1", ""]
+        for invalid_value in invalid_values:
+            with self.subTest(invalid_value=invalid_value):
+                with patch.dict(environ, {"EXTERNAL_LLM_THINK": invalid_value}):
+                    with self.assertRaises(ValueError) as context:
+                        EnvConfig()
+                    self.assertIn("EXTERNAL_LLM_THINK", str(context.exception))
+
+    def test_external_llm_think_is_parsed_even_when_external_llm_is_inactive(self):
+        environment = {
+            **self.REQUIRED_ENVIRONMENT,
+            "APP_MODE": "PROD",
+            "USE_EXTERNAL_LLM": "false",
+            "EXTERNAL_LLM_THINK": "true",
+        }
+        with patch.dict(environ, environment, clear=True):
+            config = EnvConfig()
+        self.assertTrue(config.external_llm_think)
 
     def test_env_var_overrides_quality_threshold(self):
         with patch.dict(environ, {"QUALITY_THRESHOLD": "6.5"}):

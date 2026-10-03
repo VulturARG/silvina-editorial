@@ -68,6 +68,8 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         quality_generator = use_case._quality_analyzer._llm_generator
         self.assertIsInstance(classifier_generator, AuditedLlmGeneratorAdapter)
         self.assertIsInstance(quality_generator, AuditedLlmGeneratorAdapter)
+        assert isinstance(classifier_generator, AuditedLlmGeneratorAdapter)
+        assert isinstance(quality_generator, AuditedLlmGeneratorAdapter)
         self.assertIs(
             classifier_generator._generator,
             quality_generator._generator,
@@ -84,16 +86,19 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         )
 
         self.assertIsInstance(classifier_generator, AuditedLlmGeneratorAdapter)
+        assert isinstance(classifier_generator, AuditedLlmGeneratorAdapter)
         self.assertEqual(classifier_generator._provider, AiProvider.OLLAMA)
         self.assertEqual(classifier_generator._model_name, "custom-editorial-model")
         self.assertEqual(classifier_generator._purpose, AiPurpose.ARTICLE_CLASSIFICATION)
 
         self.assertIsInstance(quality_generator, AuditedLlmGeneratorAdapter)
+        assert isinstance(quality_generator, AuditedLlmGeneratorAdapter)
         self.assertEqual(quality_generator._provider, AiProvider.OLLAMA)
         self.assertEqual(quality_generator._model_name, "custom-editorial-model")
         self.assertEqual(quality_generator._purpose, AiPurpose.QUALITY_ANALYSIS)
 
         self.assertIsInstance(editorial_generator, AuditedLlmGeneratorAdapter)
+        assert isinstance(editorial_generator, AuditedLlmGeneratorAdapter)
         self.assertEqual(editorial_generator._provider, AiProvider.OLLAMA)
         self.assertEqual(editorial_generator._model_name, "custom-editorial-model")
         self.assertEqual(editorial_generator._purpose, AiPurpose.EDITORIAL_SUITABILITY)
@@ -109,6 +114,9 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         self.assertIsInstance(classifier_generator, AuditedLlmGeneratorAdapter)
         self.assertIsInstance(quality_generator, AuditedLlmGeneratorAdapter)
         self.assertIsInstance(editorial_generator, AuditedLlmGeneratorAdapter)
+        assert isinstance(classifier_generator, AuditedLlmGeneratorAdapter)
+        assert isinstance(quality_generator, AuditedLlmGeneratorAdapter)
+        assert isinstance(editorial_generator, AuditedLlmGeneratorAdapter)
 
         tracker_metrics_port = use_case._analysis_tracker._metrics_recorder._metrics_port
 
@@ -147,9 +155,11 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
                 wiring = AnalyzeDocumentUseCaseWiring()
                 metrics_port = wiring._get_analysis_metrics_port()
                 self.assertIsInstance(metrics_port, FailSafeAnalysisMetricsAdapter)
+                assert isinstance(metrics_port, FailSafeAnalysisMetricsAdapter)
                 self.assertIsInstance(
                     metrics_port._analysis_metrics_port, SqliteAnalysisMetricsAdapter
                 )
+                assert isinstance(metrics_port._analysis_metrics_port, SqliteAnalysisMetricsAdapter)
                 self.assertEqual(
                     metrics_port._analysis_metrics_port._database_path, configured_database_path
                 )
@@ -313,6 +323,7 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
         port = result._citation_extractor._citation_extraction_port
         self.assertIsInstance(port, DocxCitationAdapter)
+        assert isinstance(port, DocxCitationAdapter)
         self.assertEqual(port._max_author_name_length, 5)
 
     def test_default_citation_max_author_name_length_when_env_var_absent(self):
@@ -322,6 +333,7 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
         port = result._citation_extractor._citation_extraction_port
         self.assertIsInstance(port, DocxCitationAdapter)
+        assert isinstance(port, DocxCitationAdapter)
         self.assertEqual(port._max_author_name_length, 100)
 
     def test_env_var_overrides_grammar_max_replacements(self):
@@ -329,6 +341,7 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
         port = result._grammar_checker._grammar_check_port
         self.assertIsInstance(port, LanguageToolAdapter)
+        assert isinstance(port, LanguageToolAdapter)
         self.assertEqual(port._max_replacements, 2)
 
     def test_default_grammar_max_replacements_when_env_var_absent(self):
@@ -338,29 +351,38 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
         port = result._grammar_checker._grammar_check_port
         self.assertIsInstance(port, LanguageToolAdapter)
+        assert isinstance(port, LanguageToolAdapter)
         self.assertEqual(port._max_replacements, 3)
 
     def test_default_ollama_think_when_env_var_absent(self):
         env_without = {k: v for k, v in environ.items() if k != "OLLAMA_THINK"}
         with patch.dict(environ, env_without, clear=True):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
-        generator = result._article_classifier._llm_generator._generator
+        audited_generator = result._article_classifier._llm_generator
+        assert isinstance(audited_generator, AuditedLlmGeneratorAdapter)
+        generator = audited_generator._generator
         self.assertIsInstance(generator, OllamaGeneratorAdapter)
+        assert isinstance(generator, OllamaGeneratorAdapter)
         self.assertFalse(generator._think)
 
     def test_env_var_overrides_ollama_think(self):
         with patch.dict(environ, {"OLLAMA_THINK": "true"}):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
-        generator = result._article_classifier._llm_generator._generator
+        audited_generator = result._article_classifier._llm_generator
+        assert isinstance(audited_generator, AuditedLlmGeneratorAdapter)
+        generator = audited_generator._generator
         self.assertIsInstance(generator, OllamaGeneratorAdapter)
+        assert isinstance(generator, OllamaGeneratorAdapter)
         self.assertTrue(generator._think)
 
     def test_default_wiring_uses_ollama_generator_and_provider(self):
         use_case = AnalyzeDocumentUseCaseWiring().create_use_case()
         classifier_generator = use_case._article_classifier._llm_generator
         self.assertIsInstance(classifier_generator, AuditedLlmGeneratorAdapter)
+        assert isinstance(classifier_generator, AuditedLlmGeneratorAdapter)
         self.assertEqual(classifier_generator._provider, AiProvider.OLLAMA)
         self.assertIsInstance(classifier_generator._generator, OllamaGeneratorAdapter)
+        assert isinstance(classifier_generator._generator, OllamaGeneratorAdapter)
 
     def test_debug_mode_with_claude_provider_wires_external_llm_generator(self):
         fake_generator = FakeLlmGeneratorAdapter(responses=["test response"])
@@ -387,16 +409,19 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         )
 
         self.assertIsInstance(classifier_generator, AuditedLlmGeneratorAdapter)
+        assert isinstance(classifier_generator, AuditedLlmGeneratorAdapter)
         self.assertEqual(classifier_generator._provider, AiProvider.CLAUDE)
         self.assertEqual(classifier_generator._model_name, "claude-3-7-sonnet")
         self.assertIs(classifier_generator._generator, fake_generator)
 
         self.assertIsInstance(quality_generator, AuditedLlmGeneratorAdapter)
+        assert isinstance(quality_generator, AuditedLlmGeneratorAdapter)
         self.assertEqual(quality_generator._provider, AiProvider.CLAUDE)
         self.assertEqual(quality_generator._model_name, "claude-3-7-sonnet")
         self.assertIs(quality_generator._generator, fake_generator)
 
         self.assertIsInstance(editorial_generator, AuditedLlmGeneratorAdapter)
+        assert isinstance(editorial_generator, AuditedLlmGeneratorAdapter)
         self.assertEqual(editorial_generator._provider, AiProvider.CLAUDE)
         self.assertEqual(editorial_generator._model_name, "claude-3-7-sonnet")
         self.assertIs(editorial_generator._generator, fake_generator)
@@ -404,6 +429,32 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         mock_load.assert_called_once_with(
             provider=AiProvider.CLAUDE,
             model_name="claude-3-7-sonnet",
+            think=False,
+        )
+
+    def test_debug_mode_with_claude_provider_forwards_external_llm_think_true_to_loader(self):
+        fake_generator = FakeLlmGeneratorAdapter(responses=["test response"])
+        with patch.dict(
+            environ,
+            {
+                "APP_MODE": "DEBUG",
+                "USE_EXTERNAL_LLM": "true",
+                "LLM_PROVIDER": "claude",
+                "EXTERNAL_LLM_MODEL_NAME": "claude-3-7-sonnet",
+                "EXTERNAL_LLM_THINK": "true",
+            },
+        ):
+            with patch.object(
+                ExternalLlmGeneratorLoader,
+                "load",
+                return_value=fake_generator,
+            ) as mock_load:
+                AnalyzeDocumentUseCaseWiring().create_use_case()
+
+        mock_load.assert_called_once_with(
+            provider=AiProvider.CLAUDE,
+            model_name="claude-3-7-sonnet",
+            think=True,
         )
 
     def test_production_mode_with_claude_provider_stays_ollama(self):
@@ -423,6 +474,8 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
 
         classifier_generator = use_case._article_classifier._llm_generator
         self.assertIsInstance(classifier_generator, AuditedLlmGeneratorAdapter)
+        assert isinstance(classifier_generator, AuditedLlmGeneratorAdapter)
         self.assertEqual(classifier_generator._provider, AiProvider.OLLAMA)
         self.assertIsInstance(classifier_generator._generator, OllamaGeneratorAdapter)
+        assert isinstance(classifier_generator._generator, OllamaGeneratorAdapter)
         mock_load.assert_not_called()
