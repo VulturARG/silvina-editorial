@@ -251,3 +251,48 @@ class TestEditorialSuitabilityParserAlignment(TestCase):
             "Se identifica alineación con la prioridad en la línea 4.",
         )
         self.assertEqual(justification, "Justificación breve.")
+
+    def test_list_number_after_colon_stays_whole(self):
+        raw = (
+            "VEREDICTO: ALINEADO\n"
+            "LINEAS: prioridades: 3. Recursos humanos para la defensa. Otra oración no relevante.\n"
+            "JUSTIFICACION: Justificación breve.\n"
+        )
+
+        verdict, lines, justification = self.parser.parse_alignment(raw)
+
+        self.assertEqual(verdict, "ALINEADO")
+        self.assertEqual(
+            lines,
+            "prioridades: 3. Recursos humanos para la defensa.",
+        )
+        self.assertEqual(justification, "Justificación breve.")
+
+    def test_list_number_after_hyphen_stays_whole(self):
+        raw = (
+            "VEREDICTO: ALINEADO\n"
+            "LINEAS: - 3. Item relevante de investigación aplicada. Otra oración no relevante.\n"
+            "JUSTIFICACION: Justificación breve.\n"
+        )
+
+        verdict, lines, justification = self.parser.parse_alignment(raw)
+
+        self.assertEqual(verdict, "ALINEADO")
+        self.assertEqual(
+            lines,
+            "- 3. Item relevante de investigación aplicada.",
+        )
+        self.assertEqual(justification, "Justificación breve.")
+
+    def test_list_number_at_start_of_second_line_stays_whole(self):
+        multiline_text = (
+            "Línea introductoria\n"
+            "3. Recursos humanos para la defensa. Segunda oración no relevante."
+        )
+
+        first_sentence = self.parser._extract_first_sentence(multiline_text)
+
+        self.assertEqual(
+            first_sentence,
+            "Línea introductoria\n3. Recursos humanos para la defensa.",
+        )

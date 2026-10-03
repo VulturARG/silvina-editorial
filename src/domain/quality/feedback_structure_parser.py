@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from re import compile
 
 from src.domain.dtos.feedback_block_dto import FeedbackBlockDTO
@@ -32,16 +33,7 @@ class FeedbackStructureParser:
         has_seen_non_empty_line = False
         previous_line_was_blank = False
 
-        prepared_lines: list[tuple[str, int]] = []
-        for raw_line in lines:
-            line_without_blockquote = _BLOCKQUOTE_MARKER_PATTERN.sub("", raw_line)
-            stripped_line = line_without_blockquote.strip()
-            indentation = (
-                len(line_without_blockquote) - len(line_without_blockquote.lstrip())
-                if stripped_line
-                else 0
-            )
-            prepared_lines.append((stripped_line, indentation))
+        prepared_lines = self._prepare_lines(lines)
 
         for index, (stripped_line, indentation) in enumerate(prepared_lines):
             if not stripped_line:
@@ -314,13 +306,26 @@ class FeedbackStructureParser:
         )
 
     def _find_next_non_empty_line(
-        self, prepared_lines: list[tuple[str, int]], current_index: int
+        self, prepared_lines: Sequence[tuple[str, int]], current_index: int
     ) -> tuple[str, int] | None:
         for future_index in range(current_index + 1, len(prepared_lines)):
             stripped_future_line, indentation = prepared_lines[future_index]
             if stripped_future_line:
                 return stripped_future_line, indentation
         return None
+
+    def _prepare_lines(self, lines: list[str]) -> list[tuple[str, int]]:
+        prepared_lines: list[tuple[str, int]] = []
+        for raw_line in lines:
+            line_without_blockquote = _BLOCKQUOTE_MARKER_PATTERN.sub("", raw_line)
+            stripped_line = line_without_blockquote.strip()
+            indentation = (
+                len(line_without_blockquote) - len(line_without_blockquote.lstrip())
+                if stripped_line
+                else 0
+            )
+            prepared_lines.append((stripped_line, indentation))
+        return prepared_lines
 
     def _clean_title_text(self, raw_text: str) -> str:
         cleaned = raw_text.strip()

@@ -152,9 +152,13 @@ class EditorialSuitabilityParser:
         delimiter_index = digit_start - 1
         while delimiter_index >= 0 and text[delimiter_index] in (" ", "\t"):
             delimiter_index -= 1
+        if delimiter_index < 0 or text[delimiter_index] in ("\n", "\r"):
+            return True
+        while delimiter_index >= 0 and text[delimiter_index] in (" ", "\t", "\n", "\r"):
+            delimiter_index -= 1
         if delimiter_index < 0:
             return True
-        return text[delimiter_index] in (";", ",", "(", "[")
+        return text[delimiter_index] in (";", ",", "(", "[", ":", "-")
 
     def _truncate_to_word_boundary(self, text: str, max_length: int) -> str:
         limit = max_length - 2

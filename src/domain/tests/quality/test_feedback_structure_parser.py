@@ -1,4 +1,3 @@
-from time import perf_counter
 from unittest import TestCase
 
 from src.domain.enums.feedback_block_kind import FeedbackBlockKind
@@ -666,9 +665,33 @@ class TestFeedbackStructureParser(TestCase):
         self.assertEqual(blocks[2].text, "Segundo ejemplo ilustrativo")
         self.assertEqual(blocks[2].level, 0)
 
-    def test_block_of_two_thousand_lines_parses_under_two_seconds_and_matches_small_version(
+    def test_block_of_two_thousand_lines_accesses_lookahead_by_index_without_slicing_and_matches_small_version(
         self,
     ):
+        class ObservedLineSequence(list):
+            def __init__(self, elements=()):
+                super().__init__(elements)
+                self.slice_copied_count = 0
+                self.index_read_count = 0
+
+            def __getitem__(self, index_or_slice):
+                if isinstance(index_or_slice, slice):
+                    result = super().__getitem__(index_or_slice)
+                    self.slice_copied_count += len(result)
+                    return ObservedLineSequence(result)
+                self.index_read_count += 1
+                return super().__getitem__(index_or_slice)
+
+        class ObservedFeedbackStructureParser(FeedbackStructureParser):
+            def __init__(self) -> None:
+                super().__init__()
+                self.observed_prepared_lines = ObservedLineSequence()
+
+            def _prepare_lines(self, lines: list[str]) -> list[tuple[str, int]]:
+                prepared = super()._prepare_lines(lines)
+                self.observed_prepared_lines = ObservedLineSequence(prepared)
+                return self.observed_prepared_lines
+
         single_unit_lines = [
             "### Sección de prueba",
             "- Elemento de lista principal uno",
@@ -678,16 +701,18 @@ class TestFeedbackStructureParser(TestCase):
             "- Sub-elemento dependiente beta",
             "",
         ]
-        parser = FeedbackStructureParser()
+        parser = ObservedFeedbackStructureParser()
         single_unit_blocks = parser.parse(lines=single_unit_lines, dimension_heading_level=0)
 
         repeat_count = 350
         large_lines = single_unit_lines * repeat_count
-        start_time = perf_counter()
         large_blocks = parser.parse(lines=large_lines, dimension_heading_level=0)
-        elapsed_seconds = perf_counter() - start_time
 
-        self.assertLess(elapsed_seconds, 2.0)
+        self.assertEqual(parser.observed_prepared_lines.slice_copied_count, 0)
+        self.assertLessEqual(
+            parser.observed_prepared_lines.index_read_count,
+            len(large_lines) * 2,
+        )
         self.assertEqual(len(large_blocks), len(single_unit_blocks) * repeat_count)
         self.assertEqual(
             [block.text for block in large_blocks[: len(single_unit_blocks)]],
