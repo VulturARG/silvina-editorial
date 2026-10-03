@@ -665,6 +665,90 @@ class TestFeedbackStructureParser(TestCase):
         self.assertEqual(blocks[2].text, "Segundo ejemplo ilustrativo")
         self.assertEqual(blocks[2].level, 0)
 
+    def test_plain_title_directly_under_heading_line_creates_title_and_drops_empty_heading(
+        self,
+    ) -> None:
+        """A plain title directly below a heading opens a section and the empty heading is dropped."""
+        lines = [
+            "### Análisis",
+            "Fortalezas:",
+            "- Identificación clara del problema",
+            "- Metodología robusta",
+        ]
+        parser = FeedbackStructureParser()
+        blocks = parser.parse(lines=lines, dimension_heading_level=0)
+
+        self.assertEqual(len(blocks), 3)
+        self.assertEqual(blocks[0].kind, FeedbackBlockKind.TITLE)
+        self.assertEqual(blocks[0].text, "Fortalezas")
+        self.assertEqual(blocks[0].level, 0)
+        self.assertEqual(blocks[1].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[1].text, "Identificación clara del problema")
+        self.assertEqual(blocks[1].level, 0)
+        self.assertEqual(blocks[2].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[2].text, "Metodología robusta")
+        self.assertEqual(blocks[2].level, 0)
+        self.assertNotIn(
+            "Análisis",
+            [block.text for block in blocks],
+        )
+
+    def test_plain_title_directly_under_bold_only_line_creates_title_and_drops_empty_bold_heading(
+        self,
+    ) -> None:
+        """A plain title directly below a bold-only line opens a section and empty heading is dropped."""
+        lines = [
+            "**Análisis General**",
+            "Fortalezas:",
+            "- Identificación clara del problema",
+            "- Metodología robusta",
+        ]
+        parser = FeedbackStructureParser()
+        blocks = parser.parse(lines=lines, dimension_heading_level=0)
+
+        self.assertEqual(len(blocks), 3)
+        self.assertEqual(blocks[0].kind, FeedbackBlockKind.TITLE)
+        self.assertEqual(blocks[0].text, "Fortalezas")
+        self.assertEqual(blocks[0].level, 0)
+        self.assertEqual(blocks[1].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[1].text, "Identificación clara del problema")
+        self.assertEqual(blocks[1].level, 0)
+        self.assertEqual(blocks[2].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[2].text, "Metodología robusta")
+        self.assertEqual(blocks[2].level, 0)
+        self.assertNotIn(
+            "Análisis General",
+            [block.text for block in blocks],
+        )
+
+    def test_plain_label_directly_under_table_row_is_not_title(self) -> None:
+        """A plain label directly below a table row is parsed as text, not as a title."""
+        lines = [
+            "| Aspecto | Evaluación |",
+            "|---|---|",
+            "| Metodología | Adecuada |",
+            "Observaciones:",
+            "- Primera observación",
+            "- Segunda observación",
+        ]
+        parser = FeedbackStructureParser()
+        blocks = parser.parse(lines=lines, dimension_heading_level=0)
+
+        self.assertEqual(len(blocks), 3)
+        self.assertEqual(blocks[0].kind, FeedbackBlockKind.TEXT)
+        self.assertEqual(blocks[0].text, "Observaciones:")
+        self.assertEqual(blocks[0].level, 0)
+        self.assertEqual(blocks[1].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[1].text, "Primera observación")
+        self.assertEqual(blocks[1].level, 1)
+        self.assertEqual(blocks[2].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[2].text, "Segunda observación")
+        self.assertEqual(blocks[2].level, 1)
+        self.assertNotIn(
+            "Observaciones",
+            [block.text for block in blocks if block.kind == FeedbackBlockKind.TITLE],
+        )
+
     def test_block_of_two_thousand_lines_accesses_lookahead_by_index_without_slicing_and_matches_small_version(
         self,
     ):

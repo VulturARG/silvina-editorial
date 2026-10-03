@@ -1,3 +1,5 @@
+from pathlib import Path
+from re import search
 from unittest import TestCase
 
 from src.domain.dtos.editorial_suitability_dto import EditorialSuitabilityDTO
@@ -320,3 +322,96 @@ class TestFastApiTemplates(TestCase):
 
         self.assertIn("feedback-block-item level-2", rendered)
         self.assertIn("feedback-block-text level-2", rendered)
+
+    def test_results_template_renders_feedback_block_items_structure_for_all_levels(self) -> None:
+        """Render results template and assert DOM structure for item markers across levels 0, 1, 2."""
+        quality = ReportFixtures.make_quality_mock()
+        quality.dimension_scores = {
+            "claridad": {
+                "score": 9.0,
+                "feedback": "Texto plano de respaldo.",
+                "feedback_blocks": [
+                    {
+                        "kind": "item",
+                        "text": "Elemento nivel cero.",
+                        "level": 0,
+                        "marker": "•",
+                    },
+                    {
+                        "kind": "item",
+                        "text": "Elemento nivel uno.",
+                        "level": 1,
+                        "marker": "1.",
+                    },
+                    {
+                        "kind": "item",
+                        "text": "Elemento nivel dos.",
+                        "level": 2,
+                        "marker": "10.",
+                    },
+                ],
+            }
+        }
+        report = ReportFixtures.make_report_input_dto(quality=quality)
+        template = self.env.get_template("partials/_results.html")
+        rendered = template.render(
+            report=report,
+            word_filename="blocks_analisis.docx",
+            json_filename="blocks_analisis.json",
+        )
+
+        self.assertRegex(
+            rendered,
+            r'<div class="feedback-block-item">\s*<span class="feedback-block-marker">•</span>\s*Elemento nivel cero\.',
+        )
+        self.assertRegex(
+            rendered,
+            r'<div class="feedback-block-item level-1">\s*<span class="feedback-block-marker">1\.</span>\s*Elemento nivel uno\.',
+        )
+        self.assertRegex(
+            rendered,
+            r'<div class="feedback-block-item level-2">\s*<span class="feedback-block-marker">10\.</span>\s*Elemento nivel dos\.',
+        )
+
+    def test_stylesheet_defines_hanging_indent_rules_for_feedback_block_items(self) -> None:
+        """Verify stylesheet defines negative text-indent for item levels and marker width."""
+        stylesheet_path = Path(__file__).resolve().parent.parent / "static" / "css" / "silvina.css"
+        stylesheet_content = stylesheet_path.read_text(encoding="utf-8")
+
+        level_zero_match = search(r"\.feedback-block-item\s*\{([^}]+)\}", stylesheet_content)
+        self.assertIsNotNone(level_zero_match)
+        assert level_zero_match is not None
+        level_zero_body = level_zero_match.group(1)
+        self.assertIn("text-indent:", level_zero_body)
+        self.assertTrue("-" in level_zero_body or "calc(-" in level_zero_body)
+
+        level_one_match = search(
+            r"\.feedback-block-item\.level-1\s*\{([^}]+)\}", stylesheet_content
+        )
+        self.assertIsNotNone(level_one_match)
+        assert level_one_match is not None
+        level_one_body = level_one_match.group(1)
+        self.assertIn("text-indent:", level_one_body)
+        self.assertTrue("-" in level_one_body or "calc(-" in level_one_body)
+
+        level_two_match = search(
+            r"\.feedback-block-item\.level-2\s*\{([^}]+)\}", stylesheet_content
+        )
+        self.assertIsNotNone(level_two_match)
+        assert level_two_match is not None
+        level_two_body = level_two_match.group(1)
+        self.assertIn("text-indent:", level_two_body)
+        self.assertTrue("-" in level_two_body or "calc(-" in level_two_body)
+
+        marker_match = search(r"\.feedback-block-marker\s*\{([^}]+)\}", stylesheet_content)
+        self.assertIsNotNone(marker_match)
+        assert marker_match is not None
+        marker_body = marker_match.group(1)
+        self.assertIn("display: inline-block", marker_body)
+        self.assertIn("min-width:", marker_body)
+
+        text_match = search(r"\.feedback-block-text\s*\{([^}]+)\}", stylesheet_content)
+        self.assertIsNotNone(text_match)
+        assert text_match is not None
+        text_body = text_match.group(1)
+        self.assertNotIn("text-indent", text_body)

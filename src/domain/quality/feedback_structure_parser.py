@@ -31,26 +31,28 @@ class FeedbackStructureParser:
         in_unindented_children_mode = False
         child_indentation: int | None = None
         has_seen_non_empty_line = False
-        previous_line_was_blank = False
+        previous_line_counts_as_blank = False
 
         prepared_lines = self._prepare_lines(lines)
 
         for index, (stripped_line, indentation) in enumerate(prepared_lines):
             if not stripped_line:
-                previous_line_was_blank = True
+                previous_line_counts_as_blank = True
                 continue
 
             if _HORIZONTAL_RULE_PATTERN.match(stripped_line) is not None:
                 break
 
             if stripped_line.startswith("|"):
-                previous_line_was_blank = False
+                previous_line_counts_as_blank = False
                 has_seen_non_empty_line = True
                 continue
 
-            is_preceded_by_blank_or_first = not has_seen_non_empty_line or previous_line_was_blank
+            is_preceded_by_blank_or_first = (
+                not has_seen_non_empty_line or previous_line_counts_as_blank
+            )
             has_seen_non_empty_line = True
-            previous_line_was_blank = False
+            previous_line_counts_as_blank = False
 
             heading_match = _HEADING_LINE_PATTERN.match(stripped_line)
             if heading_match is not None:
@@ -70,6 +72,7 @@ class FeedbackStructureParser:
                 )
                 current_blocks = []
                 previous_top_level_indentation = None
+                previous_line_counts_as_blank = True
                 continue
 
             bold_title_match = _BOLD_TITLE_LINE_PATTERN.match(stripped_line)
@@ -87,6 +90,7 @@ class FeedbackStructureParser:
                 )
                 current_blocks = []
                 previous_top_level_indentation = None
+                previous_line_counts_as_blank = True
                 continue
 
             next_non_empty = self._find_next_non_empty_line(prepared_lines, index)
