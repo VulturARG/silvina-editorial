@@ -3,6 +3,7 @@ from time import sleep
 from unittest import TestCase
 from unittest.mock import MagicMock
 
+from src.domain.dtos.classification_result_dto import ClassificationResultDTO
 from src.domain.dtos.report_input_dto import ReportInputDTO
 from src.domain.enums.analysis_stage import AnalysisStage
 from src.domain.enums.article_type import ArticleType
@@ -24,13 +25,17 @@ def _make_report_input_dto(
     char_count: int = 9000,
     article_type: ArticleType = ArticleType.SCIENTIFIC,
     verdict: PublicationVerdict = PublicationVerdict.APPROVED,
+    structure_type: ArticleType | None = None,
 ) -> ReportInputDTO:
     document_content = MagicMock()
     document_content.word_count = word_count
     document_content.char_count = char_count
 
-    classification = MagicMock()
-    classification.effective_structure_type = article_type
+    classification = MagicMock(spec=ClassificationResultDTO)
+    classification.article_type = article_type
+    classification.effective_structure_type = (
+        structure_type if structure_type is not None else article_type
+    )
 
     verdict_mock = MagicMock()
     verdict_mock.verdict = verdict
@@ -166,6 +171,24 @@ class TestAnalysisTracker(TestCase):
         self.assertEqual(completion.article_type, ArticleType.POPULAR_SCIENCE)
         self.assertEqual(completion.verdict, PublicationVerdict.WARNING)
         self.assertGreaterEqual(completion.total_duration_ms, 5.0)
+
+    def test_track_analysis_records_the_classification_category_not_the_structure_type(self):
+        fake_metrics_port = FakeAnalysisMetricsPort()
+        recorder = AnalysisMetricsRecorder(metrics_port=fake_metrics_port)
+        tracker = AnalysisTracker(
+            metrics_recorder=recorder,
+            analysis_context_port=FakeAnalysisContextPort(),
+            analysis_cancellation_port=FakeAnalysisCancellationPort(),
+        )
+        report = _make_report_input_dto(
+            article_type=ArticleType.SCIENTIFIC,
+            structure_type=ArticleType.POPULAR_SCIENCE,
+        )
+
+        tracker.track_analysis(document_name="paper.docx", pipeline=lambda: report)
+
+        completion = fake_metrics_port.recorded_completions[0]
+        self.assertEqual(completion.article_type, ArticleType.SCIENTIFIC)
 
     def test_track_analysis_clears_context_after_success(self):
         fake_metrics_port = FakeAnalysisMetricsPort()
