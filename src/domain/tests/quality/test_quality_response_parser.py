@@ -169,3 +169,82 @@ El argumento central es claro y facil de seguir en todo el texto.
             result.matched_dimensions,
             frozenset({QualityDimension.CLARITY}),
         )
+
+    def test_markdown_heading_two_with_mid_sentence_bold_in_conclusions_preserves_argumentation(
+        self,
+    ):
+        response = """## **1. Argumentación** [Puntuación: 7/10]
+Los argumentos presentados demuestran un desarrollo lógico y riguroso a lo largo del texto.
+
+## **2. Conclusiones** [Puntuación: 4/10]
+### Análisis del Cierre
+Las conclusiones resultan parciales e insuficientes respecto a los objetivos iniciales.
+### **Síntesis Final**
+El fragmento evidencia **argumentación académica rigurosa pero incompleta**. La arquitectura lógica general necesita mayor solidez en el desenlace.
+"""
+        parser = QualityResponseParser()
+
+        result = parser.parse(response)
+
+        self.assertEqual(result.scores[QualityDimension.ARGUMENTATION].score, 7.0)
+        self.assertNotEqual(result.scores[QualityDimension.ARGUMENTATION].feedback, "No disponible")
+        self.assertIn(
+            "Los argumentos presentados demuestran un desarrollo lógico",
+            result.scores[QualityDimension.ARGUMENTATION].feedback,
+        )
+        self.assertEqual(result.scores[QualityDimension.CONCLUSIONS].score, 4.0)
+
+    def test_bold_phrase_starting_with_dimension_word_mid_line_does_not_split(self):
+        response = """**1. Claridad** [Puntuación: 8/10]
+El texto mantiene una **claridad conceptual excelente** durante toda la exposición teórica.
+"""
+        parser = QualityResponseParser()
+
+        result = parser.parse(response)
+
+        self.assertEqual(result.scores[QualityDimension.CLARITY].score, 8.0)
+        self.assertIn(
+            "El texto mantiene una **claridad conceptual excelente**",
+            result.scores[QualityDimension.CLARITY].feedback,
+        )
+
+    def test_markdown_heading_markers_removed_from_feedback_lines(self):
+        response = """**1. Argumentación** [Puntuación: 8/10]
+### Análisis del Cierre
+Los argumentos están adecuadamente desarrollados y fundamentados con evidencia.
+### **Síntesis Final**
+Se observa una articulación consistente entre las premisas y el desarrollo.
+"""
+        parser = QualityResponseParser()
+
+        result = parser.parse(response)
+
+        feedback = result.scores[QualityDimension.ARGUMENTATION].feedback
+        self.assertNotIn("###", feedback)
+        self.assertIn("Análisis del Cierre", feedback)
+        self.assertIn("**Síntesis Final**", feedback)
+
+    def test_dangling_bold_marker_removed_after_truncation(self):
+        response = """**1. Argumentación** [Puntuación: 8/10]
+Primera oración con **negrita que no cierra adecuadamente en esta parte. Segunda oración que aporta contexto analítico complementario. Tercera oración para completar el límite de oraciones. Cuarta oración descartada con el cierre.**
+"""
+        parser = QualityResponseParser()
+
+        result = parser.parse(response)
+
+        feedback = result.scores[QualityDimension.ARGUMENTATION].feedback
+        self.assertEqual(feedback.count("**") % 2, 0)
+        self.assertNotIn("**negrita que no cierra", feedback)
+        self.assertIn("negrita que no cierra", feedback)
+
+    def test_dangling_bold_marker_removed_from_unpaired_feedback(self):
+        response = """**1. Argumentación** [Puntuación: 8/10]
+Esta retroalimentación contiene una marca **huérfana sin par de cierre.
+"""
+        parser = QualityResponseParser()
+
+        result = parser.parse(response)
+
+        feedback = result.scores[QualityDimension.ARGUMENTATION].feedback
+        self.assertEqual(feedback.count("**"), 0)
+        self.assertNotIn("**", feedback)
