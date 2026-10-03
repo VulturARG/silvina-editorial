@@ -1,9 +1,13 @@
 from re import IGNORECASE, Pattern, compile as re_compile
 
-_VERDICT_PATTERN = re_compile(r"VEREDICTO:\s*(.+)", IGNORECASE)
-_CONTRIBUTION_PATTERN = re_compile(r"CONTRIBUCI[OÓ]N:\s*(.+)", IGNORECASE)
-_LINES_PATTERN = re_compile(r"L[IÍ]NEAS:\s*(.+)", IGNORECASE)
-_JUSTIFICATION_PATTERN = re_compile(r"JUSTIFICACI[OÓ]N:\s*(.+)", IGNORECASE)
+_VERDICT_PATTERN = re_compile(r"(?:\*\*)?VEREDICTO\s*(?:\*\*)?\s*:[*\s:]*([^*:\s].*)", IGNORECASE)
+_CONTRIBUTION_PATTERN = re_compile(
+    r"(?:\*\*)?CONTRIBUCI[OÓ]N\s*(?:\*\*)?\s*:[*\s:]*([^*:\s].*)", IGNORECASE
+)
+_LINES_PATTERN = re_compile(r"(?:\*\*)?L[IÍ]NEAS\s*(?:\*\*)?\s*:[*\s:]*([^*:\s].*)", IGNORECASE)
+_JUSTIFICATION_PATTERN = re_compile(
+    r"(?:\*\*)?JUSTIFICACI[OÓ]N\s*(?:\*\*)?\s*:[*\s:]*([^*:\s].*)", IGNORECASE
+)
 _SENTENCE_END_PATTERN = re_compile(r"[.!?]")
 
 _CONTRIBUTION_VERDICTS = ("NO SUSTENTADA", "PARCIAL", "SUSTENTADA")
@@ -51,20 +55,24 @@ class EditorialSuitabilityParser:
 
     def _extract_verdict(self, text: str, candidates: tuple[str, ...]) -> str:
         match = _VERDICT_PATTERN.search(text)
-        raw = match.group(1).upper() if match else ""
+        raw_verdict = (
+            match.group(1).replace("**", "").lstrip("* :").strip().upper() if match else ""
+        )
         for candidate in candidates:
-            if candidate in raw:
+            if candidate in raw_verdict:
                 return candidate
         return candidates[0]
 
-    def _extract_field(self, text: str, pattern: Pattern) -> str:
+    def _extract_field(self, text: str, pattern: Pattern[str]) -> str:
         match = pattern.search(text)
-        return match.group(1).strip() if match else ""
+        if not match:
+            return ""
+        return match.group(1).replace("**", "").lstrip("* :").strip()
 
-    def _truncate_field(self, raw: str, max_length: int) -> str:
-        if not raw:
-            return raw
-        sentence = self._extract_first_sentence(raw)
+    def _truncate_field(self, raw_text: str, max_length: int) -> str:
+        if not raw_text:
+            return raw_text
+        sentence = self._extract_first_sentence(raw_text)
         if len(sentence) < max_length:
             return sentence
         return self._truncate_to_word_boundary(sentence, max_length)

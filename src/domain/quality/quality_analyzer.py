@@ -81,7 +81,19 @@ class QualityAnalyzer:
             overall_score=overall_score,
             quality_level=quality_level,
             dimension_scores={
-                dimension.value: {"score": value.score, "feedback": value.feedback}
+                dimension.value: {
+                    "score": value.score,
+                    "feedback": value.feedback,
+                    "feedback_blocks": [
+                        {
+                            "kind": block.kind.value,
+                            "text": block.text,
+                            "level": block.level,
+                            "marker": block.marker,
+                        }
+                        for block in value.feedback_blocks
+                    ],
+                }
                 for dimension, value in dimension_scores.items()
             },
             editorial_suitability=editorial_suitability,

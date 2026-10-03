@@ -50,3 +50,84 @@ class TestEditorialSuitabilityParserContribution(TestCase):
         self.assertEqual(verdict, "SUSTENTADA")
         self.assertEqual(phrase, "")
         self.assertEqual(observation, "Contribución sustentada.")
+
+    def test_bold_label_with_colon_inside_bold_is_parsed_without_markdown(self):
+        raw = (
+            "**VEREDICTO:** SUSTENTADA\n"
+            "**CONTRIBUCION:** Síntesis y taxonomía de tres hipótesis sobre razonamiento emergente.\n"
+        )
+
+        verdict, phrase, observation = self.parser.parse_contribution(raw)
+
+        self.assertEqual(verdict, "SUSTENTADA")
+        self.assertEqual(
+            phrase,
+            "Síntesis y taxonomía de tres hipótesis sobre razonamiento emergente.",
+        )
+        self.assertFalse(phrase.startswith("*"))
+        self.assertFalse(phrase.startswith(":"))
+        self.assertFalse(phrase.startswith(" "))
+        self.assertNotIn("**", phrase)
+        self.assertEqual(
+            observation,
+            "Contribución sustentada — Síntesis y taxonomía de tres hipótesis sobre razonamiento emergente.",
+        )
+
+    def test_bold_label_with_colon_outside_bold_is_parsed_without_markdown(self):
+        raw = (
+            "**VEREDICTO**: SUSTENTADA\n"
+            "**CONTRIBUCION**: Síntesis y taxonomía de tres hipótesis sobre razonamiento emergente.\n"
+        )
+
+        verdict, phrase, observation = self.parser.parse_contribution(raw)
+
+        self.assertEqual(verdict, "SUSTENTADA")
+        self.assertEqual(
+            phrase,
+            "Síntesis y taxonomía de tres hipótesis sobre razonamiento emergente.",
+        )
+        self.assertFalse(phrase.startswith("*"))
+        self.assertFalse(phrase.startswith(":"))
+        self.assertFalse(phrase.startswith(" "))
+        self.assertNotIn("**", phrase)
+        self.assertEqual(
+            observation,
+            "Contribución sustentada — Síntesis y taxonomía de tres hipótesis sobre razonamiento emergente.",
+        )
+
+    def test_plain_label_is_parsed_without_markdown(self):
+        raw = (
+            "VEREDICTO: SUSTENTADA\n"
+            "CONTRIBUCION: Síntesis y taxonomía de tres hipótesis sobre razonamiento emergente.\n"
+        )
+
+        verdict, phrase, observation = self.parser.parse_contribution(raw)
+
+        self.assertEqual(verdict, "SUSTENTADA")
+        self.assertEqual(
+            phrase,
+            "Síntesis y taxonomía de tres hipótesis sobre razonamiento emergente.",
+        )
+        self.assertFalse(phrase.startswith("*"))
+        self.assertFalse(phrase.startswith(":"))
+        self.assertFalse(phrase.startswith(" "))
+        self.assertNotIn("**", phrase)
+
+    def test_paired_bold_in_middle_of_contribution_phrase_is_stripped(self):
+        raw = (
+            "VEREDICTO: SUSTENTADA\n"
+            "CONTRIBUCION: Propone la **síntesis** de tres hipótesis novedosas.\n"
+        )
+
+        verdict, phrase, observation = self.parser.parse_contribution(raw)
+
+        self.assertEqual(verdict, "SUSTENTADA")
+        self.assertEqual(
+            phrase,
+            "Propone la síntesis de tres hipótesis novedosas.",
+        )
+        self.assertNotIn("**", phrase)
+        self.assertEqual(
+            observation,
+            "Contribución sustentada — Propone la síntesis de tres hipótesis novedosas.",
+        )

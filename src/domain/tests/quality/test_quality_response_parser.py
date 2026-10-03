@@ -1,7 +1,18 @@
 from unittest import TestCase
 
+from src.domain.enums.feedback_block_kind import FeedbackBlockKind
 from src.domain.enums.quality_dimension import QualityDimension
 from src.domain.quality.quality_response_parser import QualityResponseParser
+from src.domain.tests.quality.feedback_fixtures import (
+    FIXTURE_A_BULLET_SECTIONS_WEAKNESSES_SURVIVE,
+    FIXTURE_B_NESTED_NUMBERED_SUB_LIST,
+    FIXTURE_C_HORIZONTAL_RULE_WITH_TABLE,
+    FIXTURE_D_COHERENCIA_ELLIPSIS_ITEM,
+    FIXTURE_E_SAME_LEVEL_HEADING_ENDS_BLOCK,
+    FIXTURE_F_MID_SENTENCE_BOLD_STAYS_INLINE,
+    FIXTURE_G_MORE_THAN_THREE_ITEMS_SECTION,
+    FIXTURE_H_GENERAL_SYNTHESIS_OVERWRITE_REGRESSION,
+)
 
 VALID_RESPONSE_TWO = """**1. Argumentación** [Puntuación: 8/10]
 Los argumentos presentados son solidos y estan bien fundamentados.
@@ -104,10 +115,15 @@ Las ideas se conectan logicamente entre las distintas secciones del texto.
         result = parser.parse(response)
 
         self.assertEqual(result.scores[QualityDimension.CLARITY].feedback, "No disponible")
+        self.assertEqual(result.scores[QualityDimension.CLARITY].feedback_blocks, ())
 
-    def test_feedback_longer_than_three_sentences_is_truncated(self):
+    def test_feedback_with_more_than_three_items_in_section_is_capped(self):
         response = """**1. Claridad** [Puntuación: 8/10]
-Primera oracion larga y descriptiva. Segunda oracion tambien larga. Tercera oracion mas. Cuarta oracion final. Quinta oracion sobrante.
+- Primera observación larga y descriptiva sobre claridad.
+- Segunda observación también relevante sobre el texto.
+- Tercera observación analítica complementaria.
+- Cuarta observación descartada por superar el límite.
+- Quinta observación descartada por superar el límite.
 
 **2. Coherencia** [Puntuación: 8/10]
 Las ideas se conectan logicamente entre las distintas secciones del texto.
@@ -117,9 +133,13 @@ Las ideas se conectan logicamente entre las distintas secciones del texto.
         result = parser.parse(response)
 
         feedback = result.scores[QualityDimension.CLARITY].feedback
-        sentence_count = len([s for s in feedback.split(".") if s.strip()])
-        self.assertEqual(sentence_count, 3)
-        self.assertTrue(feedback.endswith("."))
+        blocks = result.scores[QualityDimension.CLARITY].feedback_blocks
+        self.assertEqual(len(blocks), 3)
+        self.assertIn("Primera observación", feedback)
+        self.assertIn("Segunda observación", feedback)
+        self.assertIn("Tercera observación", feedback)
+        self.assertNotIn("Cuarta observación", feedback)
+        self.assertNotIn("Quinta observación", feedback)
 
     def test_argumentacion_block_is_not_misclassified_as_claridad(self):
         response = """**1. Argumentación** [Puntuación: 8/10]
@@ -221,12 +241,14 @@ Se observa una articulación consistente entre las premisas y el desarrollo.
 
         feedback = result.scores[QualityDimension.ARGUMENTATION].feedback
         self.assertNotIn("###", feedback)
-        self.assertIn("Análisis del Cierre", feedback)
-        self.assertIn("**Síntesis Final**", feedback)
+        self.assertIn("Análisis del Cierre:", feedback)
+        self.assertIn("Síntesis Final:", feedback)
+        self.assertNotIn("**Síntesis Final**", feedback)
 
     def test_dangling_bold_marker_removed_after_truncation(self):
         response = """**1. Argumentación** [Puntuación: 8/10]
-Primera oración con **negrita que no cierra adecuadamente en esta parte. Segunda oración que aporta contexto analítico complementario. Tercera oración para completar el límite de oraciones. Cuarta oración descartada con el cierre.**
+Primera oración con **negrita que no cierra adecuadamente en esta parte.
+Segunda oración que aporta contexto analítico complementario al análisis.
 """
         parser = QualityResponseParser()
 
@@ -267,9 +289,9 @@ Esta retroalimentación contiene una marca **huérfana sin par de cierre.
         self.assertFalse(feedback.endswith("et al."))
         self.assertNotIn("al. ,", feedback)
 
-    def test_feedback_with_decimal_number_is_not_split(self):
+    def test_feedback_with_decimal_number_preserves_content_intact(self):
         response = """**1. Claridad** [Puntuación: 8/10]
-Se evidencia una mejora de 1.5 puntos en la articulación expositiva general. Segunda oración explicativa. Tercera oración descriptiva. Cuarta oración descartable.
+Se evidencia una mejora de 1.5 puntos en la articulación expositiva general.
 """
         parser = QualityResponseParser()
 
@@ -277,12 +299,10 @@ Se evidencia una mejora de 1.5 puntos en la articulación expositiva general. Se
 
         feedback = result.scores[QualityDimension.CLARITY].feedback
         self.assertIn("mejora de 1.5 puntos", feedback)
-        self.assertIn("Tercera oración descriptiva.", feedback)
-        self.assertNotIn("Cuarta oración", feedback)
 
-    def test_feedback_with_initials_is_not_split(self):
+    def test_feedback_with_initials_preserves_content_intact(self):
         response = """**1. Claridad** [Puntuación: 8/10]
-El trabajo examina las ideas de A. R. Turing con profundidad conceptual. Segunda oración analítica sobre el contenido. Tercera oración de síntesis relevante. Cuarta oración descartable.
+El trabajo examina las ideas de A. R. Turing con profundidad conceptual relevante.
 """
         parser = QualityResponseParser()
 
@@ -290,5 +310,240 @@ El trabajo examina las ideas de A. R. Turing con profundidad conceptual. Segunda
 
         feedback = result.scores[QualityDimension.CLARITY].feedback
         self.assertIn("A. R. Turing", feedback)
-        self.assertIn("Tercera oración de síntesis", feedback)
-        self.assertNotIn("Cuarta oración", feedback)
+
+    def test_capped_feedback_with_numbered_bold_items_does_not_end_in_bare_list_number(
+        self,
+    ):
+        response = """## **1. Argumentación** [Puntuación: 8/10]
+### Fortalezas estructurales
+El fragmento presenta una **argumentación sólida y bien jerarquizada** alrededor de tres mecanismos explicativos del razonamiento emergente:
+1. **Composición estadística**: Se formula claramente (regularidades recombinadas a escala suficiente) y se cuestiona con evidencia contradictoria específica (BIG-Bench con 23 tareas que rompen el patrón suave esperado).
+2. **Andamiaje implícito de cadena de pensamiento**: Se apoya en cadena causal clara (entrenamiento → representaciones procedimentales → activación por prompting) con predicciones falsables (densidad de ejemplos desarrollados correlaciona con emergencia pronunciada).
+3. **Transiciones de fase representacionales**: Se ancla en analogía física rigurosa (cristalización como modelo de reorganización cualitativa) y se respalda con evidencia de interpretabilidad (Elhage et al., 2022 demostrando circuitos algorítmicos).
+### Debilidades argumentativas
+Síntesis superficial entre mecanismos que requiere mayor integración analítica en el texto.
+"""
+        parser = QualityResponseParser()
+
+        result = parser.parse(response)
+
+        feedback = result.scores[QualityDimension.ARGUMENTATION].feedback
+        self.assertFalse(feedback.endswith(" 1."))
+        self.assertFalse(feedback.endswith(" 2."))
+        self.assertFalse(feedback.endswith(" 3."))
+        self.assertIn("Composición estadística", feedback)
+
+    def test_feedback_horizontal_rule_ends_block_and_ignores_subsequent_text(self):
+        response = """## **2. Coherencia** [Puntuación: 8/10]
+El texto mantiene coherencia lógica adecuada en sus secciones principales.
+---
+Observación final sobre el marco metodológico propuesto.
+"""
+        parser = QualityResponseParser()
+
+        result = parser.parse(response)
+
+        feedback = result.scores[QualityDimension.COHERENCE].feedback
+        self.assertNotIn("---", feedback)
+        self.assertIn("El texto mantiene coherencia lógica adecuada", feedback)
+        self.assertNotIn("Observación final sobre el marco", feedback)
+
+    def test_feedback_strips_leading_blockquote_marker_and_preserves_quoted_text(self):
+        response = """## **2. Conclusiones** [Puntuación: 6/10]
+El texto no incluye una sección de conclusiones formal. El párrafo final termina con:
+> "La investigación de interpretabilidad mecanicista ha proporcionado apoyo preliminar."
+Evaluación del cierre presentado.
+"""
+        parser = QualityResponseParser()
+
+        result = parser.parse(response)
+
+        feedback = result.scores[QualityDimension.CONCLUSIONS].feedback
+        self.assertNotIn('> "', feedback)
+        self.assertNotIn("> ", feedback)
+        self.assertIn(
+            '"La investigación de interpretabilidad mecanicista ha proporcionado apoyo preliminar."',
+            feedback,
+        )
+
+    def test_feedback_horizontal_rule_variants_end_block(self):
+        for rule in ("***", "___", "- - -"):
+            response = f"""## **1. Claridad** [Puntuación: 8/10]
+Primera observación sobre la claridad expositiva del manuscrito presentado.
+{rule}
+Segunda observación que debe ser ignorada por estar tras la regla horizontal.
+"""
+            parser = QualityResponseParser()
+            result = parser.parse(response)
+            feedback = result.scores[QualityDimension.CLARITY].feedback
+            self.assertNotIn(rule, feedback)
+            self.assertIn("Primera observación", feedback)
+            self.assertNotIn("Segunda observación", feedback)
+
+    def test_feedback_strips_blockquote_marker_without_following_space(self):
+        response = """## **2. Conclusiones** [Puntuación: 6/10]
+El texto no incluye una sección de conclusiones formal. El párrafo final termina con:
+>"Cita en bloque sin espacio después del delimitador mayor que."
+Evaluación del cierre presentado.
+"""
+        parser = QualityResponseParser()
+
+        result = parser.parse(response)
+
+        feedback = result.scores[QualityDimension.CONCLUSIONS].feedback
+        self.assertNotIn(">", feedback)
+        self.assertIn('"Cita en bloque sin espacio después del delimitador mayor que."', feedback)
+
+    def test_fixture_bullet_sections_preserves_weaknesses_and_keeps_both_titles(self):
+        parser = QualityResponseParser()
+        result = parser.parse(FIXTURE_A_BULLET_SECTIONS_WEAKNESSES_SURVIVE)
+        clarity = result.scores[QualityDimension.CLARITY]
+        self.assertEqual(clarity.score, 7.0)
+        self.assertIn("Fortalezas:", clarity.feedback)
+        self.assertIn("Problemas de claridad:", clarity.feedback)
+        self.assertIn("El mensaje central está bien definido", clarity.feedback)
+        self.assertIn("La definición de emergencia es técnica", clarity.feedback)
+        self.assertNotIn("Párrafo adicional que debería descartarse", clarity.feedback)
+        title_blocks = [b for b in clarity.feedback_blocks if b.kind == FeedbackBlockKind.TITLE]
+        item_blocks = [b for b in clarity.feedback_blocks if b.kind == FeedbackBlockKind.ITEM]
+        self.assertEqual(len(title_blocks), 2)
+        self.assertEqual(len(item_blocks), 6)
+
+    def test_fixture_nested_numbered_sub_list_keeps_nested_items_without_counting_them(self):
+        parser = QualityResponseParser()
+        result = parser.parse(FIXTURE_B_NESTED_NUMBERED_SUB_LIST)
+        argumentation = result.scores[QualityDimension.ARGUMENTATION]
+        self.assertEqual(argumentation.score, 8.0)
+        self.assertIn("Fortalezas:", argumentation.feedback)
+        self.assertIn("Debilidades:", argumentation.feedback)
+        self.assertIn("Composición estadística", argumentation.feedback)
+        self.assertIn("Andamiaje implícito", argumentation.feedback)
+        self.assertIn("Transiciones de fase", argumentation.feedback)
+        self.assertNotIn("Cuarto item descartable", argumentation.feedback)
+        nested_items = [b for b in argumentation.feedback_blocks if b.level == 1]
+        self.assertEqual(len(nested_items), 3)
+
+    def test_fixture_horizontal_rule_drops_everything_after_rule_including_table(self):
+        parser = QualityResponseParser()
+        result = parser.parse(FIXTURE_C_HORIZONTAL_RULE_WITH_TABLE)
+        conclusions = result.scores[QualityDimension.CONCLUSIONS]
+        self.assertEqual(conclusions.score, 6.0)
+        self.assertIn("Estado Actual:", conclusions.feedback)
+        self.assertIn("Lo que Infiero del Contenido Final:", conclusions.feedback)
+        self.assertNotIn("Síntesis Evaluativa", conclusions.feedback)
+        self.assertNotIn("Recomendación editorial", conclusions.feedback)
+        self.assertNotIn("Argumentación | 8/10", conclusions.feedback)
+
+    def test_fixture_coherencia_ellipsis_item_stays_whole_without_cutting(self):
+        parser = QualityResponseParser()
+        result = parser.parse(FIXTURE_D_COHERENCIA_ELLIPSIS_ITEM)
+        coherence = result.scores[QualityDimension.COHERENCE]
+        self.assertEqual(coherence.score, 7.0)
+        expected_ellipsis_text = (
+            'Las transiciones intraseccionales (ej: "En primer lugar... En segundo '
+            'lugar... En tercer lugar") son claras y efectivas.'
+        )
+        self.assertIn(expected_ellipsis_text, coherence.feedback)
+
+    def test_fixture_same_level_heading_ends_dimension_block(self):
+        parser = QualityResponseParser()
+        result = parser.parse(FIXTURE_E_SAME_LEVEL_HEADING_ENDS_BLOCK)
+        clarity = result.scores[QualityDimension.CLARITY]
+        self.assertEqual(clarity.score, 7.0)
+        self.assertIn("El objetivo general del estudio", clarity.feedback)
+        self.assertNotIn("Observación final (meta)", clarity.feedback)
+        self.assertNotIn("Este párrafo de nivel dos", clarity.feedback)
+
+    def test_fixture_mid_sentence_bold_stays_inline(self):
+        parser = QualityResponseParser()
+        result = parser.parse(FIXTURE_F_MID_SENTENCE_BOLD_STAYS_INLINE)
+        clarity = result.scores[QualityDimension.CLARITY]
+        self.assertEqual(clarity.score, 8.0)
+        self.assertIn("**claridad conceptual excelente**", clarity.feedback)
+        self.assertEqual(len(clarity.feedback_blocks), 1)
+        self.assertEqual(clarity.feedback_blocks[0].kind, FeedbackBlockKind.TEXT)
+
+    def test_fixture_more_than_three_items_keeps_first_three_whole(self):
+        parser = QualityResponseParser()
+        result = parser.parse(FIXTURE_G_MORE_THAN_THREE_ITEMS_SECTION)
+        argumentation = result.scores[QualityDimension.ARGUMENTATION]
+        self.assertEqual(argumentation.score, 8.0)
+        self.assertIn("Primer argumento", argumentation.feedback)
+        self.assertIn("Segundo argumento", argumentation.feedback)
+        self.assertIn("Tercer argumento", argumentation.feedback)
+        self.assertNotIn("Cuarto argumento", argumentation.feedback)
+        self.assertNotIn("Quinto argumento", argumentation.feedback)
+        item_blocks = [b for b in argumentation.feedback_blocks if b.kind == FeedbackBlockKind.ITEM]
+        self.assertEqual(len(item_blocks), 3)
+
+    def test_fixture_response_fifty_five_general_synthesis_does_not_overwrite_parsed_dimensions(
+        self,
+    ):
+        parser = QualityResponseParser()
+        result = parser.parse(FIXTURE_H_GENERAL_SYNTHESIS_OVERWRITE_REGRESSION)
+
+        argumentation = result.scores[QualityDimension.ARGUMENTATION]
+        self.assertEqual(argumentation.score, 8.0)
+        self.assertNotEqual(argumentation.feedback, "No disponible")
+        self.assertIn("Fortalezas:", argumentation.feedback)
+        self.assertIn("Debilidades:", argumentation.feedback)
+        argumentation_titles = [
+            block.text
+            for block in argumentation.feedback_blocks
+            if block.kind == FeedbackBlockKind.TITLE
+        ]
+        self.assertIn("Fortalezas", argumentation_titles)
+        self.assertIn("Debilidades", argumentation_titles)
+        argumentation_items = [
+            block for block in argumentation.feedback_blocks if block.kind == FeedbackBlockKind.ITEM
+        ]
+        self.assertGreater(len(argumentation_items), 0)
+
+        conclusions = result.scores[QualityDimension.CONCLUSIONS]
+        self.assertEqual(conclusions.score, 6.0)
+        self.assertNotEqual(conclusions.feedback, "No disponible")
+        conclusions_titles = [
+            block.text
+            for block in conclusions.feedback_blocks
+            if block.kind == FeedbackBlockKind.TITLE
+        ]
+        self.assertIn(
+            "Análisis del párrafo final (Transiciones de fase representacionales)",
+            conclusions_titles,
+        )
+        conclusions_items = [
+            block for block in conclusions.feedback_blocks if block.kind == FeedbackBlockKind.ITEM
+        ]
+        self.assertGreater(len(conclusions_items), 0)
+
+    def test_empty_trailing_block_does_not_erase_parsed_dimension(self):
+        response = """## **1. Argumentación** [Puntuación: 8/10]
+**Fortalezas:**
+- Presenta argumentos sólidos y estructurados a lo largo del manuscrito.
+
+## **Argumentación**
+"""
+        parser = QualityResponseParser()
+        result = parser.parse(response)
+
+        argumentation = result.scores[QualityDimension.ARGUMENTATION]
+        self.assertEqual(argumentation.score, 8.0)
+        self.assertNotEqual(argumentation.feedback, "No disponible")
+        self.assertIn("Fortalezas:", argumentation.feedback)
+        self.assertGreater(len(argumentation.feedback_blocks), 0)
+
+    def test_later_block_with_content_overwrites_earlier_empty_default(self):
+        response = """## **Argumentación**
+
+## **1. Argumentación** [Puntuación: 8/10]
+**Fortalezas:**
+- Presenta argumentos sólidos y estructurados a lo largo del manuscrito.
+"""
+        parser = QualityResponseParser()
+        result = parser.parse(response)
+
+        argumentation = result.scores[QualityDimension.ARGUMENTATION]
+        self.assertEqual(argumentation.score, 8.0)
+        self.assertNotEqual(argumentation.feedback, "No disponible")
+        self.assertIn("Fortalezas:", argumentation.feedback)
+        self.assertGreater(len(argumentation.feedback_blocks), 0)

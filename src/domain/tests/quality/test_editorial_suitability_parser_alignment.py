@@ -45,3 +45,66 @@ class TestEditorialSuitabilityParserAlignment(TestCase):
         expected_prefix = "WORD " * 14 + "WORD"
         self.assertEqual(lines, expected_prefix + "…")
         self.assertLess(len(lines), 80)
+
+    def test_bold_labels_with_colon_inside_bold_are_parsed_without_markdown(self):
+        raw = (
+            "**VEREDICTO:** PARCIALMENTE ALINEADO\n"
+            "**LINEAS:** Línea 4 (ciberespacio) y Línea 6 (inteligencia).\n"
+            "**JUSTIFICACION:** El artículo aborda mecanismos de razonamiento emergente.\n"
+        )
+
+        verdict, lines, justification = self.parser.parse_alignment(raw)
+
+        self.assertEqual(verdict, "PARCIALMENTE ALINEADO")
+        self.assertEqual(lines, "Línea 4 (ciberespacio) y Línea 6 (inteligencia).")
+        self.assertEqual(
+            justification,
+            "El artículo aborda mecanismos de razonamiento emergente.",
+        )
+        self.assertFalse(lines.startswith("*"))
+        self.assertFalse(lines.startswith(":"))
+        self.assertFalse(lines.startswith(" "))
+        self.assertNotIn("**", lines)
+        self.assertFalse(justification.startswith("*"))
+        self.assertFalse(justification.startswith(":"))
+        self.assertFalse(justification.startswith(" "))
+        self.assertNotIn("**", justification)
+
+    def test_bold_labels_with_colon_outside_bold_are_parsed_without_markdown(self):
+        raw = (
+            "**VEREDICTO**: PARCIALMENTE ALINEADO\n"
+            "**LINEAS**: Línea 4 (ciberespacio) y Línea 6 (inteligencia).\n"
+            "**JUSTIFICACION**: El artículo aborda mecanismos de razonamiento emergente.\n"
+        )
+
+        verdict, lines, justification = self.parser.parse_alignment(raw)
+
+        self.assertEqual(verdict, "PARCIALMENTE ALINEADO")
+        self.assertEqual(lines, "Línea 4 (ciberespacio) y Línea 6 (inteligencia).")
+        self.assertEqual(
+            justification,
+            "El artículo aborda mecanismos de razonamiento emergente.",
+        )
+        self.assertFalse(lines.startswith("*"))
+        self.assertFalse(lines.startswith(":"))
+        self.assertFalse(lines.startswith(" "))
+        self.assertNotIn("**", lines)
+        self.assertFalse(justification.startswith("*"))
+        self.assertFalse(justification.startswith(":"))
+        self.assertFalse(justification.startswith(" "))
+        self.assertNotIn("**", justification)
+
+    def test_paired_bold_in_middle_of_lines_and_justification_is_stripped(self):
+        raw = (
+            "VEREDICTO: PARCIALMENTE ALINEADO\n"
+            "LINEAS: Línea 4 sobre **ciberespacio** e IA.\n"
+            "JUSTIFICACION: Aborda la **síntesis** de tres modelos.\n"
+        )
+
+        verdict, lines, justification = self.parser.parse_alignment(raw)
+
+        self.assertEqual(verdict, "PARCIALMENTE ALINEADO")
+        self.assertEqual(lines, "Línea 4 sobre ciberespacio e IA.")
+        self.assertEqual(justification, "Aborda la síntesis de tres modelos.")
+        self.assertNotIn("**", lines)
+        self.assertNotIn("**", justification)

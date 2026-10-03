@@ -182,6 +182,20 @@ Este bloque de claridad nunca deberia usarse porque viene de la llamada dos.
         self.assertEqual(result.dimension_scores["argumentacion"]["score"], 8.0)
         self.assertEqual(result.dimension_scores["conclusiones"]["score"], 8.0)
 
+    def test_dimension_scores_contain_feedback_blocks_as_list_of_dicts(self):
+        fake_adapter = FakeLlmGeneratorAdapter([VALID_RESPONSE_ONE, VALID_RESPONSE_TWO])
+        analyzer = build_analyzer(fake_adapter)
+
+        result = analyzer.analyze(self.document_content)
+
+        clarity_blocks = result.dimension_scores["claridad"]["feedback_blocks"]
+        self.assertIsInstance(clarity_blocks, list)
+        self.assertGreater(len(clarity_blocks), 0)
+        self.assertIn("kind", clarity_blocks[0])
+        self.assertIn("text", clarity_blocks[0])
+        self.assertIn("level", clarity_blocks[0])
+        self.assertIn("marker", clarity_blocks[0])
+
     def test_both_dimensions_failing_to_parse_in_one_call_raises_quality_analysis_failed(self):
         response_one_without_headers = (
             "Este texto no contiene ningun encabezado de dimension reconocible."
@@ -211,6 +225,7 @@ Este bloque de claridad nunca deberia usarse porque viene de la llamada dos.
         result = analyzer.analyze(self.document_content)
 
         self.assertIsInstance(result.editorial_suitability, EditorialSuitabilityDTO)
+        assert result.editorial_suitability is not None
         self.assertEqual(result.editorial_suitability.contribution_verdict, "SUSTENTADA")
         self.assertEqual(result.editorial_suitability.alignment_verdict, "ALINEADO")
 
