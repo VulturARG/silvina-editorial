@@ -248,3 +248,47 @@ Esta retroalimentación contiene una marca **huérfana sin par de cierre.
         feedback = result.scores[QualityDimension.ARGUMENTATION].feedback
         self.assertEqual(feedback.count("**"), 0)
         self.assertNotIn("**", feedback)
+
+    def test_claude_coherencia_response_preserves_citations_with_et_al_intact(self):
+        response = """## **2. Coherencia** [Puntuación: 8/10]
+### Fortalezas
+- **Progresión lógica dentro de secciones**: La transición entre las hipótesis mecanicistas fluye naturalmente de lo más simple a lo más sofisticado.
+- **Respaldo empírico incorporado**: Cada hipótesis se ancla inmediatamente con citas (Wei et al., 2022; Elhage et al., 2022), reforzando credibilidad sin interrumpir la narrativa.
+- **Cierre de loops conceptuales**: La discusión regresa coherentemente a la idea de capacidades latentes.
+### Áreas de mejora
+- **Transición débil**: Entre el párrafo y el primero falta un puente.
+"""
+        parser = QualityResponseParser()
+
+        result = parser.parse(response)
+
+        feedback = result.scores[QualityDimension.COHERENCE].feedback
+        self.assertIn("(Wei et al., 2022; Elhage et al., 2022)", feedback)
+        self.assertFalse(feedback.endswith("et al."))
+        self.assertNotIn("al. ,", feedback)
+
+    def test_feedback_with_decimal_number_is_not_split(self):
+        response = """**1. Claridad** [Puntuación: 8/10]
+Se evidencia una mejora de 1.5 puntos en la articulación expositiva general. Segunda oración explicativa. Tercera oración descriptiva. Cuarta oración descartable.
+"""
+        parser = QualityResponseParser()
+
+        result = parser.parse(response)
+
+        feedback = result.scores[QualityDimension.CLARITY].feedback
+        self.assertIn("mejora de 1.5 puntos", feedback)
+        self.assertIn("Tercera oración descriptiva.", feedback)
+        self.assertNotIn("Cuarta oración", feedback)
+
+    def test_feedback_with_initials_is_not_split(self):
+        response = """**1. Claridad** [Puntuación: 8/10]
+El trabajo examina las ideas de A. R. Turing con profundidad conceptual. Segunda oración analítica sobre el contenido. Tercera oración de síntesis relevante. Cuarta oración descartable.
+"""
+        parser = QualityResponseParser()
+
+        result = parser.parse(response)
+
+        feedback = result.scores[QualityDimension.CLARITY].feedback
+        self.assertIn("A. R. Turing", feedback)
+        self.assertIn("Tercera oración de síntesis", feedback)
+        self.assertNotIn("Cuarta oración", feedback)

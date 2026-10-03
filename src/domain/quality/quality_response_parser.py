@@ -3,6 +3,7 @@ from re import DOTALL, IGNORECASE, compile
 from src.domain.dtos.dimension_score_dto import DimensionScoreDTO
 from src.domain.dtos.parsed_response_dto import ParsedResponseDTO
 from src.domain.enums.quality_dimension import QualityDimension
+from src.domain.quality.sentence_splitter import SentenceSplitter
 
 _DIMENSION_HEADER_PATTERN = compile(
     r"(?m)(?=^[ \t]*(?:#{1,6}[ \t]+)?\*\*(?:\d+\.\s*)?(?:Claridad|Coherencia|Argumentaci[oó]n|Conclusiones))",
@@ -36,9 +37,11 @@ class QualityResponseParser:
         self,
         unscored_dimension_score: float = 7.0,
         unscored_dimension_feedback: str = "No disponible",
+        sentence_splitter: SentenceSplitter | None = None,
     ) -> None:
         self._unscored_dimension_score = unscored_dimension_score
         self._unscored_dimension_feedback = unscored_dimension_feedback
+        self._sentence_splitter = sentence_splitter or SentenceSplitter()
 
     def parse(self, text: str) -> ParsedResponseDTO:
         """Parse an LLM response into a ParsedResponseDTO of per-dimension scores."""
@@ -82,9 +85,7 @@ class QualityResponseParser:
         if len(feedback) < 10:
             return self._unscored_dimension_feedback
 
-        sentences = [sentence.strip() for sentence in feedback.split(".") if sentence.strip()]
-        if len(sentences) > 3:
-            feedback = ". ".join(sentences[:3]) + "."
+        feedback = self._sentence_splitter.cap_sentences(feedback, maximum_sentences=3)
         if feedback.count("**") % 2 == 1:
             last_index = feedback.rfind("**")
             feedback = feedback[:last_index] + feedback[last_index + 2 :]
