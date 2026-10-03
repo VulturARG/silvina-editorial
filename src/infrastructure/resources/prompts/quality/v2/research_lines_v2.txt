@@ -1,0 +1,34 @@
+1. Ámbitos de conflicto y su interacción
+Enfoque: cómo se preparan y conducen las operaciones militares en los distintos ámbitos (terrestre, marítimo, aéreo, espacial y ciberespacial) y cómo interactúan entre sí.
+Incluye: evolución de ámbitos tradicionales y emergentes; operaciones conjuntas y combinadas; geografía militar; logística; doctrina; toma de decisiones en el nivel operacional y táctico; operaciones de paz; juegos de guerra; capacidades militares; amenazas; espacios jurisdiccionales.
+No incluye: artículos centrados solo en el ciberespacio (línea 4); estrategia nacional y política internacional (línea 2); producción de inteligencia (línea 6).
+
+2. Estrategia, conflicto y política internacional
+Enfoque: el nivel político-estratégico, es decir, cómo los Estados definen su defensa y la articulan frente al entorno internacional.
+Incluye: estrategias nacionales de defensa; relación entre defensa y política exterior; escenarios geopolíticos globales y regionales; teoría estratégica y su aplicación.
+No incluye: conducción de operaciones militares (línea 1); geopolítica de la tecnología y del ciberespacio (línea 4); estudios prospectivos elaborados como producto de inteligencia (línea 6).
+
+3. Recursos humanos para la defensa
+Enfoque: las personas que integran las organizaciones de defensa.
+Incluye: gestión del capital humano; formación y capacitación, incluida la capacitación en tecnologías emergentes; liderazgo; factores humanos en el uso de inteligencia artificial; aspectos psicosociales del personal militar.
+No incluye: el desarrollo de las tecnologías en sí (línea 7); educación o gestión de personas en organizaciones sin relación con la defensa.
+
+4. Dinámica de los conflictos en el ciberespacio
+Enfoque: el ciberespacio como ámbito de conflicto, ataque, defensa y competencia entre Estados u otros actores.
+Incluye: convergencia ciber-física; ciber-resiliencia; protección de infraestructuras críticas frente a amenazas digitales; guerra de información como operación; geopolítica de la tecnología; inteligencia artificial y tecnologías cuánticas como armas, amenazas o medios de defensa en el ciberespacio; marcos jurídicos internacionales del ciberespacio.
+No incluye: el desarrollo industrial o científico de tecnologías (línea 7); la detección y análisis de desinformación como tarea de inteligencia (línea 6); ciberseguridad empresarial sin relación con la defensa o la seguridad nacional.
+
+5. Conocimiento, gestión y protección de recursos estratégicos
+Enfoque: los recursos cuya disponibilidad es crítica para la defensa nacional y su protección.
+Incluye: identificación, evaluación y protección de recursos naturales, tecnológicos e industriales críticos; Objetivos de Valor Estratégico (OVE), entendidos como [definición institucional]; sustentabilidad en operaciones militares.
+No incluye: el desarrollo de nuevas tecnologías (línea 7); la protección de infraestructuras frente a amenazas digitales (línea 4).
+
+6. Inteligencia en los diversos ámbitos de conflicto
+Enfoque: cómo se produce, analiza y utiliza la inteligencia en cualquier ámbito.
+Incluye: inteligencia en los niveles estratégico, operacional y táctico; ciclo de inteligencia; inteligencia artificial como herramienta de análisis; capacidades geoespaciales; fuentes abiertas digitales; estudios prospectivos; detección y análisis de desinformación; colaboración entre analistas humanos y sistemas artificiales.
+No incluye: la desinformación como operación ofensiva en el ciberespacio (línea 4); el desarrollo industrial de sistemas de inteligencia (línea 7).
+
+7. Ciencia, tecnología y producción en la defensa
+Enfoque: la creación, el desarrollo y la producción de capacidades tecnológicas para la defensa.
+Incluye: investigación y desarrollo; base industrial nacional; autonomía y soberanía tecnológica; transferencia tecnológica; inteligencia artificial, computación cuántica, industria 4.0 y sistemas autónomos como objetos de desarrollo o producción.
+No incluye: el uso de estas tecnologías en operaciones en el ciberespacio (línea 4) o en la producción de inteligencia (línea 6); la capacitación del personal en ellas (línea 3).

@@ -17,10 +17,10 @@ class TestHtmxErrorHandling(TestCase):
         response = self.client.get("/")
 
         self.assertEqual(response.status_code, 200)
-        expected_script_tag = '<script src="/static/js/htmx_error_handling.js"></script>'
-        self.assertIn(expected_script_tag, response.text)
+        expected_script_prefix = '<script src="/static/js/htmx_error_handling.js?v='
+        self.assertIn(expected_script_prefix, response.text)
         htmx_script_index = response.text.index("https://unpkg.com/htmx.org")
-        error_script_index = response.text.index(expected_script_tag)
+        error_script_index = response.text.index(expected_script_prefix)
         self.assertGreater(error_script_index, htmx_script_index)
 
     def test_static_file_htmx_error_handling_serves_javascript_with_expected_tokens(self) -> None:

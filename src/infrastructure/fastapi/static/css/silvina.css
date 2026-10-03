@@ -376,6 +376,53 @@ body {
     margin-top: 4px;
 }
 
+.feedback-block-title {
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--text-color);
+    margin-top: 8px;
+    margin-bottom: 2px;
+}
+
+.feedback-block-title:first-child {
+    margin-top: 2px;
+}
+
+.feedback-block-item {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+    margin-top: 2px;
+}
+
+.feedback-block-item.level-1 {
+    padding-left: 16px;
+}
+
+.feedback-block-item.level-2 {
+    padding-left: 32px;
+}
+
+.feedback-block-marker {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.feedback-block-text {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+    margin-top: 2px;
+}
+
+.feedback-block-text.level-1 {
+    padding-left: 16px;
+}
+
+.feedback-block-text.level-2 {
+    padding-left: 32px;
+}
+
 /* Error Callout / Alerts */
 .error-callout,
 .alert {

@@ -2,6 +2,7 @@ from os import getenv
 from pathlib import Path
 
 from src.domain.dtos.recommendation_settings_dto import RecommendationSettingsDTO
+from src.domain.enums.ai_provider import AiProvider
 from src.domain.enums.app_mode import AppMode
 
 _VERSION_FILE_PATH = Path(__file__).resolve().parents[2] / "version.txt"
@@ -67,7 +68,15 @@ class EnvConfig:
         )
         self.ollama_base_url: str = getenv("OLLAMA_BASE_URL", "http://localhost:11434")
         self.ollama_think: bool = self._parse_boolean("OLLAMA_THINK", "false")
+        self.external_llm_think: bool = self._parse_boolean("EXTERNAL_LLM_THINK", "false")
         self.app_mode: AppMode = AppMode(getenv("APP_MODE", "PROD").strip().upper())
+        self.use_external_llm: bool = self._parse_boolean("USE_EXTERNAL_LLM", "false")
+        self.llm_provider: AiProvider = self._parse_llm_provider(
+            self.app_mode, self.use_external_llm
+        )
+        self.external_llm_model_name: str | None = self._parse_external_llm_model_name(
+            self.app_mode, self.use_external_llm
+        )
         self.metrics_database_path: str = self._get_required_env("METRICS_DATABASE_PATH")
         self.log_file_path: str = self._get_required_env("LOG_FILE_PATH")
         self.log_level: str = getenv("LOG_LEVEL", "INFO").strip().upper()
@@ -150,3 +159,41 @@ class EnvConfig:
         raise ValueError(
             f"Invalid boolean value for environment variable {variable_name}: '{raw_value}' (expected 'true' or 'false')"
         )
+
+    def _parse_llm_provider(self, app_mode: AppMode, use_external_llm: bool) -> AiProvider:
+        if app_mode is not AppMode.DEBUG or not use_external_llm:
+            return AiProvider.OLLAMA
+
+        raw_value = getenv("LLM_PROVIDER", "").strip().lower()
+        if not raw_value:
+            raise ValueError(
+                "Environment variable LLM_PROVIDER is required when external LLM is enabled"
+            )
+
+        accepted_external_providers = {
+            member.value: member for member in AiProvider if member is not AiProvider.OLLAMA
+        }
+        if raw_value not in accepted_external_providers:
+            accepted_values = ", ".join(
+                repr(member.value) for member in accepted_external_providers.values()
+            )
+            raise ValueError(
+                f"Invalid value for environment variable LLM_PROVIDER: '{raw_value}' "
+                f"(accepted values: {accepted_values})"
+            )
+
+        return accepted_external_providers[raw_value]
+
+    def _parse_external_llm_model_name(
+        self, app_mode: AppMode, use_external_llm: bool
+    ) -> str | None:
+        if app_mode is not AppMode.DEBUG or not use_external_llm:
+            return None
+
+        raw_value = getenv("EXTERNAL_LLM_MODEL_NAME", "").strip()
+        if not raw_value:
+            raise ValueError(
+                "Environment variable EXTERNAL_LLM_MODEL_NAME is required when external LLM is enabled"
+            )
+
+        return raw_value

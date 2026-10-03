@@ -63,3 +63,22 @@ class TestJsonReportAdapterExportSuccess(TestCase):
             written_data["apa_validation"]["violations"][0]["error_type"], "Puntuación incorrecta"
         )
         self.assertEqual(written_data["recommendations"][0]["priority"], "alta")
+
+    def test_export_preserves_feedback_blocks_in_dimensions(self):
+        adapter = JsonReportAdapter()
+        report_input = JsonReportFixtures.make_real_report_input_dto()
+        expected_blocks = [
+            {"kind": "title", "text": "Fortalezas", "level": 0, "marker": ""},
+            {"kind": "item", "text": "Item descriptivo.", "level": 0, "marker": "•"},
+            {"kind": "item", "text": "Item anidado.", "level": 1, "marker": "•"},
+        ]
+        report_input.quality.dimension_scores["claridad"]["feedback_blocks"] = expected_blocks
+
+        adapter.export(report_input=report_input, output_path=_OUTPUT_PATH)
+
+        with open(_OUTPUT_PATH, encoding="utf-8") as file:
+            written_data = load(file)
+        self.assertEqual(
+            written_data["quality_analysis"]["dimensions"]["claridad"]["feedback_blocks"],
+            expected_blocks,
+        )

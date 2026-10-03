@@ -79,6 +79,9 @@ from src.infrastructure.resources.prompts.classification import (
 )
 from src.infrastructure.resources.prompts.quality import PROMPTS_DIR as QUALITY_PROMPTS_DIR
 from src.infrastructure.resources.text_resource_loader import read_text_resource
+from src.infrastructure.wirings.external_llm_generator_loader import (
+    ExternalLlmGeneratorLoader,
+)
 
 load_dotenv()
 
@@ -88,6 +91,7 @@ class AnalyzeDocumentUseCaseWiring:
 
     def __init__(self) -> None:
         self._ollama_generator_instance: LlmGeneratorPort | None = None
+        self._llm_backend_generator_instance: LlmGeneratorPort | None = None
         self._env_config_instance: EnvConfig | None = None
         self._analysis_metrics_port_instance: AnalysisMetricsPort | None = None
         self._audit_payload_policy_instance: AuditPayloadPolicy | None = None
@@ -251,6 +255,25 @@ class AnalyzeDocumentUseCaseWiring:
             )
         return self._ollama_generator_instance
 
+    def _get_active_model_name(self) -> str:
+        env_config = self._get_env_config()
+        if env_config.llm_provider is AiProvider.OLLAMA:
+            return env_config.ollama_model_name
+        return env_config.external_llm_model_name or ""
+
+    def _get_llm_backend_generator(self) -> LlmGeneratorPort:
+        if self._llm_backend_generator_instance is None:
+            env_config = self._get_env_config()
+            if env_config.llm_provider is AiProvider.OLLAMA:
+                self._llm_backend_generator_instance = self._get_ollama_generator()
+            else:
+                self._llm_backend_generator_instance = ExternalLlmGeneratorLoader().load(
+                    provider=env_config.llm_provider,
+                    model_name=self._get_active_model_name(),
+                    think=env_config.external_llm_think,
+                )
+        return self._llm_backend_generator_instance
+
     def _get_analysis_context_port(self) -> AnalysisContextPort:
         return AnalysisContextAdapter()
 
@@ -276,11 +299,11 @@ class AnalyzeDocumentUseCaseWiring:
     def _get_llm_generator(self, purpose: AiPurpose) -> LlmGeneratorPort:
         env_config = self._get_env_config()
         return AuditedLlmGeneratorAdapter(
-            generator=self._get_ollama_generator(),
+            generator=self._get_llm_backend_generator(),
             metrics_port=self._get_analysis_metrics_port(),
             analysis_context_port=self._get_analysis_context_port(),
-            provider=AiProvider.OLLAMA,
-            model_name=env_config.ollama_model_name,
+            provider=env_config.llm_provider,
+            model_name=self._get_active_model_name(),
             purpose=purpose,
             audit_payload_policy=self._get_audit_payload_policy(),
         )
