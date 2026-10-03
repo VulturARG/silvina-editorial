@@ -12,6 +12,9 @@ from src.infrastructure.env_config import EnvConfig
 from src.infrastructure.fastapi.src.utils.inline_bold_renderer import (
     InlineBoldRenderer,
 )
+from src.infrastructure.fastapi.src.utils.static_asset_url_builder import (
+    StaticAssetUrlBuilder,
+)
 from src.infrastructure.wirings.analysis_cancellation_wiring import (
     AnalysisCancellationWiring,
 )
@@ -21,6 +24,7 @@ from src.infrastructure.wirings.analyze_document_use_case_wiring import (
 from src.infrastructure.wirings.export_report_wiring import ExportReportWiring
 from src.infrastructure.wirings.json_report_wiring import JsonReportWiring
 
+STATIC_DIR = Path(__file__).resolve().parents[2] / "static"
 TEMPLATES_DIR = Path(__file__).resolve().parents[2] / "templates"
 
 
@@ -29,6 +33,7 @@ def _create_templates(environment_configuration: EnvConfig) -> Jinja2Templates:
     templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
     templates.env.globals["app_name"] = environment_configuration.silvina_app_name
     templates.env.globals["app_version"] = environment_configuration.silvina_version
+    templates.env.globals["static_url"] = StaticAssetUrlBuilder(STATIC_DIR).build
     templates.env.filters["inline_bold"] = InlineBoldRenderer().render
     return templates
 

@@ -82,6 +82,7 @@
         {% for dim, data in report.quality.dimension_scores.items() %}
             {% set score = data.score if data.score is defined else (data['score'] if data is mapping and 'score' in data else 0) %}
             {% set feedback = data.feedback if data.feedback is defined else (data['feedback'] if data is mapping and 'feedback' in data else '') %}
+            {% set feedback_blocks = data.feedback_blocks if data.feedback_blocks is defined else (data['feedback_blocks'] if data is mapping and 'feedback_blocks' in data else []) %}
             <div class="progress-container">
                 <div class="progress-header">
                     <span class="progress-name">{{ dim | capitalize }}</span>
@@ -90,7 +91,25 @@
                 <div class="progress-track">
                     <div class="progress-fill" style="width: {{ [score * 10, 100] | min }}%;"></div>
                 </div>
-                {% if feedback %}
+                {% if feedback_blocks %}
+                    <div class="progress-feedback">
+                        {% for block in feedback_blocks %}
+                            {% set b_kind = block.kind.value if block.kind is defined and block.kind.value is defined else (block.kind if block.kind is defined else (block['kind'] if block is mapping and 'kind' in block else 'text')) %}
+                            {% set b_text = block.text if block.text is defined else (block['text'] if block is mapping and 'text' in block else '') %}
+                            {% set b_level = block.level if block.level is defined else (block['level'] if block is mapping and 'level' in block else 0) %}
+                            {% set b_marker = block.marker if block.marker is defined else (block['marker'] if block is mapping and 'marker' in block else '') %}
+                            {% if b_kind == 'title' %}
+                                <div class="feedback-block-title">{{ b_text | inline_bold }}</div>
+                            {% elif b_kind == 'item' %}
+                                <div class="feedback-block-item{% if b_level == 1 %} level-1{% endif %}">
+                                    {% if b_marker %}<span class="feedback-block-marker">{{ b_marker }}</span> {% endif %}{{ b_text | inline_bold }}
+                                </div>
+                            {% else %}
+                                <div class="feedback-block-text{% if b_level == 1 %} level-1{% endif %}">{{ b_text | inline_bold }}</div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% elif feedback %}
                     <div class="progress-feedback">{{ feedback | inline_bold }}</div>
                 {% endif %}
             </div>

@@ -1,6 +1,7 @@
-import re
 from collections import defaultdict
 from datetime import datetime
+from re import compile as regex_compile
+from typing import Any
 
 try:
     from docx import Document
@@ -21,7 +22,7 @@ from src.domain.exceptions.report_errors import ReportExportUnavailable
 from src.domain.report.report_export_port import ReportExportPort
 from src.infrastructure.adapters.report.docx_report_settings import DocxReportSettings
 
-_MARKDOWN_BOLD_PATTERN = re.compile(r"\*\*(.+?)\*\*")
+_MARKDOWN_BOLD_PATTERN = regex_compile(r"\*\*(.+?)\*\*")
 
 
 class DocxReportAdapter(ReportExportPort):
@@ -44,17 +45,50 @@ class DocxReportAdapter(ReportExportPort):
             return self._settings.warning_color_rgb
         return self._settings.reject_color_rgb
 
-    def _add_markdown_paragraph(self, doc, text: str) -> None:
-        """Add a paragraph rendering **bold** Markdown segments as bold runs."""
-        paragraph = doc.add_paragraph()
+    def _add_markdown_paragraph(
+        self,
+        doc,
+        text: str,
+        paragraph: Any = None,
+        prefix: str = "",
+    ) -> Any:
+        """Add or populate a paragraph rendering **bold** Markdown segments as bold runs."""
+        target_paragraph = paragraph if paragraph is not None else doc.add_paragraph()
+        if prefix:
+            target_paragraph.add_run(prefix)
         position = 0
         for match in _MARKDOWN_BOLD_PATTERN.finditer(text):
             if match.start() > position:
-                paragraph.add_run(text[position : match.start()])
-            paragraph.add_run(match.group(1)).bold = True
+                target_paragraph.add_run(text[position : match.start()])
+            target_paragraph.add_run(match.group(1)).bold = True
             position = match.end()
         if position < len(text):
-            paragraph.add_run(text[position:])
+            target_paragraph.add_run(text[position:])
+        return target_paragraph
+
+    def _add_feedback_blocks(self, doc, blocks: list[Any]) -> None:
+        """Add structured feedback blocks to the document."""
+        for block in blocks:
+            kind_raw = (
+                block.get("kind") if isinstance(block, dict) else getattr(block, "kind", None)
+            )
+            kind = getattr(kind_raw, "value", kind_raw)
+            text = block.get("text", "") if isinstance(block, dict) else getattr(block, "text", "")
+            level = block.get("level", 0) if isinstance(block, dict) else getattr(block, "level", 0)
+            marker = (
+                block.get("marker", "") if isinstance(block, dict) else getattr(block, "marker", "")
+            )
+
+            if kind == "title":
+                paragraph = doc.add_paragraph()
+                paragraph.add_run(text).bold = True
+            elif kind == "item":
+                paragraph = doc.add_paragraph()
+                paragraph.paragraph_format.left_indent = Inches(0.5) if level >= 1 else Inches(0.25)
+                prefix = f"{marker} " if marker and not marker.endswith(" ") else (marker or "")
+                self._add_markdown_paragraph(doc=doc, text=text, paragraph=paragraph, prefix=prefix)
+            else:
+                self._add_markdown_paragraph(doc=doc, text=text)
 
     def _format_match_rate(self, citations) -> str:
         if citations.total_citations == 0:
@@ -339,7 +373,10 @@ class DocxReportAdapter(ReportExportPort):
                 paragraph.add_run("Puntuación: ").bold = True
                 paragraph.add_run(f"{dim_data['score']:.1f}/10")
 
-                if dim_data.get("feedback"):
+                feedback_blocks = dim_data.get("feedback_blocks")
+                if feedback_blocks:
+                    self._add_feedback_blocks(doc=doc, blocks=feedback_blocks)
+                elif dim_data.get("feedback"):
                     self._add_markdown_paragraph(doc=doc, text=dim_data["feedback"])
 
     def _add_editorial_suitability(self, doc, report_input: ReportInputDTO) -> None:

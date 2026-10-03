@@ -29,6 +29,13 @@ class TestFastApiTemplates(TestCase):
         self.assertIn("Silvina - Asistente Editorial", rendered)
         self.assertIn("footer", rendered)
 
+    def test_base_template_renders_stylesheet_with_cache_busting_version(self) -> None:
+        templates = get_templates()
+        template = templates.get_template("base.html")
+        rendered = template.render()
+
+        self.assertIn("silvina.css?v=", rendered)
+
     def test_base_template_renders_configured_version_and_application_name(self) -> None:
         templates = get_templates()
         template = templates.get_template("base.html")
@@ -203,3 +210,79 @@ class TestFastApiTemplates(TestCase):
         self.assertNotIn("**altamente sustentado**", rendered)
         self.assertNotIn("**perfectamente alineado**", rendered)
         self.assertNotIn("**de inmediato**", rendered)
+
+    def test_results_template_renders_structured_feedback_blocks_when_present(self) -> None:
+        quality = ReportFixtures.make_quality_mock()
+        quality.dimension_scores = {
+            "claridad": {
+                "score": 9.0,
+                "feedback": "Texto plano de respaldo.",
+                "feedback_blocks": [
+                    {
+                        "kind": "title",
+                        "text": "Fortalezas",
+                        "level": 0,
+                        "marker": "",
+                    },
+                    {
+                        "kind": "item",
+                        "text": "Item con <script>alerta</script> y frase **muy relevante**.",
+                        "level": 0,
+                        "marker": "•",
+                    },
+                    {
+                        "kind": "item",
+                        "text": "Segundo item numerado.",
+                        "level": 0,
+                        "marker": "1.",
+                    },
+                    {
+                        "kind": "item",
+                        "text": "Detalle anidado nivel uno.",
+                        "level": 1,
+                        "marker": "•",
+                    },
+                ],
+            }
+        }
+        report = ReportFixtures.make_report_input_dto(quality=quality)
+
+        template = self.env.get_template("partials/_results.html")
+        rendered = template.render(
+            report=report,
+            word_filename="blocks_analisis.docx",
+            json_filename="blocks_analisis.json",
+        )
+
+        self.assertIn('<div class="feedback-block-title">Fortalezas</div>', rendered)
+        self.assertIn("feedback-block-marker", rendered)
+        self.assertIn("•", rendered)
+        self.assertIn("1.", rendered)
+        self.assertIn("<strong>muy relevante</strong>", rendered)
+        self.assertNotIn("**muy relevante**", rendered)
+        self.assertIn("&lt;script&gt;alerta&lt;/script&gt;", rendered)
+        self.assertNotIn("<script>alerta</script>", rendered)
+        self.assertIn("level-1", rendered)
+        self.assertNotIn("Texto plano de respaldo.", rendered)
+
+    def test_results_template_renders_flat_feedback_when_blocks_empty(self) -> None:
+        quality = ReportFixtures.make_quality_mock()
+        quality.dimension_scores = {
+            "claridad": {
+                "score": 8.0,
+                "feedback": "Dimensión clásica con **texto plano**.",
+                "feedback_blocks": [],
+            }
+        }
+        report = ReportFixtures.make_report_input_dto(quality=quality)
+
+        template = self.env.get_template("partials/_results.html")
+        rendered = template.render(
+            report=report,
+            word_filename="flat_analisis.docx",
+            json_filename="flat_analisis.json",
+        )
+
+        self.assertIn("Dimensión clásica con <strong>texto plano</strong>.", rendered)
+        self.assertNotIn("feedback-block-title", rendered)
+        self.assertNotIn("feedback-block-item", rendered)
