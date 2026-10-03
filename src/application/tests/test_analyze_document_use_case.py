@@ -285,9 +285,7 @@ class TestAnalyzeDocumentUseCase(TestCase):
         self.assertEqual(completion_event.status, ExecutionStatus.SUCCESS)
         self.assertEqual(completion_event.word_count, result.document_content.word_count)
         self.assertEqual(completion_event.char_count, result.document_content.char_count)
-        self.assertEqual(
-            completion_event.article_type, result.classification.effective_structure_type
-        )
+        self.assertEqual(completion_event.article_type, result.classification.article_type)
         self.assertEqual(completion_event.verdict, result.verdict.verdict)
         self.assertGreaterEqual(completion_event.total_duration_ms, 0)
 

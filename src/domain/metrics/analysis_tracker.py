@@ -136,7 +136,7 @@ class AnalysisTracker:
             document_name=document_name,
             word_count=report.document_content.word_count,
             char_count=report.document_content.char_count,
-            article_type=report.classification.effective_structure_type,
+            article_type=report.classification.article_type,
             verdict=report.verdict.verdict,
             total_duration_ms=duration_ms,
             status=ExecutionStatus.SUCCESS,
