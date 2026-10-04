@@ -35,9 +35,7 @@ class TestEnvConfig(TestCase):
         self.assertAlmostEqual(config.quality_level_needs_improvement_threshold, 3.0)
         self.assertEqual(config.quality_min_sample_word_count, 400)
         self.assertEqual(config.quality_text_sample_character_limit, 8000)
-        self.assertEqual(
-            config.ollama_model_name, "hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:UD-IQ4_XS"
-        )
+        self.assertEqual(config.ollama_model_name, "gemma4-26b-adapted")
         self.assertEqual(config.ollama_base_url, "http://localhost:11434")
         self.assertFalse(config.ollama_think)
         self.assertFalse(config.external_llm_think)

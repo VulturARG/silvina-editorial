@@ -63,9 +63,7 @@ class EnvConfig:
             getenv("QUALITY_TEXT_SAMPLE_CHARACTER_LIMIT", "8000")
         )
 
-        self.ollama_model_name: str = getenv(
-            "OLLAMA_MODEL_NAME", "hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:UD-IQ4_XS"
-        )
+        self.ollama_model_name: str = getenv("OLLAMA_MODEL_NAME", "gemma4-26b-adapted")
         self.ollama_base_url: str = getenv("OLLAMA_BASE_URL", "http://localhost:11434")
         self.ollama_think: bool = self._parse_boolean("OLLAMA_THINK", "false")
         self.external_llm_think: bool = self._parse_boolean("EXTERNAL_LLM_THINK", "false")

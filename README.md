@@ -16,7 +16,7 @@ Silvina is an intelligent editorial assistant for **Revista Visión Conjunta** (
 
 **Current Version:** v0.95 (Q2 2026)
 **Architecture:** Hexagonal Architecture (Domain → Application → Infrastructure)
-**LLM Integration:** Ollama (hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:UD-IQ4_XS)
+**LLM Integration:** Ollama (gemma4-26b-adapted, built from hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:UD-IQ4_XS)
 **Interface:** Gradio web UI + CLI
 **Output Location:** `Documents\Silvina\reports\` (Word report, JSON data)
 
@@ -205,9 +205,18 @@ source ../venv312/Scripts/activate  # Windows Git Bash
 # 4. Install dependencies
 pip install -r requirements.txt
 
-# 5. Pull LLM model
-ollama pull hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:UD-IQ4_XS
+# 5. Install the LLM model (requires Ollama 0.35.0 or newer)
+scripts\create_ollama_model.bat
 ```
+
+The application uses `gemma4-26b-adapted`, a local Ollama model built from the Unsloth GGUF `hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:UD-IQ4_XS` with the versioned Modelfile in `src/infrastructure/resources/ollama/`. The raw GGUF declares no thinking capability, so `OLLAMA_THINK=false` cannot work on it and thinking tags leak into the answers; the adapted model adds the `gemma4` renderer and parser. The script pulls the base only when it is missing and then runs `ollama create`. The manual equivalent is:
+
+```bash
+ollama pull hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:UD-IQ4_XS
+ollama create gemma4-26b-adapted -f src/infrastructure/resources/ollama/gemma4-26b-adapted.Modelfile
+```
+
+The base GGUF tag is published by a third party and can change upstream, so a model rebuilt later may use different weights bytes than an earlier build.
 
 ### Optional: external LLM for debugging (Claude)
 
