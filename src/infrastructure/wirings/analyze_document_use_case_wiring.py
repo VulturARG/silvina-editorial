@@ -42,6 +42,10 @@ from src.domain.metrics.audit_payload_policy import AuditPayloadPolicy
 from src.domain.ports.llm_generator_port import LlmGeneratorPort
 from src.domain.quality.editorial_suitability_analyzer import EditorialSuitabilityAnalyzer
 from src.domain.quality.editorial_suitability_parser import EditorialSuitabilityParser
+from src.domain.quality.feedback_line_classifier import FeedbackLineClassifier
+from src.domain.quality.feedback_section_capper import FeedbackSectionCapper
+from src.domain.quality.feedback_structure_parser import FeedbackStructureParser
+from src.domain.quality.feedback_text_cleaner import FeedbackTextCleaner
 from src.domain.quality.quality_analyzer import QualityAnalyzer
 from src.domain.quality.quality_response_parser import QualityResponseParser
 from src.domain.quality.quality_text_sampler import QualityTextSampler
@@ -213,7 +217,7 @@ class AnalyzeDocumentUseCaseWiring:
         return QualityAnalyzer(
             llm_generator=self._get_llm_generator(purpose=AiPurpose.QUALITY_ANALYSIS),
             text_sampler=self._get_quality_text_sampler(),
-            response_parser=QualityResponseParser(),
+            response_parser=self._get_quality_response_parser(),
             clarity_coherence_prompt_template=read_text_resource(
                 directory=QUALITY_PROMPTS_DIR, filename="clarity_coherence_prompt.txt"
             ),
@@ -222,6 +226,27 @@ class AnalyzeDocumentUseCaseWiring:
             ),
             editorial_suitability_analyzer=self._get_editorial_suitability_analyzer(),
         )
+
+    def _get_quality_response_parser(self) -> QualityResponseParser:
+        return QualityResponseParser(
+            feedback_structure_parser=self._get_feedback_structure_parser()
+        )
+
+    def _get_feedback_structure_parser(self) -> FeedbackStructureParser:
+        return FeedbackStructureParser(
+            classifier=self._get_feedback_line_classifier(),
+            capper=self._get_feedback_section_capper(),
+            text_cleaner=self._get_feedback_text_cleaner(),
+        )
+
+    def _get_feedback_line_classifier(self) -> FeedbackLineClassifier:
+        return FeedbackLineClassifier()
+
+    def _get_feedback_section_capper(self) -> FeedbackSectionCapper:
+        return FeedbackSectionCapper()
+
+    def _get_feedback_text_cleaner(self) -> FeedbackTextCleaner:
+        return FeedbackTextCleaner()
 
     def _get_editorial_suitability_analyzer(self) -> EditorialSuitabilityAnalyzer:
         env_config = self._get_env_config()

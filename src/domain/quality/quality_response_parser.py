@@ -36,13 +36,13 @@ class QualityResponseParser:
 
     def __init__(
         self,
+        feedback_structure_parser: FeedbackStructureParser,
         unscored_dimension_score: float = 7.0,
         unscored_dimension_feedback: str = "No disponible",
-        feedback_structure_parser: FeedbackStructureParser | None = None,
     ) -> None:
+        self._feedback_structure_parser = feedback_structure_parser
         self._unscored_dimension_score = unscored_dimension_score
         self._unscored_dimension_feedback = unscored_dimension_feedback
-        self._feedback_structure_parser = feedback_structure_parser or FeedbackStructureParser()
 
     def parse(self, text: str) -> ParsedResponseDTO:
         """Parse an LLM response into a ParsedResponseDTO of per-dimension scores."""

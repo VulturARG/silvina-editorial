@@ -7,7 +7,9 @@ from src.domain.exceptions.quality_errors import QualityAnalysisFailed
 from src.domain.quality.editorial_suitability_analyzer import EditorialSuitabilityAnalyzer
 from src.domain.quality.editorial_suitability_parser import EditorialSuitabilityParser
 from src.domain.quality.quality_analyzer import QualityAnalyzer
-from src.domain.quality.quality_response_parser import QualityResponseParser
+from src.domain.tests.quality.quality_response_parser_builder_for_test import (
+    QualityResponseParserBuilderForTest,
+)
 from src.domain.quality.quality_text_sampler import QualityTextSampler
 from src.domain.tests.quality.fake_llm_generator_adapter import FakeLlmGeneratorAdapter
 
@@ -72,7 +74,7 @@ def build_analyzer(fake_adapter: FakeLlmGeneratorAdapter) -> QualityAnalyzer:
     return QualityAnalyzer(
         llm_generator=fake_adapter,
         text_sampler=QualityTextSampler(),
-        response_parser=QualityResponseParser(),
+        response_parser=QualityResponseParserBuilderForTest().build(),
         clarity_coherence_prompt_template=CLARITY_COHERENCE_PROMPT_TEMPLATE,
         argumentation_conclusions_prompt_template=ARGUMENTATION_CONCLUSIONS_PROMPT_TEMPLATE,
         editorial_suitability_analyzer=editorial_suitability_analyzer,
