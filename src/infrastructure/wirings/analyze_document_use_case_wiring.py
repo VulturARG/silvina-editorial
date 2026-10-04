@@ -40,15 +40,21 @@ from src.domain.metrics.analysis_metrics_recorder import AnalysisMetricsRecorder
 from src.domain.metrics.analysis_tracker import AnalysisTracker
 from src.domain.metrics.audit_payload_policy import AuditPayloadPolicy
 from src.domain.ports.llm_generator_port import LlmGeneratorPort
+from src.domain.quality.alignment_lines_extractor import AlignmentLinesExtractor
+from src.domain.quality.contribution_observation_builder import ContributionObservationBuilder
 from src.domain.quality.editorial_suitability_analyzer import EditorialSuitabilityAnalyzer
 from src.domain.quality.editorial_suitability_parser import EditorialSuitabilityParser
 from src.domain.quality.feedback_line_classifier import FeedbackLineClassifier
 from src.domain.quality.feedback_section_capper import FeedbackSectionCapper
 from src.domain.quality.feedback_structure_parser import FeedbackStructureParser
 from src.domain.quality.feedback_text_cleaner import FeedbackTextCleaner
+from src.domain.quality.first_sentence_extractor import FirstSentenceExtractor
 from src.domain.quality.quality_analyzer import QualityAnalyzer
 from src.domain.quality.quality_response_parser import QualityResponseParser
 from src.domain.quality.quality_text_sampler import QualityTextSampler
+from src.domain.quality.suitability_field_extractor import SuitabilityFieldExtractor
+from src.domain.quality.suitability_field_truncator import SuitabilityFieldTruncator
+from src.domain.quality.suitability_verdict_matcher import SuitabilityVerdictMatcher
 from src.domain.recommendation.recommendation_builder import RecommendationBuilder
 from src.domain.structure.structure_validator import StructureValidator
 from src.infrastructure.adapters.document.docx_citation_adapter import DocxCitationAdapter
@@ -88,6 +94,11 @@ from src.infrastructure.wirings.external_llm_generator_loader import (
 )
 
 load_dotenv()
+
+_SUITABILITY_PHRASE_MAX_LENGTH = 120
+_SUITABILITY_JUSTIFICATION_MAX_LENGTH = 120
+_SUITABILITY_LINES_MAX_LENGTH = 200
+_SUITABILITY_OBSERVATION_MAX_LENGTH = 120
 
 
 class AnalyzeDocumentUseCaseWiring:
@@ -248,11 +259,46 @@ class AnalyzeDocumentUseCaseWiring:
     def _get_feedback_text_cleaner(self) -> FeedbackTextCleaner:
         return FeedbackTextCleaner()
 
+    def _get_suitability_field_extractor(self) -> SuitabilityFieldExtractor:
+        return SuitabilityFieldExtractor()
+
+    def _get_suitability_verdict_matcher(self) -> SuitabilityVerdictMatcher:
+        return SuitabilityVerdictMatcher()
+
+    def _get_alignment_lines_extractor(self) -> AlignmentLinesExtractor:
+        return AlignmentLinesExtractor(field_extractor=self._get_suitability_field_extractor())
+
+    def _get_first_sentence_extractor(self) -> FirstSentenceExtractor:
+        return FirstSentenceExtractor()
+
+    def _get_suitability_field_truncator(self) -> SuitabilityFieldTruncator:
+        return SuitabilityFieldTruncator(
+            first_sentence_extractor=self._get_first_sentence_extractor()
+        )
+
+    def _get_contribution_observation_builder(self) -> ContributionObservationBuilder:
+        return ContributionObservationBuilder(
+            field_truncator=self._get_suitability_field_truncator(),
+            max_length=_SUITABILITY_OBSERVATION_MAX_LENGTH,
+        )
+
+    def _get_editorial_suitability_parser(self) -> EditorialSuitabilityParser:
+        return EditorialSuitabilityParser(
+            field_extractor=self._get_suitability_field_extractor(),
+            verdict_matcher=self._get_suitability_verdict_matcher(),
+            lines_extractor=self._get_alignment_lines_extractor(),
+            field_truncator=self._get_suitability_field_truncator(),
+            observation_builder=self._get_contribution_observation_builder(),
+            phrase_max_length=_SUITABILITY_PHRASE_MAX_LENGTH,
+            justification_max_length=_SUITABILITY_JUSTIFICATION_MAX_LENGTH,
+            lines_max_length=_SUITABILITY_LINES_MAX_LENGTH,
+        )
+
     def _get_editorial_suitability_analyzer(self) -> EditorialSuitabilityAnalyzer:
         env_config = self._get_env_config()
         return EditorialSuitabilityAnalyzer(
             llm_generator=self._get_llm_generator(purpose=AiPurpose.EDITORIAL_SUITABILITY),
-            parser=EditorialSuitabilityParser(),
+            parser=self._get_editorial_suitability_parser(),
             contribution_prompt_template=read_text_resource(
                 directory=QUALITY_PROMPTS_DIR, filename="contribution_prompt.txt"
             ),

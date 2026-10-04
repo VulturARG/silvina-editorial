@@ -5,8 +5,10 @@ from src.domain.dtos.editorial_suitability_dto import EditorialSuitabilityDTO
 from src.domain.enums.quality_level import QualityLevel
 from src.domain.exceptions.quality_errors import QualityAnalysisFailed
 from src.domain.quality.editorial_suitability_analyzer import EditorialSuitabilityAnalyzer
-from src.domain.quality.editorial_suitability_parser import EditorialSuitabilityParser
 from src.domain.quality.quality_analyzer import QualityAnalyzer
+from src.domain.tests.quality.editorial_suitability_parser_builder_for_test import (
+    EditorialSuitabilityParserBuilderForTest,
+)
 from src.domain.tests.quality.quality_response_parser_builder_for_test import (
     QualityResponseParserBuilderForTest,
 )
@@ -64,7 +66,7 @@ def build_analyzer(fake_adapter: FakeLlmGeneratorAdapter) -> QualityAnalyzer:
     )
     editorial_suitability_analyzer = EditorialSuitabilityAnalyzer(
         llm_generator=suitability_adapter,
-        parser=EditorialSuitabilityParser(),
+        parser=EditorialSuitabilityParserBuilderForTest().build(),
         contribution_prompt_template=SUITABILITY_CONTRIBUTION_PROMPT_TEMPLATE,
         alignment_prompt_template=SUITABILITY_ALIGNMENT_PROMPT_TEMPLATE,
         research_lines=SUITABILITY_RESEARCH_LINES,

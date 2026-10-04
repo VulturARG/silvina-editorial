@@ -15,7 +15,13 @@ from src.domain.enums.execution_status import ExecutionStatus
 from src.domain.metrics.analysis_tracker import AnalysisTracker
 from src.domain.metrics.audit_payload_policy import AuditPayloadPolicy
 from src.domain.ports.llm_generator_port import LlmGeneratorPort
+from src.domain.quality.alignment_lines_extractor import AlignmentLinesExtractor
+from src.domain.quality.contribution_observation_builder import ContributionObservationBuilder
+from src.domain.quality.editorial_suitability_parser import EditorialSuitabilityParser
 from src.domain.quality.feedback_structure_parser import FeedbackStructureParser
+from src.domain.quality.suitability_field_extractor import SuitabilityFieldExtractor
+from src.domain.quality.suitability_field_truncator import SuitabilityFieldTruncator
+from src.domain.quality.suitability_verdict_matcher import SuitabilityVerdictMatcher
 from src.domain.tests.classification.fake_llm_generator_adapter import FakeLlmGeneratorAdapter
 from src.infrastructure.adapters.document.docx_citation_adapter import DocxCitationAdapter
 from src.infrastructure.adapters.grammar.language_tool_adapter import LanguageToolAdapter
@@ -68,6 +74,19 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         self.assertIsInstance(
             quality_response_parser._feedback_structure_parser, FeedbackStructureParser
         )
+
+    def test_wiring_builds_editorial_suitability_parser_holding_collaborators(self):
+        wiring = AnalyzeDocumentUseCaseWiring()
+        parser = wiring._get_editorial_suitability_parser()
+        self.assertIsInstance(parser, EditorialSuitabilityParser)
+        self.assertIsInstance(parser._field_extractor, SuitabilityFieldExtractor)
+        self.assertIsInstance(parser._verdict_matcher, SuitabilityVerdictMatcher)
+        self.assertIsInstance(parser._lines_extractor, AlignmentLinesExtractor)
+        self.assertIsInstance(parser._field_truncator, SuitabilityFieldTruncator)
+        self.assertIsInstance(parser._observation_builder, ContributionObservationBuilder)
+        self.assertEqual(parser._phrase_max_length, 120)
+        self.assertEqual(parser._justification_max_length, 120)
+        self.assertEqual(parser._lines_max_length, 200)
 
     def test_article_classifier_and_quality_analyzer_wrap_the_same_ollama_generator(self):
         wiring = AnalyzeDocumentUseCaseWiring()
