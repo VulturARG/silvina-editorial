@@ -12,9 +12,11 @@ from src.infrastructure.wirings.external_llm_generator_loader import (
 class TestExternalLlmGeneratorLoader(TestCase):
     def test_load_resolves_and_instantiates_registered_adapter(self):
         mock_adapter_instance = MagicMock(spec=LlmGeneratorPort)
-        mock_adapter_class = MagicMock(return_value=mock_adapter_instance)
+        mock_factory_instance = MagicMock()
+        mock_factory_instance.create.return_value = mock_adapter_instance
+        mock_factory_class = MagicMock(return_value=mock_factory_instance)
         mock_module = MagicMock()
-        mock_module.ClaudeGeneratorAdapter = mock_adapter_class
+        mock_module.ClaudeGeneratorAdapterFactory = mock_factory_class
 
         with patch(
             "src.infrastructure.wirings.external_llm_generator_loader.import_module",
@@ -28,9 +30,9 @@ class TestExternalLlmGeneratorLoader(TestCase):
             )
 
         mock_import_module.assert_called_once_with(
-            "src.infrastructure.adapters.llm_generator.claude_generator_adapter"
+            "src.infrastructure.wirings.claude_generator_adapter_factory"
         )
-        mock_adapter_class.assert_called_once_with(
+        mock_factory_instance.create.assert_called_once_with(
             model_name="claude-3-7-sonnet",
             think=False,
         )
@@ -38,14 +40,16 @@ class TestExternalLlmGeneratorLoader(TestCase):
 
     def test_load_uses_custom_registry_when_provided(self):
         mock_adapter_instance = MagicMock(spec=LlmGeneratorPort)
-        mock_adapter_class = MagicMock(return_value=mock_adapter_instance)
+        mock_factory_instance = MagicMock()
+        mock_factory_instance.create.return_value = mock_adapter_instance
+        mock_factory_class = MagicMock(return_value=mock_factory_instance)
         mock_module = MagicMock()
-        mock_module.CustomAdapter = mock_adapter_class
+        mock_module.CustomAdapterFactory = mock_factory_class
 
         custom_registry = {
             AiProvider.CLAUDE: (
                 "custom.module.path",
-                "CustomAdapter",
+                "CustomAdapterFactory",
             )
         }
 
@@ -61,7 +65,7 @@ class TestExternalLlmGeneratorLoader(TestCase):
             )
 
         mock_import_module.assert_called_once_with("custom.module.path")
-        mock_adapter_class.assert_called_once_with(
+        mock_factory_instance.create.assert_called_once_with(
             model_name="custom-model",
             think=True,
         )
@@ -97,9 +101,11 @@ class TestExternalLlmGeneratorLoader(TestCase):
         for think_value in (True, False):
             with self.subTest(think=think_value):
                 mock_adapter_instance = MagicMock(spec=LlmGeneratorPort)
-                mock_adapter_class = MagicMock(return_value=mock_adapter_instance)
+                mock_factory_instance = MagicMock()
+                mock_factory_instance.create.return_value = mock_adapter_instance
+                mock_factory_class = MagicMock(return_value=mock_factory_instance)
                 mock_module = MagicMock()
-                mock_module.ClaudeGeneratorAdapter = mock_adapter_class
+                mock_module.ClaudeGeneratorAdapterFactory = mock_factory_class
 
                 with patch(
                     "src.infrastructure.wirings.external_llm_generator_loader.import_module",
@@ -112,7 +118,7 @@ class TestExternalLlmGeneratorLoader(TestCase):
                         think=think_value,
                     )
 
-                mock_adapter_class.assert_called_once_with(
+                mock_factory_instance.create.assert_called_once_with(
                     model_name="claude-3-7-sonnet",
                     think=think_value,
                 )

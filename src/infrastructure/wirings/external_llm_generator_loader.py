@@ -6,14 +6,14 @@ from src.domain.ports.llm_generator_port import LlmGeneratorPort
 
 _DEFAULT_REGISTRY: dict[AiProvider, tuple[str, str]] = {
     AiProvider.CLAUDE: (
-        "src.infrastructure.adapters.llm_generator.claude_generator_adapter",
-        "ClaudeGeneratorAdapter",
+        "src.infrastructure.wirings.claude_generator_adapter_factory",
+        "ClaudeGeneratorAdapterFactory",
     ),
 }
 
 
 class ExternalLlmGeneratorLoader:
-    """Loads external language model generator adapters dynamically."""
+    """Loads external language model generator adapters through lazily imported factories."""
 
     def __init__(
         self,
@@ -33,14 +33,14 @@ class ExternalLlmGeneratorLoader:
                 f"No external language model adapter registered for provider '{provider.value}'"
             )
 
-        module_path, class_name = self._registry[provider]
+        module_path, factory_class_name = self._registry[provider]
         try:
             module = import_module(module_path)
         except ModuleNotFoundError as exception:
             raise LanguageModelBackendNotInstalled() from exception
 
-        adapter_class = getattr(module, class_name)
-        generator_instance: LlmGeneratorPort = adapter_class(
+        factory_class = getattr(module, factory_class_name)
+        generator_instance: LlmGeneratorPort = factory_class().create(
             model_name=model_name,
             think=think,
         )
