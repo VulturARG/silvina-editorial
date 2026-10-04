@@ -30,9 +30,7 @@ class EditorialSuitabilityAnalyzer:
         contribution_response = self._llm_generator.generate(
             prompt=contribution_prompt, options=self._generation_options()
         )
-        contribution_verdict, contribution_phrase, contribution_observation = (
-            self._parser.parse_contribution(contribution_response)
-        )
+        contribution_assessment = self._parser.parse_contribution(contribution_response)
 
         alignment_prompt = self._alignment_prompt_template.format(
             text_sample=text_sample, research_lines=self._research_lines
@@ -40,17 +38,15 @@ class EditorialSuitabilityAnalyzer:
         alignment_response = self._llm_generator.generate(
             prompt=alignment_prompt, options=self._generation_options()
         )
-        alignment_verdict, alignment_lines, alignment_justification = self._parser.parse_alignment(
-            alignment_response
-        )
+        alignment_assessment = self._parser.parse_alignment(alignment_response)
 
         return EditorialSuitabilityDTO(
-            contribution_verdict=contribution_verdict,
-            contribution_phrase=contribution_phrase,
-            contribution_observation=contribution_observation,
-            alignment_verdict=alignment_verdict,
-            alignment_lines=alignment_lines,
-            alignment_justification=alignment_justification,
+            contribution_verdict=contribution_assessment.verdict.value,
+            contribution_phrase=contribution_assessment.phrase,
+            contribution_observation=contribution_assessment.observation,
+            alignment_verdict=alignment_assessment.verdict.value,
+            alignment_lines=alignment_assessment.lines,
+            alignment_justification=alignment_assessment.justification,
         )
 
     def _generation_options(self) -> dict:

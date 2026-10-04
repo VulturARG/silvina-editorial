@@ -15,7 +15,16 @@ from src.domain.enums.execution_status import ExecutionStatus
 from src.domain.metrics.analysis_tracker import AnalysisTracker
 from src.domain.metrics.audit_payload_policy import AuditPayloadPolicy
 from src.domain.ports.llm_generator_port import LlmGeneratorPort
-from src.domain.quality.feedback_structure_parser import FeedbackStructureParser
+from src.domain.quality.alignment_lines_extractor import AlignmentLinesExtractor
+from src.domain.quality.contribution_observation_builder import ContributionObservationBuilder
+from src.domain.quality.dimension_feedback_extractor import DimensionFeedbackExtractor
+from src.domain.quality.dimension_score_extractor import DimensionScoreExtractor
+from src.domain.quality.editorial_suitability_parser import EditorialSuitabilityParser
+from src.domain.quality.quality_dimension_matcher import QualityDimensionMatcher
+from src.domain.quality.quality_response_parser import QualityResponseParser
+from src.domain.quality.suitability_field_extractor import SuitabilityFieldExtractor
+from src.domain.quality.suitability_field_truncator import SuitabilityFieldTruncator
+from src.domain.quality.suitability_verdict_matcher import SuitabilityVerdictMatcher
 from src.domain.tests.classification.fake_llm_generator_adapter import FakeLlmGeneratorAdapter
 from src.infrastructure.adapters.document.docx_citation_adapter import DocxCitationAdapter
 from src.infrastructure.adapters.grammar.language_tool_adapter import LanguageToolAdapter
@@ -62,12 +71,30 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         result = AnalyzeDocumentUseCaseWiring().create_use_case()
         self.assertIsInstance(result._analysis_tracker, AnalysisTracker)
 
-    def test_wiring_builds_quality_response_parser_holding_feedback_structure_parser(self):
+    def test_wiring_builds_quality_response_parser_holding_collaborators(self):
         wiring = AnalyzeDocumentUseCaseWiring()
         quality_response_parser = wiring._get_quality_response_parser()
+        self.assertIsInstance(quality_response_parser, QualityResponseParser)
+        self.assertIsInstance(quality_response_parser._dimension_matcher, QualityDimensionMatcher)
+        self.assertIsInstance(quality_response_parser._score_extractor, DimensionScoreExtractor)
         self.assertIsInstance(
-            quality_response_parser._feedback_structure_parser, FeedbackStructureParser
+            quality_response_parser._feedback_extractor, DimensionFeedbackExtractor
         )
+        self.assertEqual(quality_response_parser._unscored_dimension.score, 7.0)
+        self.assertEqual(quality_response_parser._unscored_dimension.feedback, "No disponible")
+
+    def test_wiring_builds_editorial_suitability_parser_holding_collaborators(self):
+        wiring = AnalyzeDocumentUseCaseWiring()
+        parser = wiring._get_editorial_suitability_parser()
+        self.assertIsInstance(parser, EditorialSuitabilityParser)
+        self.assertIsInstance(parser._field_extractor, SuitabilityFieldExtractor)
+        self.assertIsInstance(parser._verdict_matcher, SuitabilityVerdictMatcher)
+        self.assertIsInstance(parser._lines_extractor, AlignmentLinesExtractor)
+        self.assertIsInstance(parser._field_truncator, SuitabilityFieldTruncator)
+        self.assertIsInstance(parser._observation_builder, ContributionObservationBuilder)
+        self.assertEqual(parser._phrase_max_length, 120)
+        self.assertEqual(parser._justification_max_length, 120)
+        self.assertEqual(parser._lines_max_length, 200)
 
     def test_article_classifier_and_quality_analyzer_wrap_the_same_ollama_generator(self):
         wiring = AnalyzeDocumentUseCaseWiring()
