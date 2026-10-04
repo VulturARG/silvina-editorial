@@ -148,3 +148,44 @@ class TestInlineBoldRenderer(TestCase):
         self.assertNotIn("**significativo**", rendered)
         self.assertNotIn("**completa**", rendered)
         self.assertNotIn("**inmediatamente**", rendered)
+
+    def test_render_converts_single_asterisk_italics_to_em_tags(self) -> None:
+        raw_text = "El texto emplea *correctamente* el *mecanismo* del *cual* depende."
+        result = self.renderer.render(raw_text)
+
+        self.assertIsInstance(result, Markup)
+        self.assertEqual(
+            str(result),
+            "El texto emplea <em>correctamente</em> el <em>mecanismo</em> del <em>cual</em> depende.",
+        )
+
+    def test_render_handles_bold_and_italic_in_one_line_and_nested(self) -> None:
+        raw_text = "Texto con **negrita** y *cursiva*, más **negrita con *cursiva anidada***."
+        result = self.renderer.render(raw_text)
+
+        self.assertIsInstance(result, Markup)
+        self.assertEqual(
+            str(result),
+            "Texto con <strong>negrita</strong> y <em>cursiva</em>, más <strong>negrita con <em>cursiva anidada</em></strong>.",
+        )
+
+    def test_render_preserves_lone_asterisks_and_operators(self) -> None:
+        raw_text = "Operación a * b, lista '* item', escala 1 x 10^11, nota* y *unpaired."
+        result = self.renderer.render(raw_text)
+
+        self.assertIsInstance(result, Markup)
+        self.assertEqual(
+            str(result),
+            "Operación a * b, lista &#39;* item&#39;, escala 1 x 10^11, nota* y *unpaired.",
+        )
+
+    def test_render_escapes_html_inside_italics(self) -> None:
+        raw_text = "*<script>alert('x')</script>*"
+        result = self.renderer.render(raw_text)
+
+        self.assertIsInstance(result, Markup)
+        self.assertNotIn("<script>", str(result))
+        self.assertEqual(
+            str(result),
+            "<em>&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt;</em>",
+        )

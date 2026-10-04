@@ -17,12 +17,14 @@ except ImportError:
 
 from src.domain.dtos.report_input_dto import ReportInputDTO
 from src.domain.enums.publication_verdict import PublicationVerdict
+from src.domain.enums.quality_dimension import QualityDimension
 from src.domain.enums.recommendation_priority import RecommendationPriority
 from src.domain.exceptions.report_errors import ReportExportUnavailable
 from src.domain.report.report_export_port import ReportExportPort
 from src.infrastructure.adapters.report.docx_report_settings import DocxReportSettings
 
-_MARKDOWN_BOLD_PATTERN = regex_compile(r"\*\*(.+?)\*\*")
+_MARKDOWN_BOLD_PATTERN = regex_compile(r"\*\*(.+?)\*\*(?!\*)")
+_MARKDOWN_ITALIC_PATTERN = regex_compile(r"(?<!\*)\*(?!\s|\*)([^\r\n*]+?)(?<!\s)\*(?!\*)")
 
 
 class DocxReportAdapter(ReportExportPort):
@@ -45,6 +47,28 @@ class DocxReportAdapter(ReportExportPort):
             return self._settings.warning_color_rgb
         return self._settings.reject_color_rgb
 
+    def _add_styled_runs_to_paragraph(
+        self,
+        paragraph: Any,
+        text: str,
+        is_bold: bool = False,
+    ) -> None:
+        position = 0
+        for match in _MARKDOWN_ITALIC_PATTERN.finditer(text):
+            if match.start() > position:
+                run = paragraph.add_run(text[position : match.start()])
+                if is_bold:
+                    run.bold = True
+            run = paragraph.add_run(match.group(1))
+            run.italic = True
+            if is_bold:
+                run.bold = True
+            position = match.end()
+        if position < len(text):
+            run = paragraph.add_run(text[position:])
+            if is_bold:
+                run.bold = True
+
     def _add_markdown_paragraph(
         self,
         doc,
@@ -52,18 +76,30 @@ class DocxReportAdapter(ReportExportPort):
         paragraph: Any = None,
         prefix: str = "",
     ) -> Any:
-        """Add or populate a paragraph rendering **bold** Markdown segments as bold runs."""
+        """Add or populate a paragraph rendering **bold** and *italic* Markdown segments."""
         target_paragraph = paragraph if paragraph is not None else doc.add_paragraph()
         if prefix:
             target_paragraph.add_run(prefix)
         position = 0
         for match in _MARKDOWN_BOLD_PATTERN.finditer(text):
             if match.start() > position:
-                target_paragraph.add_run(text[position : match.start()])
-            target_paragraph.add_run(match.group(1)).bold = True
+                self._add_styled_runs_to_paragraph(
+                    paragraph=target_paragraph,
+                    text=text[position : match.start()],
+                    is_bold=False,
+                )
+            self._add_styled_runs_to_paragraph(
+                paragraph=target_paragraph,
+                text=match.group(1),
+                is_bold=True,
+            )
             position = match.end()
         if position < len(text):
-            target_paragraph.add_run(text[position:])
+            self._add_styled_runs_to_paragraph(
+                paragraph=target_paragraph,
+                text=text[position:],
+                is_bold=False,
+            )
         return target_paragraph
 
     def _add_feedback_blocks(self, doc, blocks: list[Any]) -> None:
@@ -372,7 +408,7 @@ class DocxReportAdapter(ReportExportPort):
 
         if quality.dimension_scores:
             for dim_name, dim_data in quality.dimension_scores.items():
-                doc.add_heading(dim_name.capitalize(), level=3)
+                doc.add_heading(QualityDimension.label_for(dim_name), level=3)
 
                 paragraph = doc.add_paragraph()
                 paragraph.add_run("Puntuación: ").bold = True

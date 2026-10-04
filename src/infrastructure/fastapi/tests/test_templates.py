@@ -425,3 +425,24 @@ class TestFastApiTemplates(TestCase):
             self.assertIsNotNone(text_match)
             assert text_match is not None
             self.assertNotIn("text-indent", text_match.group(1))
+
+    def test_results_template_renders_dimension_label_with_accent_for_argumentacion(
+        self,
+    ) -> None:
+        quality = ReportFixtures.make_quality_mock()
+        quality.dimension_scores = {
+            "argumentacion": {
+                "score": 8.0,
+                "feedback": "Análisis de la dimensión.",
+            }
+        }
+        report = ReportFixtures.make_report_input_dto(quality=quality)
+        template = self.env.get_template("partials/_results.html")
+        rendered = template.render(
+            report=report,
+            word_filename="informe.docx",
+            json_filename="informe.json",
+        )
+
+        self.assertIn("Argumentación", rendered)
+        self.assertNotIn("Argumentacion", rendered)
