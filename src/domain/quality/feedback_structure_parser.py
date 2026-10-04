@@ -132,9 +132,9 @@ class FeedbackStructureParser:
                     if child_indentation is None:
                         child_indentation = indentation
                     if indentation > child_indentation:
-                        level = 2
-                    else:
                         level = 1
+                    else:
+                        level = 0
                 elif (
                     previous_top_level_indentation is not None
                     and indentation > previous_top_level_indentation
@@ -164,9 +164,9 @@ class FeedbackStructureParser:
                     if child_indentation is None:
                         child_indentation = indentation
                     if indentation > child_indentation:
-                        level = 2
-                    else:
                         level = 1
+                    else:
+                        level = 0
                 elif (
                     previous_top_level_indentation is not None
                     and indentation > previous_top_level_indentation
