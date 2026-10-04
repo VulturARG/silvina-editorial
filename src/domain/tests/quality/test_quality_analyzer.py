@@ -66,6 +66,8 @@ def build_analyzer(fake_adapter: FakeLlmGeneratorAdapter) -> QualityAnalyzer:
         contribution_prompt_template=SUITABILITY_CONTRIBUTION_PROMPT_TEMPLATE,
         alignment_prompt_template=SUITABILITY_ALIGNMENT_PROMPT_TEMPLATE,
         research_lines=SUITABILITY_RESEARCH_LINES,
+        temperature=0.1,
+        num_predict=300,
     )
     return QualityAnalyzer(
         llm_generator=fake_adapter,
