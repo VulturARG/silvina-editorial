@@ -17,8 +17,11 @@ from src.domain.metrics.audit_payload_policy import AuditPayloadPolicy
 from src.domain.ports.llm_generator_port import LlmGeneratorPort
 from src.domain.quality.alignment_lines_extractor import AlignmentLinesExtractor
 from src.domain.quality.contribution_observation_builder import ContributionObservationBuilder
+from src.domain.quality.dimension_feedback_extractor import DimensionFeedbackExtractor
+from src.domain.quality.dimension_score_extractor import DimensionScoreExtractor
 from src.domain.quality.editorial_suitability_parser import EditorialSuitabilityParser
-from src.domain.quality.feedback_structure_parser import FeedbackStructureParser
+from src.domain.quality.quality_dimension_matcher import QualityDimensionMatcher
+from src.domain.quality.quality_response_parser import QualityResponseParser
 from src.domain.quality.suitability_field_extractor import SuitabilityFieldExtractor
 from src.domain.quality.suitability_field_truncator import SuitabilityFieldTruncator
 from src.domain.quality.suitability_verdict_matcher import SuitabilityVerdictMatcher
@@ -68,12 +71,17 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         result = AnalyzeDocumentUseCaseWiring().create_use_case()
         self.assertIsInstance(result._analysis_tracker, AnalysisTracker)
 
-    def test_wiring_builds_quality_response_parser_holding_feedback_structure_parser(self):
+    def test_wiring_builds_quality_response_parser_holding_collaborators(self):
         wiring = AnalyzeDocumentUseCaseWiring()
         quality_response_parser = wiring._get_quality_response_parser()
+        self.assertIsInstance(quality_response_parser, QualityResponseParser)
+        self.assertIsInstance(quality_response_parser._dimension_matcher, QualityDimensionMatcher)
+        self.assertIsInstance(quality_response_parser._score_extractor, DimensionScoreExtractor)
         self.assertIsInstance(
-            quality_response_parser._feedback_structure_parser, FeedbackStructureParser
+            quality_response_parser._feedback_extractor, DimensionFeedbackExtractor
         )
+        self.assertEqual(quality_response_parser._unscored_dimension.score, 7.0)
+        self.assertEqual(quality_response_parser._unscored_dimension.feedback, "No disponible")
 
     def test_wiring_builds_editorial_suitability_parser_holding_collaborators(self):
         wiring = AnalyzeDocumentUseCaseWiring()

@@ -29,6 +29,7 @@ from src.domain.document.document_format_inspector import DocumentFormatInspecto
 from src.domain.document.document_text_port import DocumentTextPort
 from src.domain.document.reference_extraction_port import ReferenceExtractionPort
 from src.domain.dtos.article_size_thresholds_dto import ArticleSizeThresholdsDTO
+from src.domain.dtos.dimension_score_dto import DimensionScoreDTO
 from src.domain.enums.ai_provider import AiProvider
 from src.domain.enums.ai_purpose import AiPurpose
 from src.domain.grammar.grammar_check_port import GrammarCheckPort
@@ -42,6 +43,8 @@ from src.domain.metrics.audit_payload_policy import AuditPayloadPolicy
 from src.domain.ports.llm_generator_port import LlmGeneratorPort
 from src.domain.quality.alignment_lines_extractor import AlignmentLinesExtractor
 from src.domain.quality.contribution_observation_builder import ContributionObservationBuilder
+from src.domain.quality.dimension_feedback_extractor import DimensionFeedbackExtractor
+from src.domain.quality.dimension_score_extractor import DimensionScoreExtractor
 from src.domain.quality.editorial_suitability_analyzer import EditorialSuitabilityAnalyzer
 from src.domain.quality.editorial_suitability_parser import EditorialSuitabilityParser
 from src.domain.quality.feedback_line_classifier import FeedbackLineClassifier
@@ -50,6 +53,7 @@ from src.domain.quality.feedback_structure_parser import FeedbackStructureParser
 from src.domain.quality.feedback_text_cleaner import FeedbackTextCleaner
 from src.domain.quality.first_sentence_extractor import FirstSentenceExtractor
 from src.domain.quality.quality_analyzer import QualityAnalyzer
+from src.domain.quality.quality_dimension_matcher import QualityDimensionMatcher
 from src.domain.quality.quality_response_parser import QualityResponseParser
 from src.domain.quality.quality_text_sampler import QualityTextSampler
 from src.domain.quality.suitability_field_extractor import SuitabilityFieldExtractor
@@ -99,6 +103,8 @@ _SUITABILITY_PHRASE_MAX_LENGTH = 120
 _SUITABILITY_JUSTIFICATION_MAX_LENGTH = 120
 _SUITABILITY_LINES_MAX_LENGTH = 200
 _SUITABILITY_OBSERVATION_MAX_LENGTH = 120
+_UNSCORED_DIMENSION_SCORE = 7.0
+_UNSCORED_DIMENSION_FEEDBACK = "No disponible"
 
 
 class AnalyzeDocumentUseCaseWiring:
@@ -240,7 +246,29 @@ class AnalyzeDocumentUseCaseWiring:
 
     def _get_quality_response_parser(self) -> QualityResponseParser:
         return QualityResponseParser(
-            feedback_structure_parser=self._get_feedback_structure_parser()
+            dimension_matcher=self._get_quality_dimension_matcher(),
+            score_extractor=self._get_dimension_score_extractor(),
+            feedback_extractor=self._get_dimension_feedback_extractor(),
+            unscored_dimension=self._get_unscored_dimension(),
+        )
+
+    def _get_quality_dimension_matcher(self) -> QualityDimensionMatcher:
+        return QualityDimensionMatcher()
+
+    def _get_dimension_score_extractor(self) -> DimensionScoreExtractor:
+        return DimensionScoreExtractor(unscored_dimension=self._get_unscored_dimension())
+
+    def _get_dimension_feedback_extractor(self) -> DimensionFeedbackExtractor:
+        return DimensionFeedbackExtractor(
+            feedback_structure_parser=self._get_feedback_structure_parser(),
+            unscored_dimension=self._get_unscored_dimension(),
+        )
+
+    def _get_unscored_dimension(self) -> DimensionScoreDTO:
+        return DimensionScoreDTO(
+            score=_UNSCORED_DIMENSION_SCORE,
+            feedback=_UNSCORED_DIMENSION_FEEDBACK,
+            feedback_blocks=(),
         )
 
     def _get_feedback_structure_parser(self) -> FeedbackStructureParser:
