@@ -105,7 +105,7 @@ class ClaudeGeneratorAdapter(LlmGeneratorPort):
             "tools": [],
             "max_turns": 1,
             "setting_sources": [],
-            "env": {"ANTHROPIC_API_KEY": ""},
+            "env": {"ANTHROPIC_API_KEY": "", "ENABLE_CLAUDEAI_MCP_SERVERS": "false"},
         }
         if not self._think:
             agent_options_parameters["thinking"] = {"type": "disabled"}

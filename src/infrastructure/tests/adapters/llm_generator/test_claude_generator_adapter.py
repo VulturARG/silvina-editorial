@@ -376,7 +376,7 @@ class TestClaudeGeneratorAdapter(TestCase):
             tools=[],
             max_turns=1,
             setting_sources=[],
-            env={"ANTHROPIC_API_KEY": ""},
+            env={"ANTHROPIC_API_KEY": "", "ENABLE_CLAUDEAI_MCP_SERVERS": "false"},
             thinking={"type": "disabled"},
         )
         mock_query.assert_called_once_with(
@@ -404,7 +404,7 @@ class TestClaudeGeneratorAdapter(TestCase):
             tools=[],
             max_turns=1,
             setting_sources=[],
-            env={"ANTHROPIC_API_KEY": ""},
+            env={"ANTHROPIC_API_KEY": "", "ENABLE_CLAUDEAI_MCP_SERVERS": "false"},
             thinking={"type": "disabled"},
         )
         mock_query.assert_called_once_with(
@@ -430,7 +430,7 @@ class TestClaudeGeneratorAdapter(TestCase):
             tools=[],
             max_turns=1,
             setting_sources=[],
-            env={"ANTHROPIC_API_KEY": ""},
+            env={"ANTHROPIC_API_KEY": "", "ENABLE_CLAUDEAI_MCP_SERVERS": "false"},
             thinking={"type": "disabled"},
         )
         mock_query.assert_called_once_with(
@@ -462,7 +462,7 @@ class TestClaudeGeneratorAdapter(TestCase):
             tools=[],
             max_turns=1,
             setting_sources=[],
-            env={"ANTHROPIC_API_KEY": ""},
+            env={"ANTHROPIC_API_KEY": "", "ENABLE_CLAUDEAI_MCP_SERVERS": "false"},
             thinking={"type": "disabled"},
         )
         mock_query.assert_called_once_with(
@@ -494,7 +494,7 @@ class TestClaudeGeneratorAdapter(TestCase):
             tools=[],
             max_turns=1,
             setting_sources=[],
-            env={"ANTHROPIC_API_KEY": ""},
+            env={"ANTHROPIC_API_KEY": "", "ENABLE_CLAUDEAI_MCP_SERVERS": "false"},
         )
         mock_query.assert_called_once_with(
             prompt=self.sample_prompt,
