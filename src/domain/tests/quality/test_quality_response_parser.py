@@ -2,7 +2,9 @@ from unittest import TestCase
 
 from src.domain.enums.feedback_block_kind import FeedbackBlockKind
 from src.domain.enums.quality_dimension import QualityDimension
-from src.domain.quality.quality_response_parser import QualityResponseParser
+from src.domain.tests.quality.quality_response_parser_builder_for_test import (
+    QualityResponseParserBuilderForTest,
+)
 from src.domain.tests.quality.feedback_fixtures import (
     FIXTURE_A_BULLET_SECTIONS_WEAKNESSES_SURVIVE,
     FIXTURE_B_NESTED_NUMBERED_SUB_LIST,
@@ -35,7 +37,7 @@ Texto de retroalimentacion suficientemente largo para superar el minimo.
         unnumbered_response = """**Claridad** [Puntuación: 8/10]
 Texto de retroalimentacion suficientemente largo para superar el minimo.
 """
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
 
         result_numbered = parser.parse(numbered_response)
         result_unnumbered = parser.parse(unnumbered_response)
@@ -50,7 +52,7 @@ El argumento es bastante bueno y adecuado en su desarrollo general del tema.
 **2. Coherencia** [Puntuación: 8/10]
 Las ideas se conectan logicamente entre las distintas secciones del texto.
 """
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
 
         result = parser.parse(response)
 
@@ -63,7 +65,7 @@ El trabajo es excelente y sobresaliente en su desarrollo argumentativo general.
 **2. Coherencia** [Puntuación: 8/10]
 Las ideas se conectan logicamente entre las distintas secciones del texto.
 """
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
 
         result = parser.parse(response)
 
@@ -76,7 +78,7 @@ El trabajo resulta aceptable y suficiente en su desarrollo argumentativo general
 **2. Coherencia** [Puntuación: 8/10]
 Las ideas se conectan logicamente entre las distintas secciones del texto.
 """
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
 
         result = parser.parse(response)
 
@@ -89,7 +91,7 @@ El trabajo resulta deficiente y debil en su desarrollo argumentativo general.
 **2. Coherencia** [Puntuación: 8/10]
 Las ideas se conectan logicamente entre las distintas secciones del texto.
 """
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
 
         result = parser.parse(response)
 
@@ -102,7 +104,7 @@ Este texto no contiene ninguna palabra clave narrativa reconocida en absoluto.
 **2. Coherencia** [Puntuación: 8/10]
 Las ideas se conectan logicamente entre las distintas secciones del texto.
 """
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
 
         result = parser.parse(response)
 
@@ -115,7 +117,7 @@ Corto.
 **2. Coherencia** [Puntuación: 8/10]
 Las ideas se conectan logicamente entre las distintas secciones del texto.
 """
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
 
         result = parser.parse(response)
 
@@ -138,7 +140,7 @@ Las ideas se conectan logicamente entre las distintas secciones del texto.
 **2. Coherencia** [Puntuación: 8/10]
 Las ideas se conectan logicamente entre las distintas secciones del texto.
 """
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
 
         result = parser.parse(response)
 
@@ -163,7 +165,7 @@ La argumentacion presenta un argumento solido y bien fundamentado en el texto.
 **2. Conclusiones** [Puntuación: 8/10]
 Las conclusiones se desprenden claramente del contenido desarrollado.
 """
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
 
         result = parser.parse(response)
 
@@ -180,7 +182,7 @@ Las conclusiones se desprenden claramente del contenido desarrollado.
 **2. Conclusiones** [Puntuación: 8/10]
 Las conclusiones se desprenden claramente del contenido desarrollado.
 """
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
 
         result = parser.parse(response)
 
@@ -193,7 +195,7 @@ Las conclusiones se desprenden claramente del contenido desarrollado.
         response = """**1. Claridad** [Puntuación: 8/10]
 El argumento central es claro y facil de seguir en todo el texto.
 """
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
 
         result = parser.parse(response)
 
@@ -217,7 +219,7 @@ Las conclusiones resultan parciales e insuficientes respecto a los objetivos ini
 ### **Síntesis Final**
 El fragmento evidencia **argumentación académica rigurosa pero incompleta**. La arquitectura lógica general necesita mayor solidez en el desenlace.
 """
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
 
         result = parser.parse(response)
 
@@ -233,7 +235,7 @@ El fragmento evidencia **argumentación académica rigurosa pero incompleta**. L
         response = """**1. Claridad** [Puntuación: 8/10]
 El texto mantiene una **claridad conceptual excelente** durante toda la exposición teórica.
 """
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
 
         result = parser.parse(response)
 
@@ -250,7 +252,7 @@ Los argumentos están adecuadamente desarrollados y fundamentados con evidencia.
 ### **Síntesis Final**
 Se observa una articulación consistente entre las premisas y el desarrollo.
 """
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
 
         result = parser.parse(response)
 
@@ -265,7 +267,7 @@ Se observa una articulación consistente entre las premisas y el desarrollo.
 Primera oración con **negrita que no cierra adecuadamente en esta parte.
 Segunda oración que aporta contexto analítico complementario al análisis.
 """
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
 
         result = parser.parse(response)
 
@@ -278,7 +280,7 @@ Segunda oración que aporta contexto analítico complementario al análisis.
         response = """**1. Argumentación** [Puntuación: 8/10]
 Esta retroalimentación contiene una marca **huérfana sin par de cierre.
 """
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
 
         result = parser.parse(response)
 
@@ -295,7 +297,7 @@ Esta retroalimentación contiene una marca **huérfana sin par de cierre.
 ### Áreas de mejora
 - **Transición débil**: Entre el párrafo y el primero falta un puente.
 """
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
 
         result = parser.parse(response)
 
@@ -308,7 +310,7 @@ Esta retroalimentación contiene una marca **huérfana sin par de cierre.
         response = """**1. Claridad** [Puntuación: 8/10]
 Se evidencia una mejora de 1.5 puntos en la articulación expositiva general.
 """
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
 
         result = parser.parse(response)
 
@@ -319,7 +321,7 @@ Se evidencia una mejora de 1.5 puntos en la articulación expositiva general.
         response = """**1. Claridad** [Puntuación: 8/10]
 El trabajo examina las ideas de A. R. Turing con profundidad conceptual relevante.
 """
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
 
         result = parser.parse(response)
 
@@ -338,7 +340,7 @@ El fragmento presenta una **argumentación sólida y bien jerarquizada** alreded
 ### Debilidades argumentativas
 Síntesis superficial entre mecanismos que requiere mayor integración analítica en el texto.
 """
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
 
         result = parser.parse(response)
 
@@ -354,7 +356,7 @@ El texto mantiene coherencia lógica adecuada en sus secciones principales.
 ---
 Observación final sobre el marco metodológico propuesto.
 """
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
 
         result = parser.parse(response)
 
@@ -369,7 +371,7 @@ El texto no incluye una sección de conclusiones formal. El párrafo final termi
 > "La investigación de interpretabilidad mecanicista ha proporcionado apoyo preliminar."
 Evaluación del cierre presentado.
 """
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
 
         result = parser.parse(response)
 
@@ -388,7 +390,7 @@ Primera observación sobre la claridad expositiva del manuscrito presentado.
 {rule}
 Segunda observación que debe ser ignorada por estar tras la regla horizontal.
 """
-            parser = QualityResponseParser()
+            parser = QualityResponseParserBuilderForTest().build()
             result = parser.parse(response)
             feedback = result.scores[QualityDimension.CLARITY].feedback
             self.assertNotIn(rule, feedback)
@@ -401,7 +403,7 @@ El texto no incluye una sección de conclusiones formal. El párrafo final termi
 >"Cita en bloque sin espacio después del delimitador mayor que."
 Evaluación del cierre presentado.
 """
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
 
         result = parser.parse(response)
 
@@ -410,7 +412,7 @@ Evaluación del cierre presentado.
         self.assertIn('"Cita en bloque sin espacio después del delimitador mayor que."', feedback)
 
     def test_fixture_bullet_sections_preserves_weaknesses_and_keeps_both_titles(self):
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
         result = parser.parse(FIXTURE_A_BULLET_SECTIONS_WEAKNESSES_SURVIVE)
         clarity = result.scores[QualityDimension.CLARITY]
         self.assertEqual(clarity.score, 7.0)
@@ -425,7 +427,7 @@ Evaluación del cierre presentado.
         self.assertEqual(len(item_blocks), 11)
 
     def test_fixture_nested_numbered_sub_list_keeps_nested_items_without_counting_them(self):
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
         result = parser.parse(FIXTURE_B_NESTED_NUMBERED_SUB_LIST)
         argumentation = result.scores[QualityDimension.ARGUMENTATION]
         self.assertEqual(argumentation.score, 8.0)
@@ -439,7 +441,7 @@ Evaluación del cierre presentado.
         self.assertEqual(len(nested_items), 3)
 
     def test_fixture_horizontal_rule_drops_everything_after_rule_including_table(self):
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
         result = parser.parse(FIXTURE_C_HORIZONTAL_RULE_WITH_TABLE)
         conclusions = result.scores[QualityDimension.CONCLUSIONS]
         self.assertEqual(conclusions.score, 6.0)
@@ -450,7 +452,7 @@ Evaluación del cierre presentado.
         self.assertNotIn("Argumentación | 8/10", conclusions.feedback)
 
     def test_fixture_coherencia_ellipsis_item_stays_whole_without_cutting(self):
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
         result = parser.parse(FIXTURE_D_COHERENCIA_ELLIPSIS_ITEM)
         coherence = result.scores[QualityDimension.COHERENCE]
         self.assertEqual(coherence.score, 7.0)
@@ -461,7 +463,7 @@ Evaluación del cierre presentado.
         self.assertIn(expected_ellipsis_text, coherence.feedback)
 
     def test_fixture_same_level_heading_ends_dimension_block(self):
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
         result = parser.parse(FIXTURE_E_SAME_LEVEL_HEADING_ENDS_BLOCK)
         clarity = result.scores[QualityDimension.CLARITY]
         self.assertEqual(clarity.score, 7.0)
@@ -470,7 +472,7 @@ Evaluación del cierre presentado.
         self.assertNotIn("Este párrafo de nivel dos", clarity.feedback)
 
     def test_fixture_mid_sentence_bold_stays_inline(self):
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
         result = parser.parse(FIXTURE_F_MID_SENTENCE_BOLD_STAYS_INLINE)
         clarity = result.scores[QualityDimension.CLARITY]
         self.assertEqual(clarity.score, 8.0)
@@ -479,7 +481,7 @@ Evaluación del cierre presentado.
         self.assertEqual(clarity.feedback_blocks[0].kind, FeedbackBlockKind.TEXT)
 
     def test_fixture_more_than_eight_items_keeps_first_eight_whole(self):
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
         result = parser.parse(FIXTURE_G_MORE_THAN_EIGHT_ITEMS_SECTION)
         argumentation = result.scores[QualityDimension.ARGUMENTATION]
         self.assertEqual(argumentation.score, 8.0)
@@ -499,7 +501,7 @@ Evaluación del cierre presentado.
     def test_fixture_response_fifty_five_general_synthesis_does_not_overwrite_parsed_dimensions(
         self,
     ):
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
         result = parser.parse(FIXTURE_H_GENERAL_SYNTHESIS_OVERWRITE_REGRESSION)
 
         argumentation = result.scores[QualityDimension.ARGUMENTATION]
@@ -543,7 +545,7 @@ Evaluación del cierre presentado.
 
 ## **Argumentación**
 """
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
         result = parser.parse(response)
 
         argumentation = result.scores[QualityDimension.ARGUMENTATION]
@@ -559,7 +561,7 @@ Evaluación del cierre presentado.
 **Fortalezas:**
 - Presenta argumentos sólidos y estructurados a lo largo del manuscrito.
 """
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
         result = parser.parse(response)
 
         argumentation = result.scores[QualityDimension.ARGUMENTATION]
@@ -569,7 +571,7 @@ Evaluación del cierre presentado.
         self.assertGreater(len(argumentation.feedback_blocks), 0)
 
     def test_sonnet_style_response_weaknesses_survive_and_cap_of_eight_applies(self):
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
         result = parser.parse(FIXTURE_I_SONNET_STYLE_PLAIN_TITLES)
         clarity = result.scores[QualityDimension.CLARITY]
 
@@ -591,7 +593,7 @@ Evaluación del cierre presentado.
         self.assertEqual(len(improving_items), 8)
 
     def test_opus_id_70_fixture_preserves_two_level_hierarchy_under_cap_eight(self):
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
         result = parser.parse(FIXTURE_M_OPUS_ID_70_PARAGRAPH_FLUSH_BULLETS_WITH_SUB_BULLETS)
         argumentation = result.scores[QualityDimension.ARGUMENTATION]
 
@@ -611,7 +613,7 @@ Evaluación del cierre presentado.
     def test_haiku_sixty_style_flush_bullets_survive_as_children_and_subsequent_paragraphs_kept(
         self,
     ):
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
         result = parser.parse(FIXTURE_J_HAIKU_ID_60_PARAGRAPH_FLUSH_BULLETS)
         argumentation = result.scores[QualityDimension.ARGUMENTATION]
 
@@ -629,7 +631,7 @@ Evaluación del cierre presentado.
         self.assertEqual(len(children), 3)
 
     def test_gemma_style_weakness_section_survives_as_title_with_single_bullet(self):
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
         result = parser.parse(FIXTURE_K_GEMMA_STYLE_PLAIN_WEAKNESS_TITLE)
         clarity = result.scores[QualityDimension.CLARITY]
 
@@ -643,7 +645,7 @@ Evaluación del cierre presentado.
         self.assertIn("Lo que podría mejorar", titles)
 
     def test_plain_fortalezas_and_debilidades_titles_both_parsed_as_titles(self):
-        parser = QualityResponseParser()
+        parser = QualityResponseParserBuilderForTest().build()
         result = parser.parse(FIXTURE_L_PLAIN_FORTALEZAS_DEBILIDADES_TITLES)
         argumentation = result.scores[QualityDimension.ARGUMENTATION]
 

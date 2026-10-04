@@ -1,7 +1,15 @@
+from collections.abc import Sequence
 from unittest import TestCase
 
+from src.domain.dtos.feedback_line_dto import FeedbackLineDTO
 from src.domain.enums.feedback_block_kind import FeedbackBlockKind
+from src.domain.quality.feedback_line_classifier import FeedbackLineClassifier
+from src.domain.quality.feedback_section_capper import FeedbackSectionCapper
 from src.domain.quality.feedback_structure_parser import FeedbackStructureParser
+from src.domain.quality.feedback_text_cleaner import FeedbackTextCleaner
+from src.domain.tests.quality.feedback_structure_parser_builder_for_test import (
+    FeedbackStructureParserBuilderForTest,
+)
 from src.domain.tests.quality.feedback_fixtures import (
     FIXTURE_B_NESTED_NUMBERED_SUB_LIST,
     FIXTURE_M_OPUS_ID_70_PARAGRAPH_FLUSH_BULLETS_WITH_SUB_BULLETS,
@@ -14,7 +22,7 @@ class TestFeedbackStructureParser(TestCase):
             "### **Fortalezas:**",
             "- Primer punto relevante",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=2)
 
         self.assertEqual(len(blocks), 2)
@@ -28,7 +36,7 @@ class TestFeedbackStructureParser(TestCase):
             "**Debilidades:**",
             "- Primer punto débil identificado",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 2)
@@ -40,7 +48,7 @@ class TestFeedbackStructureParser(TestCase):
             "**Nota sobre estructura general**:",
             "Observación detallada sobre el esquema expositivo general.",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 2)
@@ -51,7 +59,7 @@ class TestFeedbackStructureParser(TestCase):
         lines = [
             "**Punto clave**: este es un texto explicativo continuo en el párrafo.",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 1)
@@ -65,7 +73,7 @@ class TestFeedbackStructureParser(TestCase):
         lines = [
             "El texto exhibe una **claridad conceptual excelente** en su desarrollo.",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 1)
@@ -81,7 +89,7 @@ class TestFeedbackStructureParser(TestCase):
             "* Segundo elemento con asterisco",
             "+ Tercer elemento con signo más",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 3)
@@ -99,7 +107,7 @@ class TestFeedbackStructureParser(TestCase):
             "2. Segundo punto ordenado",
             "10. Décimo punto ordenado",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 3)
@@ -116,7 +124,7 @@ class TestFeedbackStructureParser(TestCase):
             "  1. Sub-elemento numerado anidado",
             "  - Sub-elemento viñeta anidado",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 3)
@@ -138,7 +146,7 @@ class TestFeedbackStructureParser(TestCase):
             "- Tercer elemento principal",
             "- Cuarto elemento principal descartable",
         ]
-        parser = FeedbackStructureParser(maximum_items_per_section=3)
+        parser = FeedbackStructureParserBuilderForTest().build(maximum_items_per_section=3)
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 5)
@@ -158,7 +166,7 @@ class TestFeedbackStructureParser(TestCase):
             "- Cuarto elemento que se descartará:",
             "  1. Sub-elemento del padre descartado",
         ]
-        parser = FeedbackStructureParser(maximum_items_per_section=3)
+        parser = FeedbackStructureParserBuilderForTest().build(maximum_items_per_section=3)
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 3)
@@ -172,7 +180,7 @@ class TestFeedbackStructureParser(TestCase):
             "**Debilidades:**",
             "- Elemento que debe ser completamente ignorado",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 2)
@@ -186,7 +194,7 @@ class TestFeedbackStructureParser(TestCase):
             "## Observación final (meta)",
             "- Contenido posterior a la cabecera del mismo nivel",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=2)
 
         self.assertEqual(len(blocks), 2)
@@ -198,7 +206,7 @@ class TestFeedbackStructureParser(TestCase):
             "### Observaciones específicas",
             "- Comentario detallado",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=2)
 
         self.assertEqual(len(blocks), 2)
@@ -213,7 +221,7 @@ class TestFeedbackStructureParser(TestCase):
             "| Dato 1    | Dato 2    |",
             "- Comentario evaluativo legítimo",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 2)
@@ -225,7 +233,7 @@ class TestFeedbackStructureParser(TestCase):
             '> "Esta es una cita textual relevante incluida en el análisis."',
             '>"Esta es otra cita sin espacio después del delimitador."',
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 2)
@@ -243,7 +251,7 @@ class TestFeedbackStructureParser(TestCase):
             "- Texto con **negrita huérfana sin cierre",
             "- Texto con **negrita cerrada correctamente** en el cuerpo",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 2)
@@ -257,7 +265,7 @@ class TestFeedbackStructureParser(TestCase):
             "- Elemento único rodeado de líneas vacías",
             "",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 1)
@@ -269,7 +277,7 @@ class TestFeedbackStructureParser(TestCase):
             "- Elemento presente",
             "### Debilidades",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 2)
@@ -283,7 +291,7 @@ class TestFeedbackStructureParser(TestCase):
             "**Debilidades secundarias:**",
             "- Primer punto de debilidad",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 2)
@@ -297,7 +305,7 @@ class TestFeedbackStructureParser(TestCase):
             "**Fortalezas:**",
             "- Viñeta posterior",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 4)
@@ -318,7 +326,7 @@ class TestFeedbackStructureParser(TestCase):
             "- Octavo elemento",
             "- Noveno elemento descartable",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 8)
@@ -330,7 +338,7 @@ class TestFeedbackStructureParser(TestCase):
             "- Primer aspecto positivo",
             "- Segundo aspecto positivo",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 3)
@@ -346,7 +354,7 @@ class TestFeedbackStructureParser(TestCase):
             "Párrafo 1. Observaciones principales:",
             "- Primer elemento listado",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 2)
@@ -362,7 +370,7 @@ class TestFeedbackStructureParser(TestCase):
             long_line,
             "- Primer elemento listado",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 2)
@@ -374,7 +382,7 @@ class TestFeedbackStructureParser(TestCase):
             "Aspectos a considerar en el análisis:",
             "Este es un párrafo de texto normal que continúa la explicación sin lista.",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 2)
@@ -396,7 +404,7 @@ class TestFeedbackStructureParser(TestCase):
             "",
             "Cada una se presenta con su base empírica y limitaciones correspondientes.",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 5)
@@ -421,7 +429,7 @@ class TestFeedbackStructureParser(TestCase):
             "- Debilidad uno",
             "- Debilidad dos",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 6)
@@ -442,7 +450,7 @@ class TestFeedbackStructureParser(TestCase):
             "- Primer aspecto derivado",
             "- Segundo aspecto derivado",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 3)
@@ -461,7 +469,7 @@ class TestFeedbackStructureParser(TestCase):
             "1. Primer aspecto derivado",
             "2. Segundo aspecto derivado",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 3)
@@ -482,7 +490,7 @@ class TestFeedbackStructureParser(TestCase):
             "  - Segundo sub-elemento más indentado",
             "- Siguiente elemento al nivel principal",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 4)
@@ -502,7 +510,7 @@ class TestFeedbackStructureParser(TestCase):
             "- Viñeta independiente uno",
             "- Viñeta independiente dos",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 6)
@@ -523,7 +531,7 @@ class TestFeedbackStructureParser(TestCase):
         lines: list[str] = [
             str(line) for line in FIXTURE_B_NESTED_NUMBERED_SUB_LIST.split("\n")[2:]
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=2)
 
         level_one_blocks = [b for b in blocks if b.level == 1]
@@ -539,7 +547,7 @@ class TestFeedbackStructureParser(TestCase):
                 2:
             ]
         ]
-        parser = FeedbackStructureParser(maximum_items_per_section=8)
+        parser = FeedbackStructureParserBuilderForTest().build(maximum_items_per_section=8)
         blocks = parser.parse(lines=lines, dimension_heading_level=2)
 
         level_zero_blocks = [b for b in blocks if b.level == 0]
@@ -557,7 +565,7 @@ class TestFeedbackStructureParser(TestCase):
                 2:
             ]
         ]
-        parser = FeedbackStructureParser(maximum_items_per_section=5)
+        parser = FeedbackStructureParserBuilderForTest().build(maximum_items_per_section=5)
         blocks = parser.parse(lines=lines, dimension_heading_level=2)
 
         level_zero_blocks = [b for b in blocks if b.level == 0]
@@ -579,7 +587,7 @@ class TestFeedbackStructureParser(TestCase):
             "- Primer ejemplo ilustrativo",
             "- Segundo ejemplo ilustrativo",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 5)
@@ -611,7 +619,7 @@ class TestFeedbackStructureParser(TestCase):
             "Por ejemplo:",
             "- Primer ejemplo dependiente",
         ]
-        parser = FeedbackStructureParser(maximum_items_per_section=2)
+        parser = FeedbackStructureParserBuilderForTest().build(maximum_items_per_section=2)
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 3)
@@ -629,7 +637,7 @@ class TestFeedbackStructureParser(TestCase):
             "- Primer ejemplo ilustrativo",
             "- Segundo ejemplo ilustrativo",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 5)
@@ -652,7 +660,7 @@ class TestFeedbackStructureParser(TestCase):
             "- Primer ejemplo ilustrativo",
             "- Segundo ejemplo ilustrativo",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 3)
@@ -675,7 +683,7 @@ class TestFeedbackStructureParser(TestCase):
             "- Identificación clara del problema",
             "- Metodología robusta",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 3)
@@ -703,7 +711,7 @@ class TestFeedbackStructureParser(TestCase):
             "- Identificación clara del problema",
             "- Metodología robusta",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 3)
@@ -731,7 +739,7 @@ class TestFeedbackStructureParser(TestCase):
             "- Primera observación",
             "- Segunda observación",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 3)
@@ -766,13 +774,13 @@ class TestFeedbackStructureParser(TestCase):
                 self.index_read_count += 1
                 return super().__getitem__(index_or_slice)
 
-        class ObservedFeedbackStructureParser(FeedbackStructureParser):
+        class ObservedFeedbackLineClassifier(FeedbackLineClassifier):
             def __init__(self) -> None:
                 super().__init__()
                 self.observed_prepared_lines = ObservedLineSequence()
 
-            def _prepare_lines(self, lines: list[str]) -> list[tuple[str, int]]:
-                prepared = super()._prepare_lines(lines)
+            def prepare_lines(self, lines: Sequence[str]) -> list[FeedbackLineDTO]:
+                prepared = super().prepare_lines(lines)
                 self.observed_prepared_lines = ObservedLineSequence(prepared)
                 return self.observed_prepared_lines
 
@@ -785,16 +793,21 @@ class TestFeedbackStructureParser(TestCase):
             "- Sub-elemento dependiente beta",
             "",
         ]
-        parser = ObservedFeedbackStructureParser()
+        classifier = ObservedFeedbackLineClassifier()
+        parser = FeedbackStructureParser(
+            classifier=classifier,
+            capper=FeedbackSectionCapper(),
+            text_cleaner=FeedbackTextCleaner(),
+        )
         single_unit_blocks = parser.parse(lines=single_unit_lines, dimension_heading_level=0)
 
         repeat_count = 350
         large_lines = single_unit_lines * repeat_count
         large_blocks = parser.parse(lines=large_lines, dimension_heading_level=0)
 
-        self.assertEqual(parser.observed_prepared_lines.slice_copied_count, 0)
+        self.assertEqual(classifier.observed_prepared_lines.slice_copied_count, 0)
         self.assertLessEqual(
-            parser.observed_prepared_lines.index_read_count,
+            classifier.observed_prepared_lines.index_read_count,
             len(large_lines) * 2,
         )
         self.assertEqual(len(large_blocks), len(single_unit_blocks) * repeat_count)
@@ -814,7 +827,7 @@ class TestFeedbackStructureParser(TestCase):
             "  - Sub-viñeta anidada con sangría",
             "- Tercera línea explicativa",
         ]
-        parser = FeedbackStructureParser()
+        parser = FeedbackStructureParserBuilderForTest().build()
         blocks = parser.parse(lines=lines, dimension_heading_level=0)
 
         self.assertEqual(len(blocks), 6)

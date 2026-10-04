@@ -15,6 +15,7 @@ from src.domain.enums.execution_status import ExecutionStatus
 from src.domain.metrics.analysis_tracker import AnalysisTracker
 from src.domain.metrics.audit_payload_policy import AuditPayloadPolicy
 from src.domain.ports.llm_generator_port import LlmGeneratorPort
+from src.domain.quality.feedback_structure_parser import FeedbackStructureParser
 from src.domain.tests.classification.fake_llm_generator_adapter import FakeLlmGeneratorAdapter
 from src.infrastructure.adapters.document.docx_citation_adapter import DocxCitationAdapter
 from src.infrastructure.adapters.grammar.language_tool_adapter import LanguageToolAdapter
@@ -60,6 +61,13 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
     def test_create_use_case_wires_analysis_tracker(self):
         result = AnalyzeDocumentUseCaseWiring().create_use_case()
         self.assertIsInstance(result._analysis_tracker, AnalysisTracker)
+
+    def test_wiring_builds_quality_response_parser_holding_feedback_structure_parser(self):
+        wiring = AnalyzeDocumentUseCaseWiring()
+        quality_response_parser = wiring._get_quality_response_parser()
+        self.assertIsInstance(
+            quality_response_parser._feedback_structure_parser, FeedbackStructureParser
+        )
 
     def test_article_classifier_and_quality_analyzer_wrap_the_same_ollama_generator(self):
         wiring = AnalyzeDocumentUseCaseWiring()
