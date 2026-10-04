@@ -50,7 +50,7 @@ class TestEnvConfig(TestCase):
         self.assertAlmostEqual(config.critical_quality_threshold, 5.0)
         self.assertAlmostEqual(config.critical_grammar_threshold, 5.0)
         self.assertEqual(config.silvina_app_name, "Silvina Editorial Assistant")
-        self.assertEqual(config.silvina_version, "0.95")
+        self.assertEqual(config.silvina_version, "0.100")
         self.assertAlmostEqual(config.report_score_high_threshold, 8.0)
         self.assertAlmostEqual(config.report_score_medium_threshold, 6.0)
         self.assertEqual(config.report_words_per_page, 250)

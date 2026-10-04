@@ -1,6 +1,6 @@
-# Silvina Editorial Assistant v0.95
+# Silvina Editorial Assistant v0.100
 
-[![Version](https://img.shields.io/badge/version-v0.95-blue)](https://github.com/P-SAL/silvina-editorial)
+[![Version](https://img.shields.io/badge/version-v0.100-blue)](https://github.com/P-SAL/silvina-editorial)
 [![Python](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Status](https://img.shields.io/badge/status-Active%20Development-yellow)](https://github.com/P-SAL/silvina-editorial)
@@ -14,7 +14,7 @@
 
 Silvina is an intelligent editorial assistant for **Revista Visión Conjunta** (Facultad Militar Conjunta - Universidad de la Defensa Nacional, Argentina). It automates academic manuscript review using **deterministic structural validation** and **selective AI-powered analysis**.
 
-**Current Version:** v0.95 (Q2 2026)
+**Current Version:** v0.100 (Q2 2026)
 **Architecture:** Hexagonal Architecture (Domain → Application → Infrastructure)
 **LLM Integration:** Ollama (gemma4-26b-adapted, built from hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:UD-IQ4_XS)
 **Interface:** Gradio web UI + CLI
@@ -420,6 +420,6 @@ MIT License
 ---
 
 **Last Updated:** July 2026
-**Version:** 0.95
+**Version:** 0.100
 **Active Branch:** silvina_editorial_v095
 **Status:** Active Development 🚀
