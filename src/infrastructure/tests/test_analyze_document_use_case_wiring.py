@@ -375,6 +375,28 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         assert isinstance(generator, OllamaGeneratorAdapter)
         self.assertTrue(generator._think)
 
+    def test_editorial_suitability_analyzer_uses_default_generation_options(self):
+        environment_without_overrides = {
+            key: value
+            for key, value in environ.items()
+            if key not in {"ARTICLE_CLASSIFIER_TEMPERATURE", "ARTICLE_CLASSIFIER_NUM_PREDICT"}
+        }
+        with patch.dict(environ, environment_without_overrides, clear=True):
+            use_case = AnalyzeDocumentUseCaseWiring().create_use_case()
+        analyzer = use_case._quality_analyzer._editorial_suitability_analyzer
+        self.assertAlmostEqual(analyzer._temperature, 0.1)
+        self.assertEqual(analyzer._num_predict, 300)
+
+    def test_env_vars_override_editorial_suitability_generation_options(self):
+        with patch.dict(
+            environ,
+            {"ARTICLE_CLASSIFIER_TEMPERATURE": "0.4", "ARTICLE_CLASSIFIER_NUM_PREDICT": "512"},
+        ):
+            use_case = AnalyzeDocumentUseCaseWiring().create_use_case()
+        analyzer = use_case._quality_analyzer._editorial_suitability_analyzer
+        self.assertAlmostEqual(analyzer._temperature, 0.4)
+        self.assertEqual(analyzer._num_predict, 512)
+
     def test_default_wiring_uses_ollama_generator_and_provider(self):
         use_case = AnalyzeDocumentUseCaseWiring().create_use_case()
         classifier_generator = use_case._article_classifier._llm_generator

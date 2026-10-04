@@ -224,6 +224,7 @@ class AnalyzeDocumentUseCaseWiring:
         )
 
     def _get_editorial_suitability_analyzer(self) -> EditorialSuitabilityAnalyzer:
+        env_config = self._get_env_config()
         return EditorialSuitabilityAnalyzer(
             llm_generator=self._get_llm_generator(purpose=AiPurpose.EDITORIAL_SUITABILITY),
             parser=EditorialSuitabilityParser(),
@@ -236,6 +237,8 @@ class AnalyzeDocumentUseCaseWiring:
             research_lines=FileGatewayAdapter().read(
                 join(QUALITY_PROMPTS_DIR, "research_lines.txt")
             ),
+            temperature=env_config.article_classifier_temperature,
+            num_predict=env_config.article_classifier_num_predict,
         )
 
     def _get_quality_text_sampler(self) -> QualityTextSampler:

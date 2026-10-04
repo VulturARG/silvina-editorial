@@ -21,13 +21,17 @@ ALIGNMENT_RESPONSE = (
 )
 
 
-def build_analyzer(fake_adapter: FakeLlmGeneratorAdapter) -> EditorialSuitabilityAnalyzer:
+def build_analyzer(
+    fake_adapter: FakeLlmGeneratorAdapter, temperature: float = 0.1, num_predict: int = 300
+) -> EditorialSuitabilityAnalyzer:
     return EditorialSuitabilityAnalyzer(
         llm_generator=fake_adapter,
         parser=EditorialSuitabilityParser(),
         contribution_prompt_template=CONTRIBUTION_PROMPT_TEMPLATE,
         alignment_prompt_template=ALIGNMENT_PROMPT_TEMPLATE,
         research_lines=RESEARCH_LINES_FIXTURE,
+        temperature=temperature,
+        num_predict=num_predict,
     )
 
 
@@ -48,6 +52,28 @@ class TestEditorialSuitabilityAnalyzer(TestCase):
 
         self.assertEqual(fake_adapter.received_options[0], {"temperature": 0.1, "num_predict": 300})
         self.assertEqual(fake_adapter.received_options[1], {"temperature": 0.1, "num_predict": 300})
+
+    def test_both_calls_use_injected_temperature_and_num_predict_options(self):
+        fake_adapter = FakeLlmGeneratorAdapter([CONTRIBUTION_RESPONSE, ALIGNMENT_RESPONSE])
+        analyzer = build_analyzer(fake_adapter, temperature=0.6, num_predict=450)
+
+        analyzer.analyze(text_sample="Texto de muestra del articulo.")
+
+        expected_options = {"temperature": 0.6, "num_predict": 450}
+        self.assertEqual(fake_adapter.received_options[0], expected_options)
+        self.assertEqual(fake_adapter.received_options[1], expected_options)
+
+    def test_constructor_without_temperature_or_num_predict_raises_type_error(self):
+        fake_adapter = FakeLlmGeneratorAdapter([CONTRIBUTION_RESPONSE, ALIGNMENT_RESPONSE])
+
+        with self.assertRaises(TypeError):
+            EditorialSuitabilityAnalyzer(
+                llm_generator=fake_adapter,
+                parser=EditorialSuitabilityParser(),
+                contribution_prompt_template=CONTRIBUTION_PROMPT_TEMPLATE,
+                alignment_prompt_template=ALIGNMENT_PROMPT_TEMPLATE,
+                research_lines=RESEARCH_LINES_FIXTURE,
+            )
 
     def test_contribution_prompt_interpolates_text_sample(self):
         fake_adapter = FakeLlmGeneratorAdapter([CONTRIBUTION_RESPONSE, ALIGNMENT_RESPONSE])
