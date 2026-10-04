@@ -7,6 +7,7 @@ from fastapi.templating import Jinja2Templates
 
 from src.application.analyze_document_use_case import AnalyzeDocumentUseCase
 from src.application.export_report_use_case import ExportReportUseCase
+from src.domain.enums.quality_dimension import QualityDimension
 from src.domain.metrics.analysis_cancellation_port import AnalysisCancellationPort
 from src.infrastructure.env_config import EnvConfig
 from src.infrastructure.fastapi.src.utils.inline_bold_renderer import (
@@ -35,6 +36,7 @@ def _create_templates(environment_configuration: EnvConfig) -> Jinja2Templates:
     templates.env.globals["app_version"] = environment_configuration.silvina_version
     templates.env.globals["static_url"] = StaticAssetUrlBuilder(STATIC_DIR).build
     templates.env.filters["inline_bold"] = InlineBoldRenderer().render
+    templates.env.filters["dimension_label"] = QualityDimension.label_for
     return templates
 
 

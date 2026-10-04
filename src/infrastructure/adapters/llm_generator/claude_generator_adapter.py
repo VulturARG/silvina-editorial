@@ -1,4 +1,5 @@
 from asyncio import run
+from logging import getLogger
 from typing import Any
 
 from claude_agent_sdk import (
@@ -18,6 +19,11 @@ from src.domain.ports.llm_generator_port import LlmGeneratorPort
 from src.infrastructure.adapters.llm_generator.claude_backend_reported_error import (
     ClaudeBackendReportedError,
 )
+from src.infrastructure.adapters.llm_generator.claude_message_digest_builder import (
+    ClaudeMessageDigestBuilder,
+)
+
+logger = getLogger(__name__)
 
 CLAUDE_STOP_REASON_TO_DONE_REASON: dict[str, str] = {
     "end_turn": LlmDoneReason.STOP.value,
@@ -29,9 +35,15 @@ CLAUDE_STOP_REASON_TO_DONE_REASON: dict[str, str] = {
 class ClaudeGeneratorAdapter(LlmGeneratorPort):
     """Generates text via the Claude Agent SDK backend."""
 
-    def __init__(self, model_name: str, think: bool) -> None:
+    def __init__(
+        self,
+        model_name: str,
+        think: bool,
+        message_digest_builder: ClaudeMessageDigestBuilder,
+    ) -> None:
         self._model_name = model_name
         self._think = think
+        self._message_digest_builder = message_digest_builder
 
     def generate(self, prompt: str, options: dict | None = None) -> str:
         """Return Claude's generated text for the given prompt."""
@@ -94,18 +106,29 @@ class ClaudeGeneratorAdapter(LlmGeneratorPort):
             f"{rate_limit_suffix}"
         )
 
+    def _log_received_messages(self, failure_detail: str, message_digests: list[str]) -> None:
+        numbered_digests = "\n".join(
+            f"  {position}. {digest}" for position, digest in enumerate(message_digests, start=1)
+        )
+        logger.error(
+            "Claude backend failure (%s). Messages received from the SDK:\n%s",
+            failure_detail,
+            numbered_digests,
+        )
+
     async def _execute_query(self, prompt: str) -> LlmGenerationDTO:
         """Execute the asynchronous query against Claude Agent SDK and assemble the result."""
         text_fragments: list[str] = []
         final_result_message: ResultMessage | None = None
         latest_rate_limit_event: RateLimitEvent | None = None
+        message_digests: list[str] = []
 
         agent_options_parameters: dict[str, Any] = {
             "model": self._model_name,
             "tools": [],
             "max_turns": 1,
             "setting_sources": [],
-            "env": {"ANTHROPIC_API_KEY": ""},
+            "env": {"ANTHROPIC_API_KEY": "", "ENABLE_CLAUDEAI_MCP_SERVERS": "false"},
         }
         if not self._think:
             agent_options_parameters["thinking"] = {"type": "disabled"}
@@ -113,6 +136,7 @@ class ClaudeGeneratorAdapter(LlmGeneratorPort):
         agent_options = ClaudeAgentOptions(**agent_options_parameters)
 
         async for message in query(prompt=prompt, options=agent_options):
+            message_digests.append(self._message_digest_builder.describe(message))
             if isinstance(message, RateLimitEvent):
                 latest_rate_limit_event = message
             elif isinstance(message, AssistantMessage):
@@ -121,6 +145,7 @@ class ClaudeGeneratorAdapter(LlmGeneratorPort):
                         message=message,
                         latest_rate_limit_event=latest_rate_limit_event,
                     )
+                    self._log_received_messages(detail, message_digests)
                     raise LanguageModelUnavailable() from ClaudeBackendReportedError(detail)
                 for block in message.content:
                     if isinstance(block, TextBlock):
@@ -131,6 +156,7 @@ class ClaudeGeneratorAdapter(LlmGeneratorPort):
                         message=message,
                         latest_rate_limit_event=latest_rate_limit_event,
                     )
+                    self._log_received_messages(detail, message_digests)
                     raise LanguageModelUnavailable() from ClaudeBackendReportedError(detail)
                 final_result_message = message
 

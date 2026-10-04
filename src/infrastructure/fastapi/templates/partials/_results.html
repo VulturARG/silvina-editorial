@@ -85,7 +85,7 @@
             {% set feedback_blocks = data.feedback_blocks if data.feedback_blocks is defined else (data['feedback_blocks'] if data is mapping and 'feedback_blocks' in data else []) %}
             <div class="progress-container">
                 <div class="progress-header">
-                    <span class="progress-name">{{ dim | capitalize }}</span>
+                    <span class="progress-name">{{ dim | dimension_label }}</span>
                     <span class="progress-value">{{ "%.1f" | format(score) }}/10</span>
                 </div>
                 <div class="progress-track">

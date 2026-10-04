@@ -435,10 +435,8 @@ Evaluación del cierre presentado.
         self.assertIn("Andamiaje implícito", argumentation.feedback)
         self.assertIn("Transiciones de fase", argumentation.feedback)
         self.assertNotIn("Noveno item descartable", argumentation.feedback)
-        nested_items = [b for b in argumentation.feedback_blocks if b.level == 2]
+        nested_items = [b for b in argumentation.feedback_blocks if b.level == 1]
         self.assertEqual(len(nested_items), 3)
-        level_one_items = [b for b in argumentation.feedback_blocks if b.level == 1]
-        self.assertEqual(len(level_one_items), 8)
 
     def test_fixture_horizontal_rule_drops_everything_after_rule_including_table(self):
         parser = QualityResponseParser()
@@ -598,11 +596,15 @@ Evaluación del cierre presentado.
         argumentation = result.scores[QualityDimension.ARGUMENTATION]
 
         self.assertEqual(argumentation.score, 6.0)
+        level_zero_items = [
+            b
+            for b in argumentation.feedback_blocks
+            if b.level == 0 and b.kind == FeedbackBlockKind.ITEM
+        ]
         level_one_items = [b for b in argumentation.feedback_blocks if b.level == 1]
-        level_two_items = [b for b in argumentation.feedback_blocks if b.level == 2]
 
-        self.assertEqual(len(level_one_items), 6)
-        self.assertEqual(len(level_two_items), 7)
+        self.assertEqual(len(level_zero_items), 6)
+        self.assertEqual(len(level_one_items), 7)
         self.assertIn("Contradicción numérica sin resolver", argumentation.feedback)
         self.assertIn("Bai et al.", argumentation.feedback)
 
@@ -619,7 +621,11 @@ Evaluación del cierre presentado.
         self.assertIn("Transiciones de fase representacionales", argumentation.feedback)
         self.assertIn("Identificación de tensiones teóricas", argumentation.feedback)
 
-        children = [b for b in argumentation.feedback_blocks if b.level == 1]
+        children = [
+            b
+            for b in argumentation.feedback_blocks
+            if b.level == 0 and b.kind == FeedbackBlockKind.ITEM
+        ]
         self.assertEqual(len(children), 3)
 
     def test_gemma_style_weakness_section_survives_as_title_with_single_bullet(self):

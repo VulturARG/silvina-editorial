@@ -15,6 +15,7 @@ from claude_agent_sdk import (
     ResultMessage,
     TextBlock,
     ThinkingBlock,
+    ToolUseBlock,
 )
 
 from src.domain.dtos.llm_generation_dto import LlmGenerationDTO
@@ -26,6 +27,11 @@ from src.infrastructure.adapters.llm_generator.claude_backend_reported_error imp
 from src.infrastructure.adapters.llm_generator.claude_generator_adapter import (
     ClaudeGeneratorAdapter,
 )
+from src.infrastructure.adapters.llm_generator.claude_message_digest_builder import (
+    ClaudeMessageDigestBuilder,
+)
+
+CLAUDE_ADAPTER_LOGGER_NAME = "src.infrastructure.adapters.llm_generator.claude_generator_adapter"
 
 
 class TestClaudeGeneratorAdapter(TestCase):
@@ -38,6 +44,7 @@ class TestClaudeGeneratorAdapter(TestCase):
         self.adapter = ClaudeGeneratorAdapter(
             model_name=self.model_name,
             think=False,
+            message_digest_builder=ClaudeMessageDigestBuilder(),
         )
 
     def _create_fake_query(
@@ -376,7 +383,7 @@ class TestClaudeGeneratorAdapter(TestCase):
             tools=[],
             max_turns=1,
             setting_sources=[],
-            env={"ANTHROPIC_API_KEY": ""},
+            env={"ANTHROPIC_API_KEY": "", "ENABLE_CLAUDEAI_MCP_SERVERS": "false"},
             thinking={"type": "disabled"},
         )
         mock_query.assert_called_once_with(
@@ -404,7 +411,7 @@ class TestClaudeGeneratorAdapter(TestCase):
             tools=[],
             max_turns=1,
             setting_sources=[],
-            env={"ANTHROPIC_API_KEY": ""},
+            env={"ANTHROPIC_API_KEY": "", "ENABLE_CLAUDEAI_MCP_SERVERS": "false"},
             thinking={"type": "disabled"},
         )
         mock_query.assert_called_once_with(
@@ -430,7 +437,7 @@ class TestClaudeGeneratorAdapter(TestCase):
             tools=[],
             max_turns=1,
             setting_sources=[],
-            env={"ANTHROPIC_API_KEY": ""},
+            env={"ANTHROPIC_API_KEY": "", "ENABLE_CLAUDEAI_MCP_SERVERS": "false"},
             thinking={"type": "disabled"},
         )
         mock_query.assert_called_once_with(
@@ -453,6 +460,7 @@ class TestClaudeGeneratorAdapter(TestCase):
         adapter = ClaudeGeneratorAdapter(
             model_name=self.model_name,
             think=False,
+            message_digest_builder=ClaudeMessageDigestBuilder(),
         )
 
         adapter.generate(prompt=self.sample_prompt)
@@ -462,7 +470,7 @@ class TestClaudeGeneratorAdapter(TestCase):
             tools=[],
             max_turns=1,
             setting_sources=[],
-            env={"ANTHROPIC_API_KEY": ""},
+            env={"ANTHROPIC_API_KEY": "", "ENABLE_CLAUDEAI_MCP_SERVERS": "false"},
             thinking={"type": "disabled"},
         )
         mock_query.assert_called_once_with(
@@ -485,6 +493,7 @@ class TestClaudeGeneratorAdapter(TestCase):
         adapter = ClaudeGeneratorAdapter(
             model_name=self.model_name,
             think=True,
+            message_digest_builder=ClaudeMessageDigestBuilder(),
         )
 
         adapter.generate(prompt=self.sample_prompt)
@@ -494,7 +503,7 @@ class TestClaudeGeneratorAdapter(TestCase):
             tools=[],
             max_turns=1,
             setting_sources=[],
-            env={"ANTHROPIC_API_KEY": ""},
+            env={"ANTHROPIC_API_KEY": "", "ENABLE_CLAUDEAI_MCP_SERVERS": "false"},
         )
         mock_query.assert_called_once_with(
             prompt=self.sample_prompt,
@@ -889,6 +898,80 @@ class TestClaudeGeneratorAdapter(TestCase):
             str(context.exception.__cause__),
             "result error: subtype=error_during_execution, api_error_status=429, errors=['quota exceeded']",
         )
+
+    @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
+    def test_generate_logs_every_received_message_when_result_reports_max_turns(
+        self, mock_query: MagicMock
+    ) -> None:
+        mock_query.side_effect = self._create_fake_query(
+            [
+                AssistantMessage(
+                    content=[ToolUseBlock(id="tool-1", name="Read", input={})],
+                    model=self.model_name,
+                    stop_reason="tool_use",
+                ),
+                ResultMessage(
+                    subtype="error_max_turns",
+                    duration_ms=50,
+                    duration_api_ms=50,
+                    is_error=True,
+                    num_turns=2,
+                    session_id="test-session-identifier",
+                    errors=["Reached maximum number of turns (1)"],
+                ),
+            ]
+        )
+
+        with self.assertLogs(CLAUDE_ADAPTER_LOGGER_NAME, level="ERROR") as captured_logs:
+            with self.assertRaises(LanguageModelUnavailable):
+                self.adapter.generate(prompt=self.sample_prompt)
+
+        logged_text = "\n".join(captured_logs.output)
+        self.assertIn("error_max_turns", logged_text)
+        self.assertIn("ToolUseBlock(name='Read')", logged_text)
+        self.assertIn("stop_reason=tool_use", logged_text)
+        self.assertIn("num_turns=2", logged_text)
+
+    @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
+    def test_generate_logs_received_messages_when_assistant_reports_error(
+        self, mock_query: MagicMock
+    ) -> None:
+        mock_query.side_effect = self._create_fake_query(
+            [
+                AssistantMessage(
+                    content=[TextBlock(text="API error")],
+                    model=self.model_name,
+                    error="rate_limit",
+                ),
+            ]
+        )
+
+        with self.assertLogs(CLAUDE_ADAPTER_LOGGER_NAME, level="ERROR") as captured_logs:
+            with self.assertRaises(LanguageModelUnavailable):
+                self.adapter.generate(prompt=self.sample_prompt)
+
+        self.assertIn("error=rate_limit", "\n".join(captured_logs.output))
+
+    @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
+    def test_generate_does_not_log_messages_when_the_call_succeeds(
+        self, mock_query: MagicMock
+    ) -> None:
+        mock_query.side_effect = self._create_fake_query(
+            [
+                AssistantMessage(content=[TextBlock(text="Result")], model=self.model_name),
+                ResultMessage(
+                    subtype="success",
+                    duration_ms=50,
+                    duration_api_ms=50,
+                    is_error=False,
+                    num_turns=1,
+                    session_id="test-session-identifier",
+                ),
+            ]
+        )
+
+        with self.assertNoLogs(CLAUDE_ADAPTER_LOGGER_NAME, level="ERROR"):
+            self.adapter.generate(prompt=self.sample_prompt)
 
     @patch("src.infrastructure.adapters.llm_generator.claude_generator_adapter.query")
     def test_generate_with_usage_raises_language_model_unavailable_on_sdk_error(

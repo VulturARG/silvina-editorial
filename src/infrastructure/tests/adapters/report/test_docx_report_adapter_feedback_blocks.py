@@ -194,3 +194,97 @@ class TestDocxReportAdapterFeedbackBlocks(TestCase):
         assert indent_two is not None
         self.assertGreater(indent_one, indent_zero)
         self.assertGreater(indent_two, indent_one)
+
+    def test_export_renders_italic_and_bold_runs_without_literal_asterisks(
+        self,
+    ) -> None:
+        quality = QualityResultDTO(
+            overall_score=8.5,
+            quality_level=QualityLevel.GOOD,
+            dimension_scores={
+                "claridad": {
+                    "score": 9.0,
+                    "feedback": "Texto plano.",
+                    "feedback_blocks": [
+                        {
+                            "kind": "item",
+                            "text": "El texto emplea *correctamente* el *mecanismo* del *cual* depende.",
+                            "level": 0,
+                            "marker": "•",
+                        },
+                        {
+                            "kind": "item",
+                            "text": "Texto con **negrita** y *cursiva*, más **negrita con *cursiva anidada***.",
+                            "level": 0,
+                            "marker": "•",
+                        },
+                        {
+                            "kind": "item",
+                            "text": "Operación a * b, lista '* item', escala 1 x 10^11, nota* y *unpaired.",
+                            "level": 0,
+                            "marker": "•",
+                        },
+                    ],
+                },
+            },
+        )
+        report_input = ReportFixtures.make_report_input_dto(quality=quality)
+
+        self.adapter.export(report_input=report_input, output_path=self.output_path)
+
+        document = Document(self.output_path)
+        paragraphs = document.paragraphs
+
+        clarity_heading_index = next(
+            index
+            for index, paragraph in enumerate(paragraphs)
+            if paragraph.text.strip() == "Claridad"
+        )
+
+        emphasis_paragraph = paragraphs[clarity_heading_index + 2]
+        mixed_paragraph = paragraphs[clarity_heading_index + 3]
+        lone_paragraph = paragraphs[clarity_heading_index + 4]
+
+        self.assertNotIn("*", emphasis_paragraph.text)
+        italic_runs_in_first = [run.text for run in emphasis_paragraph.runs if run.italic]
+        self.assertEqual(
+            italic_runs_in_first,
+            ["correctamente", "mecanismo", "cual"],
+        )
+
+        self.assertNotIn("*", mixed_paragraph.text)
+        bold_runs = [run.text for run in mixed_paragraph.runs if run.bold]
+        self.assertIn("negrita", bold_runs)
+        self.assertIn("cursiva anidada", bold_runs)
+        italic_runs_in_second = [run.text for run in mixed_paragraph.runs if run.italic]
+        self.assertIn("cursiva", italic_runs_in_second)
+        self.assertIn("cursiva anidada", italic_runs_in_second)
+
+        self.assertIn("a * b", lone_paragraph.text)
+        self.assertIn("'* item'", lone_paragraph.text)
+        self.assertIn("1 x 10^11", lone_paragraph.text)
+        self.assertIn("nota*", lone_paragraph.text)
+        self.assertIn("*unpaired", lone_paragraph.text)
+
+    def test_export_renders_dimension_heading_with_spanish_label_accent_for_argumentacion(
+        self,
+    ) -> None:
+        quality = QualityResultDTO(
+            overall_score=8.0,
+            quality_level=QualityLevel.GOOD,
+            dimension_scores={
+                "argumentacion": {
+                    "score": 8.0,
+                    "feedback": "Texto de argumentación.",
+                },
+            },
+        )
+        report_input = ReportFixtures.make_report_input_dto(quality=quality)
+
+        self.adapter.export(report_input=report_input, output_path=self.output_path)
+
+        document = Document(self.output_path)
+        paragraph_texts = [paragraph.text.strip() for paragraph in document.paragraphs]
+
+        self.assertIn("Argumentación", paragraph_texts)
+        self.assertNotIn("Argumentacion", paragraph_texts)

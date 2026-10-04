@@ -54,7 +54,7 @@ class TestDimensionRule(TestCase):
         self.assertEqual(recommendation.priority, RecommendationPriority.MEDIUM)
         self.assertEqual(
             recommendation.message,
-            'Dimensión "coherencia" tiene puntuación baja (4.5). La conexión lógica entre párrafos presenta deficiencias.',
+            'Dimensión "Coherencia" tiene puntuación baja (4.5). La conexión lógica entre párrafos presenta deficiencias.',
         )
 
     def test_dimension_with_score_above_threshold_produces_no_recommendations(self):
@@ -87,7 +87,7 @@ class TestDimensionRule(TestCase):
         self.assertNotIn("**", recommendations[0].message)
         self.assertEqual(
             recommendations[0].message,
-            'Dimensión "conclusiones" tiene puntuación baja (4.0). El fragmento evidencia argumentación académica rigurosa pero incompleta.',
+            'Dimensión "Conclusiones" tiene puntuación baja (4.0). El fragmento evidencia argumentación académica rigurosa pero incompleta.',
         )
 
     def test_markdown_heading_markers_removed_from_recommendation_message(self):
@@ -107,7 +107,7 @@ class TestDimensionRule(TestCase):
         self.assertNotIn("**", recommendations[0].message)
         self.assertEqual(
             recommendations[0].message,
-            'Dimensión "conclusiones" tiene puntuación baja (3.5). Análisis del Cierre. Síntesis Final Se requiere mayor desarrollo.',
+            'Dimensión "Conclusiones" tiene puntuación baja (3.5). Análisis del Cierre. Síntesis Final Se requiere mayor desarrollo.',
         )
 
     def test_whitespace_is_collapsed_in_recommendation_message(self):
@@ -125,5 +125,43 @@ class TestDimensionRule(TestCase):
         self.assertEqual(len(recommendations), 1)
         self.assertEqual(
             recommendations[0].message,
-            'Dimensión "argumentacion" tiene puntuación baja (4.0). Primera línea. Segunda línea con espacios múltiples.',
+            'Dimensión "Argumentación" tiene puntuación baja (4.0). Primera línea. Segunda línea con espacios múltiples.',
+        )
+
+    def test_markdown_single_asterisk_italic_markers_removed_from_recommendation_message(
+        self,
+    ) -> None:
+        dimension_scores = {
+            "argumentacion": {
+                "score": 4.0,
+                "feedback": "El texto no emplea *correctamente* el *mecanismo* del *cual* depende.",
+            }
+        }
+        context = _create_analysis_context(dimension_scores=dimension_scores)
+        rule = DimensionRule()
+
+        recommendations = rule.evaluate(context)
+
+        self.assertEqual(len(recommendations), 1)
+        self.assertEqual(
+            recommendations[0].message,
+            'Dimensión "Argumentación" tiene puntuación baja (4.0). El texto no emplea correctamente el mecanismo del cual depende.',
+        )
+
+    def test_markdown_bold_and_italic_in_one_line_and_lone_asterisks_preserved(self) -> None:
+        dimension_scores = {
+            "claridad": {
+                "score": 5.0,
+                "feedback": "Revisar **negrita** y *cursiva*. Operación a * b, escala 1 x 10^11 y nota*.",
+            }
+        }
+        context = _create_analysis_context(dimension_scores=dimension_scores)
+        rule = DimensionRule()
+
+        recommendations = rule.evaluate(context)
+
+        self.assertEqual(len(recommendations), 1)
+        self.assertEqual(
+            recommendations[0].message,
+            'Dimensión "Claridad" tiene puntuación baja (5.0). Revisar negrita y cursiva. Operación a * b, escala 1 x 10^11 y nota*.',
         )

@@ -382,7 +382,7 @@ class TestFeedbackStructureParser(TestCase):
         self.assertEqual(blocks[0].text, "Aspectos a considerar en el análisis:")
         self.assertEqual(blocks[1].kind, FeedbackBlockKind.TEXT)
 
-    def test_unindented_flush_bullets_under_paragraph_ending_in_colon_become_children_level_one(
+    def test_unindented_flush_bullets_under_paragraph_ending_in_colon_become_children_level_zero(
         self,
     ):
         lines = [
@@ -403,11 +403,11 @@ class TestFeedbackStructureParser(TestCase):
         self.assertEqual(blocks[0].kind, FeedbackBlockKind.TEXT)
         self.assertEqual(blocks[0].level, 0)
         self.assertEqual(blocks[1].kind, FeedbackBlockKind.ITEM)
-        self.assertEqual(blocks[1].level, 1)
+        self.assertEqual(blocks[1].level, 0)
         self.assertEqual(blocks[2].kind, FeedbackBlockKind.ITEM)
-        self.assertEqual(blocks[2].level, 1)
+        self.assertEqual(blocks[2].level, 0)
         self.assertEqual(blocks[3].kind, FeedbackBlockKind.ITEM)
-        self.assertEqual(blocks[3].level, 1)
+        self.assertEqual(blocks[3].level, 0)
         self.assertEqual(blocks[4].kind, FeedbackBlockKind.TEXT)
         self.assertEqual(blocks[4].level, 0)
 
@@ -434,7 +434,7 @@ class TestFeedbackStructureParser(TestCase):
         self.assertEqual(blocks[4].text, "Debilidad uno")
         self.assertEqual(blocks[5].text, "Debilidad dos")
 
-    def test_bullet_item_ending_in_colon_followed_by_flush_bullets_makes_them_children_level_one(
+    def test_bullet_item_ending_in_colon_followed_by_flush_bullets_makes_them_children_level_zero(
         self,
     ):
         lines = [
@@ -449,11 +449,11 @@ class TestFeedbackStructureParser(TestCase):
         self.assertEqual(blocks[0].kind, FeedbackBlockKind.ITEM)
         self.assertEqual(blocks[0].level, 0)
         self.assertEqual(blocks[1].kind, FeedbackBlockKind.ITEM)
-        self.assertEqual(blocks[1].level, 1)
+        self.assertEqual(blocks[1].level, 0)
         self.assertEqual(blocks[2].kind, FeedbackBlockKind.ITEM)
-        self.assertEqual(blocks[2].level, 1)
+        self.assertEqual(blocks[2].level, 0)
 
-    def test_numbered_item_ending_in_colon_followed_by_flush_items_makes_them_children_level_one(
+    def test_numbered_item_ending_in_colon_followed_by_flush_items_makes_them_children_level_zero(
         self,
     ):
         lines = [
@@ -469,9 +469,9 @@ class TestFeedbackStructureParser(TestCase):
         self.assertEqual(blocks[0].level, 0)
         self.assertEqual(blocks[0].marker, "1.")
         self.assertEqual(blocks[1].kind, FeedbackBlockKind.ITEM)
-        self.assertEqual(blocks[1].level, 1)
+        self.assertEqual(blocks[1].level, 0)
         self.assertEqual(blocks[2].kind, FeedbackBlockKind.ITEM)
-        self.assertEqual(blocks[2].level, 1)
+        self.assertEqual(blocks[2].level, 0)
 
     def test_bullet_item_ending_in_colon_followed_by_more_indented_list_handled_as_nested_rule(
         self,
@@ -509,9 +509,9 @@ class TestFeedbackStructureParser(TestCase):
         self.assertEqual(blocks[0].kind, FeedbackBlockKind.TEXT)
         self.assertEqual(blocks[0].level, 0)
         self.assertEqual(blocks[1].kind, FeedbackBlockKind.ITEM)
-        self.assertEqual(blocks[1].level, 1)
+        self.assertEqual(blocks[1].level, 0)
         self.assertEqual(blocks[2].kind, FeedbackBlockKind.ITEM)
-        self.assertEqual(blocks[2].level, 1)
+        self.assertEqual(blocks[2].level, 0)
         self.assertEqual(blocks[3].kind, FeedbackBlockKind.TEXT)
         self.assertEqual(blocks[3].level, 0)
         self.assertEqual(blocks[4].kind, FeedbackBlockKind.ITEM)
@@ -529,10 +529,10 @@ class TestFeedbackStructureParser(TestCase):
         level_one_blocks = [b for b in blocks if b.level == 1]
         level_two_blocks = [b for b in blocks if b.level == 2]
 
-        self.assertEqual(len(level_one_blocks), 8)
-        self.assertEqual(len(level_two_blocks), 3)
+        self.assertEqual(len(level_one_blocks), 3)
+        self.assertEqual(len(level_two_blocks), 0)
 
-    def test_opus_id_70_hierarchy_keeps_level_one_and_level_two_items_under_cap_eight(self):
+    def test_opus_id_70_hierarchy_keeps_level_zero_and_level_one_items_under_cap_eight(self):
         lines: list[str] = [
             str(line)
             for line in FIXTURE_M_OPUS_ID_70_PARAGRAPH_FLUSH_BULLETS_WITH_SUB_BULLETS.split("\n")[
@@ -546,11 +546,11 @@ class TestFeedbackStructureParser(TestCase):
         level_one_blocks = [b for b in blocks if b.level == 1]
         level_two_blocks = [b for b in blocks if b.level == 2]
 
-        self.assertEqual(len(level_zero_blocks), 1)
-        self.assertEqual(len(level_one_blocks), 6)
-        self.assertEqual(len(level_two_blocks), 7)
+        self.assertEqual(len(level_zero_blocks), 7)
+        self.assertEqual(len(level_one_blocks), 7)
+        self.assertEqual(len(level_two_blocks), 0)
 
-    def test_opus_id_70_hierarchy_caps_level_one_children_when_cap_is_five(self):
+    def test_opus_id_70_hierarchy_caps_level_zero_children_when_cap_is_five(self):
         lines: list[str] = [
             str(line)
             for line in FIXTURE_M_OPUS_ID_70_PARAGRAPH_FLUSH_BULLETS_WITH_SUB_BULLETS.split("\n")[
@@ -564,9 +564,9 @@ class TestFeedbackStructureParser(TestCase):
         level_one_blocks = [b for b in blocks if b.level == 1]
         level_two_blocks = [b for b in blocks if b.level == 2]
 
-        self.assertEqual(len(level_zero_blocks), 1)
-        self.assertEqual(len(level_one_blocks), 5)
-        self.assertEqual(len(level_two_blocks), 7)
+        self.assertEqual(len(level_zero_blocks), 5)
+        self.assertEqual(len(level_one_blocks), 7)
+        self.assertEqual(len(level_two_blocks), 0)
         self.assertNotIn("Falta de contraste entre hipótesis", [b.text for b in blocks])
 
     def test_plain_line_ending_in_colon_without_preceding_blank_line_does_not_open_section_and_makes_items_children(
@@ -592,10 +592,10 @@ class TestFeedbackStructureParser(TestCase):
         self.assertEqual(blocks[2].level, 0)
         self.assertEqual(blocks[3].kind, FeedbackBlockKind.ITEM)
         self.assertEqual(blocks[3].text, "Primer ejemplo ilustrativo")
-        self.assertEqual(blocks[3].level, 1)
+        self.assertEqual(blocks[3].level, 0)
         self.assertEqual(blocks[4].kind, FeedbackBlockKind.ITEM)
         self.assertEqual(blocks[4].text, "Segundo ejemplo ilustrativo")
-        self.assertEqual(blocks[4].level, 1)
+        self.assertEqual(blocks[4].level, 0)
         self.assertNotIn(
             "Por ejemplo",
             [block.text for block in blocks if block.kind == FeedbackBlockKind.TITLE],
@@ -665,6 +665,90 @@ class TestFeedbackStructureParser(TestCase):
         self.assertEqual(blocks[2].text, "Segundo ejemplo ilustrativo")
         self.assertEqual(blocks[2].level, 0)
 
+    def test_plain_title_directly_under_heading_line_creates_title_and_drops_empty_heading(
+        self,
+    ) -> None:
+        """A plain title directly below a heading opens a section and the empty heading is dropped."""
+        lines = [
+            "### Análisis",
+            "Fortalezas:",
+            "- Identificación clara del problema",
+            "- Metodología robusta",
+        ]
+        parser = FeedbackStructureParser()
+        blocks = parser.parse(lines=lines, dimension_heading_level=0)
+
+        self.assertEqual(len(blocks), 3)
+        self.assertEqual(blocks[0].kind, FeedbackBlockKind.TITLE)
+        self.assertEqual(blocks[0].text, "Fortalezas")
+        self.assertEqual(blocks[0].level, 0)
+        self.assertEqual(blocks[1].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[1].text, "Identificación clara del problema")
+        self.assertEqual(blocks[1].level, 0)
+        self.assertEqual(blocks[2].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[2].text, "Metodología robusta")
+        self.assertEqual(blocks[2].level, 0)
+        self.assertNotIn(
+            "Análisis",
+            [block.text for block in blocks],
+        )
+
+    def test_plain_title_directly_under_bold_only_line_creates_title_and_drops_empty_bold_heading(
+        self,
+    ) -> None:
+        """A plain title directly below a bold-only line opens a section and empty heading is dropped."""
+        lines = [
+            "**Análisis General**",
+            "Fortalezas:",
+            "- Identificación clara del problema",
+            "- Metodología robusta",
+        ]
+        parser = FeedbackStructureParser()
+        blocks = parser.parse(lines=lines, dimension_heading_level=0)
+
+        self.assertEqual(len(blocks), 3)
+        self.assertEqual(blocks[0].kind, FeedbackBlockKind.TITLE)
+        self.assertEqual(blocks[0].text, "Fortalezas")
+        self.assertEqual(blocks[0].level, 0)
+        self.assertEqual(blocks[1].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[1].text, "Identificación clara del problema")
+        self.assertEqual(blocks[1].level, 0)
+        self.assertEqual(blocks[2].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[2].text, "Metodología robusta")
+        self.assertEqual(blocks[2].level, 0)
+        self.assertNotIn(
+            "Análisis General",
+            [block.text for block in blocks],
+        )
+
+    def test_plain_label_directly_under_table_row_is_not_title(self) -> None:
+        """A plain label directly below a table row is parsed as text, not as a title."""
+        lines = [
+            "| Aspecto | Evaluación |",
+            "|---|---|",
+            "| Metodología | Adecuada |",
+            "Observaciones:",
+            "- Primera observación",
+            "- Segunda observación",
+        ]
+        parser = FeedbackStructureParser()
+        blocks = parser.parse(lines=lines, dimension_heading_level=0)
+
+        self.assertEqual(len(blocks), 3)
+        self.assertEqual(blocks[0].kind, FeedbackBlockKind.TEXT)
+        self.assertEqual(blocks[0].text, "Observaciones:")
+        self.assertEqual(blocks[0].level, 0)
+        self.assertEqual(blocks[1].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[1].text, "Primera observación")
+        self.assertEqual(blocks[1].level, 0)
+        self.assertEqual(blocks[2].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[2].text, "Segunda observación")
+        self.assertEqual(blocks[2].level, 0)
+        self.assertNotIn(
+            "Observaciones",
+            [block.text for block in blocks if block.kind == FeedbackBlockKind.TITLE],
+        )
+
     def test_block_of_two_thousand_lines_accesses_lookahead_by_index_without_slicing_and_matches_small_version(
         self,
     ):
@@ -718,3 +802,36 @@ class TestFeedbackStructureParser(TestCase):
             [block.text for block in large_blocks[: len(single_unit_blocks)]],
             [block.text for block in single_unit_blocks],
         )
+
+    def test_lead_in_paragraph_children_keep_level_zero_and_indented_sub_bullets_have_level_one(
+        self,
+    ):
+        lines = [
+            "Observación introductoria del manuscrito.",
+            "El texto presenta tres lineas explicativas:",
+            "- Primera línea explicativa",
+            "- Segunda línea explicativa con detalle:",
+            "  - Sub-viñeta anidada con sangría",
+            "- Tercera línea explicativa",
+        ]
+        parser = FeedbackStructureParser()
+        blocks = parser.parse(lines=lines, dimension_heading_level=0)
+
+        self.assertEqual(len(blocks), 6)
+        self.assertEqual(blocks[0].kind, FeedbackBlockKind.TEXT)
+        self.assertEqual(blocks[0].level, 0)
+        self.assertEqual(blocks[1].kind, FeedbackBlockKind.TEXT)
+        self.assertEqual(blocks[1].text, "El texto presenta tres lineas explicativas:")
+        self.assertEqual(blocks[1].level, 0)
+        self.assertEqual(blocks[2].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[2].text, "Primera línea explicativa")
+        self.assertEqual(blocks[2].level, 0)
+        self.assertEqual(blocks[3].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[3].text, "Segunda línea explicativa con detalle:")
+        self.assertEqual(blocks[3].level, 0)
+        self.assertEqual(blocks[4].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[4].text, "Sub-viñeta anidada con sangría")
+        self.assertEqual(blocks[4].level, 1)
+        self.assertEqual(blocks[5].kind, FeedbackBlockKind.ITEM)
+        self.assertEqual(blocks[5].text, "Tercera línea explicativa")
+        self.assertEqual(blocks[5].level, 0)

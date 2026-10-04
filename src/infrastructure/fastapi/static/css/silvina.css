@@ -16,6 +16,8 @@
     --text-muted: #666666;
     --font-family: 'Segoe UI', Arial, sans-serif;
     --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --feedback-marker-width: 1.4em;
+    --feedback-indent-step: 16px;
 }
 
 * {
@@ -393,17 +395,24 @@ body {
     color: var(--text-muted);
     line-height: 1.45;
     margin-top: 2px;
+    padding-left: var(--feedback-marker-width);
+    text-indent: calc(-1 * var(--feedback-marker-width));
 }
 
 .feedback-block-item.level-1 {
-    padding-left: 16px;
+    padding-left: calc(var(--feedback-indent-step) + var(--feedback-marker-width));
+    text-indent: calc(-1 * var(--feedback-marker-width));
 }
 
 .feedback-block-item.level-2 {
-    padding-left: 32px;
+    padding-left: calc(2 * var(--feedback-indent-step) + var(--feedback-marker-width));
+    text-indent: calc(-1 * var(--feedback-marker-width));
 }
 
 .feedback-block-marker {
+    display: inline-block;
+    min-width: var(--feedback-marker-width);
+    text-indent: 0;
     color: var(--text-muted);
     font-weight: 600;
 }
@@ -416,11 +425,11 @@ body {
 }
 
 .feedback-block-text.level-1 {
-    padding-left: 16px;
+    padding-left: var(--feedback-indent-step);
 }
 
 .feedback-block-text.level-2 {
-    padding-left: 32px;
+    padding-left: calc(2 * var(--feedback-indent-step));
 }
 
 /* Error Callout / Alerts */

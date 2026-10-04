@@ -77,6 +77,7 @@ class TestFastApiDependencies(TestCase):
         self.assertIn("app_name", first_instance.env.globals)
         self.assertIn("app_version", first_instance.env.globals)
         self.assertIn("inline_bold", first_instance.env.filters)
+        self.assertIn("dimension_label", first_instance.env.filters)
         self.assertEqual(
             first_instance.env.globals["app_name"],
             environment_configuration.silvina_app_name,
@@ -149,6 +150,7 @@ class TestFastApiDependencies(TestCase):
         self.assertIn("app_name", templates.env.globals)
         self.assertIn("app_version", templates.env.globals)
         self.assertIn("inline_bold", templates.env.filters)
+        self.assertIn("dimension_label", templates.env.filters)
         self.assertEqual(
             templates.env.globals["app_name"],
             environment_configuration.silvina_app_name,
