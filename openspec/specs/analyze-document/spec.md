@@ -187,10 +187,10 @@ The application version attribute (`silvina_version`) MUST be resolved dynamical
 
 #### Scenario: EnvConfig defaults are loaded when env is empty and version.txt exists
 
-- GIVEN an empty environment except for a valid `version.txt` file with content `"0.100"`
+- GIVEN an empty environment except for a valid `version.txt` file with content `"1.2.3"`
 - WHEN `EnvConfig` is instantiated
 - THEN attributes match the defaults in the table above
-- AND `env_config.silvina_version` is `"0.100"`
+- AND `env_config.silvina_version` is `"1.2.3"`
 
 #### Scenario: EnvConfig parses and casts environment variables
 

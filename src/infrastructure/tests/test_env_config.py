@@ -1,4 +1,6 @@
 from os import environ
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -50,7 +52,6 @@ class TestEnvConfig(TestCase):
         self.assertAlmostEqual(config.critical_quality_threshold, 5.0)
         self.assertAlmostEqual(config.critical_grammar_threshold, 5.0)
         self.assertEqual(config.silvina_app_name, "Silvina Editorial Assistant")
-        self.assertEqual(config.silvina_version, "0.100")
         self.assertAlmostEqual(config.report_score_high_threshold, 8.0)
         self.assertAlmostEqual(config.report_score_medium_threshold, 6.0)
         self.assertEqual(config.report_words_per_page, 250)
@@ -66,6 +67,16 @@ class TestEnvConfig(TestCase):
         self.assertEqual(config.log_file_path, "/custom/path/silvina.log")
         self.assertEqual(config.log_level, "INFO")
         self.assertEqual(config.log_retention_days, 14)
+
+    def test_reads_version_from_the_version_file_outside_testing_mode(self):
+        with TemporaryDirectory() as directory:
+            version_file = Path(directory) / "version.txt"
+            version_file.write_text("1.2.3\n", encoding="utf-8")
+            with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+                with patch("src.infrastructure.env_config._VERSION_FILE_PATH", version_file):
+                    config = EnvConfig()
+
+        self.assertEqual(config.silvina_version, "1.2.3")
 
     def test_raises_file_not_found_when_version_file_missing_outside_testing(self):
         with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
