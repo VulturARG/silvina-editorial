@@ -212,19 +212,27 @@ class EnvConfig:
 
         self.silvina_app_name: str = getenv("SILVINA_APP_NAME", "Silvina Editorial Assistant")
         self.silvina_version: str = self._resolve_version()
-        self.report_score_high_threshold: float = float(
-            getenv("REPORT_SCORE_HIGH_THRESHOLD", "8.0")
+        self.report_score_high_threshold: float = settings.read_float(
+            "REPORT_SCORE_HIGH_THRESHOLD", "report", "score_high_threshold"
         )
-        self.report_score_medium_threshold: float = float(
-            getenv("REPORT_SCORE_MEDIUM_THRESHOLD", "6.0")
+        self.report_score_medium_threshold: float = settings.read_float(
+            "REPORT_SCORE_MEDIUM_THRESHOLD", "report", "score_medium_threshold"
         )
-        self.report_words_per_page: int = int(getenv("REPORT_WORDS_PER_PAGE", "250"))
-        self.report_max_errors_displayed: int = int(getenv("REPORT_MAX_ERRORS_DISPLAYED", "5"))
-        self.report_context_truncation_limit: int = int(
-            getenv("REPORT_CONTEXT_TRUNCATION_LIMIT", "150")
+        self.report_words_per_page: int = settings.read_integer(
+            "REPORT_WORDS_PER_PAGE", "report", "words_per_page"
         )
-        self.report_max_replacements: int = int(getenv("REPORT_MAX_REPLACEMENTS", "3"))
-        self.upload_max_size_bytes: int = int(getenv("UPLOAD_MAX_SIZE_BYTES", "26214400"))
+        self.report_max_errors_displayed: int = settings.read_integer(
+            "REPORT_MAX_ERRORS_DISPLAYED", "report", "max_errors_displayed"
+        )
+        self.report_context_truncation_limit: int = settings.read_integer(
+            "REPORT_CONTEXT_TRUNCATION_LIMIT", "report", "context_truncation_limit"
+        )
+        self.report_max_replacements: int = settings.read_integer(
+            "REPORT_MAX_REPLACEMENTS", "report", "max_replacements"
+        )
+        self.upload_max_size_bytes: int = settings.read_integer(
+            "UPLOAD_MAX_SIZE_BYTES", "upload", "max_size_bytes"
+        )
 
     def get_recommendation_settings(self) -> RecommendationSettingsDTO:
         """Builds RecommendationSettingsDTO from cached configuration values."""

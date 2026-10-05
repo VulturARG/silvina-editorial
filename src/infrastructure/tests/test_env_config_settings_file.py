@@ -144,6 +144,45 @@ class TestEnvConfigSettingsFile(TestCase):
 
         self.assertEqual(config.citation_count_threshold, 12)
 
+    def test_project_settings_file_provides_the_report_and_upload_values(self):
+        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+            config = EnvConfig()
+
+        self.assertAlmostEqual(config.report_score_high_threshold, 8.0)
+        self.assertAlmostEqual(config.report_score_medium_threshold, 6.0)
+        self.assertEqual(config.report_words_per_page, 250)
+        self.assertEqual(config.report_max_errors_displayed, 5)
+        self.assertEqual(config.report_context_truncation_limit, 150)
+        self.assertEqual(config.report_max_replacements, 3)
+        self.assertEqual(config.upload_max_size_bytes, 26214400)
+
+    def test_upload_limit_comes_from_the_given_settings_file(self):
+        self._write_project_settings_with("max_size_bytes = 26214400", "max_size_bytes = 1048576")
+
+        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+            config = EnvConfig(settings_file_path=self._settings_file_path)
+
+        self.assertEqual(config.upload_max_size_bytes, 1048576)
+
+    def test_report_threshold_comes_from_the_given_settings_file(self):
+        self._write_project_settings_with(
+            "score_high_threshold = 8.0", "score_high_threshold = 8.5"
+        )
+
+        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+            config = EnvConfig(settings_file_path=self._settings_file_path)
+
+        self.assertAlmostEqual(config.report_score_high_threshold, 8.5)
+
+    def test_environment_variable_overrides_the_report_words_per_page(self):
+        self._write_project_settings_with("words_per_page = 250", "words_per_page = 300")
+        environment = {**self.REQUIRED_ENVIRONMENT, "REPORT_WORDS_PER_PAGE": "275"}
+
+        with patch.dict(environ, environment, clear=True):
+            config = EnvConfig(settings_file_path=self._settings_file_path)
+
+        self.assertEqual(config.report_words_per_page, 275)
+
     def test_value_comes_from_the_given_settings_file(self):
         self._write_project_settings_with("max_paragraphs = 20", "max_paragraphs = 7")
 

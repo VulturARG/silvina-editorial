@@ -61,3 +61,14 @@ citation_count_threshold = 10
 classification_confidence_threshold = 0.7
 critical_quality_threshold = 5.0
 critical_grammar_threshold = 5.0
+
+[report]
+score_high_threshold = 8.0
+score_medium_threshold = 6.0
+words_per_page = 250
+max_errors_displayed = 5
+context_truncation_limit = 150
+max_replacements = 3
+
+[upload]
+max_size_bytes = 26214400

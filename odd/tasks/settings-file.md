@@ -47,7 +47,11 @@ The `.env` file mixes deployment values (paths, URLs, mode) with tuning paramete
 - [x] **TASK-04: Group `recommendation` thresholds**
   - **Scope**: `settings.toml` section `[recommendation]` (10 thresholds, including `QUALITY_THRESHOLD`), `src/infrastructure/env_config.py`, tests asserting the values.
   - **User decision (2026-10-05)**: remove the two pre-existing `#` comments above `publish_threshold` in `env_config.py` (they break the no-inline-comments rule); the `[recommendation]` section name replaces them.
-  - **Outcome**: 10 thresholds read from `[recommendation]` with the values of the local `.env`; the two `#` comments are gone. Verified by gentle-ai-verify: `src` 1603 OK, `tests` 51 OK, ruff clean. Parity check by the parent: `EnvConfig` built from `settings.toml` alone equals `EnvConfig` built from the local `.env` for all 40 migrated attributes (no differences).
+  - **Outcome**: 10 thresholds read from `[recommendation]` with the values of the local `.env`; the two `#` comments are gone. Verified by gentle-ai-verify: `src` 1603 OK, `tests` 51 OK, ruff clean. Parity check by the parent: `EnvConfig` built from `settings.toml` alone equals `EnvConfig` built from the local `.env` for all 40 migrated attributes (no differences). Native review (1 lens, medium risk) approved and acknowledged.
+  - **Commit**: `73d8221` `feat(config): read recommendation thresholds from settings.toml`.
+- [x] **TASK-05: Group `report` and `upload`**
+  - **Scope**: `settings.toml` sections `[report]` (6 values) and `[upload]` (1 value), `src/infrastructure/env_config.py`, tests.
+  - **Note**: `UPLOAD_MAX_SIZE_BYTES` is not in the local `.env`, so `settings.toml` carries the code default (26214400, 25 MiB).
+  - **Outcome**: 7 values read from `[report]` and `[upload]`. Verified by gentle-ai-verify: `src` 1607 OK, `tests` 51 OK, ruff clean. Parity check by the parent: `EnvConfig` built from `settings.toml` alone equals the one built from the local `.env` for all 47 migrated attributes (no differences). What remains with `getenv` in `EnvConfig` is deployment or mode configuration and the Ollama/LLM tuning values, still open for the user.
   - **Commit**: pending the user's approval.
-- [ ] **TASK-05: Group `report` and `upload`**
 - [ ] **TASK-06: Documentation and final verification** (full `src` and `tests` suites, ruff, pyright)
