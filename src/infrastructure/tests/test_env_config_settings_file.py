@@ -109,6 +109,41 @@ class TestEnvConfigSettingsFile(TestCase):
 
         self.assertAlmostEqual(config.quality_level_good_threshold, 8.0)
 
+    def test_project_settings_file_provides_the_recommendation_values(self):
+        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+            config = EnvConfig()
+
+        self.assertAlmostEqual(config.publish_threshold, 7.0)
+        self.assertAlmostEqual(config.quality_threshold, 7.0)
+        self.assertAlmostEqual(config.grammar_threshold, 7.0)
+        self.assertAlmostEqual(config.dimension_threshold, 6.0)
+        self.assertAlmostEqual(config.citation_match_threshold, 90.0)
+        self.assertAlmostEqual(config.critical_citation_match_threshold, 50.0)
+        self.assertEqual(config.citation_count_threshold, 10)
+        self.assertAlmostEqual(config.classification_confidence_threshold, 0.7)
+        self.assertAlmostEqual(config.critical_quality_threshold, 5.0)
+        self.assertAlmostEqual(config.critical_grammar_threshold, 5.0)
+
+    def test_recommendation_values_come_from_the_given_settings_file(self):
+        self._write_project_settings_with(
+            "critical_grammar_threshold = 5.0", "critical_grammar_threshold = 4.5"
+        )
+
+        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+            config = EnvConfig(settings_file_path=self._settings_file_path)
+
+        self.assertAlmostEqual(config.critical_grammar_threshold, 4.5)
+
+    def test_recommendation_count_comes_from_the_given_settings_file(self):
+        self._write_project_settings_with(
+            "citation_count_threshold = 10", "citation_count_threshold = 12"
+        )
+
+        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+            config = EnvConfig(settings_file_path=self._settings_file_path)
+
+        self.assertEqual(config.citation_count_threshold, 12)
+
     def test_value_comes_from_the_given_settings_file(self):
         self._write_project_settings_with("max_paragraphs = 20", "max_paragraphs = 7")
 

@@ -175,22 +175,40 @@ class EnvConfig:
         self.log_level: str = getenv("LOG_LEVEL", "INFO").strip().upper()
         self.log_retention_days: int = int(getenv("LOG_RETENTION_DAYS", "14"))
 
-        # Recommendation thresholds: drive PublicationVerdictEvaluator and
-        # the recommendation builder's publish/quality gating.
-        self.publish_threshold: float = float(getenv("PUBLISH_THRESHOLD", "7.0"))
-        self.quality_threshold: float = float(getenv("QUALITY_THRESHOLD", "7.0"))
-        self.grammar_threshold: float = float(getenv("GRAMMAR_THRESHOLD", "7.0"))
-        self.dimension_threshold: float = float(getenv("DIMENSION_THRESHOLD", "6.0"))
-        self.citation_match_threshold: float = float(getenv("CITATION_MATCH_THRESHOLD", "90.0"))
-        self.critical_citation_match_threshold: float = float(
-            getenv("CRITICAL_CITATION_MATCH_THRESHOLD", "50.0")
+        self.publish_threshold: float = settings.read_float(
+            "PUBLISH_THRESHOLD", "recommendation", "publish_threshold"
         )
-        self.citation_count_threshold: int = int(getenv("CITATION_COUNT_THRESHOLD", "10"))
-        self.classification_confidence_threshold: float = float(
-            getenv("CLASSIFICATION_CONFIDENCE_THRESHOLD", "0.7")
+        self.quality_threshold: float = settings.read_float(
+            "QUALITY_THRESHOLD", "recommendation", "quality_threshold"
         )
-        self.critical_quality_threshold: float = float(getenv("CRITICAL_QUALITY_THRESHOLD", "5.0"))
-        self.critical_grammar_threshold: float = float(getenv("CRITICAL_GRAMMAR_THRESHOLD", "5.0"))
+        self.grammar_threshold: float = settings.read_float(
+            "GRAMMAR_THRESHOLD", "recommendation", "grammar_threshold"
+        )
+        self.dimension_threshold: float = settings.read_float(
+            "DIMENSION_THRESHOLD", "recommendation", "dimension_threshold"
+        )
+        self.citation_match_threshold: float = settings.read_float(
+            "CITATION_MATCH_THRESHOLD", "recommendation", "citation_match_threshold"
+        )
+        self.critical_citation_match_threshold: float = settings.read_float(
+            "CRITICAL_CITATION_MATCH_THRESHOLD",
+            "recommendation",
+            "critical_citation_match_threshold",
+        )
+        self.citation_count_threshold: int = settings.read_integer(
+            "CITATION_COUNT_THRESHOLD", "recommendation", "citation_count_threshold"
+        )
+        self.classification_confidence_threshold: float = settings.read_float(
+            "CLASSIFICATION_CONFIDENCE_THRESHOLD",
+            "recommendation",
+            "classification_confidence_threshold",
+        )
+        self.critical_quality_threshold: float = settings.read_float(
+            "CRITICAL_QUALITY_THRESHOLD", "recommendation", "critical_quality_threshold"
+        )
+        self.critical_grammar_threshold: float = settings.read_float(
+            "CRITICAL_GRAMMAR_THRESHOLD", "recommendation", "critical_grammar_threshold"
+        )
 
         self.silvina_app_name: str = getenv("SILVINA_APP_NAME", "Silvina Editorial Assistant")
         self.silvina_version: str = self._resolve_version()

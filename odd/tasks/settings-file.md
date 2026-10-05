@@ -42,8 +42,12 @@ The `.env` file mixes deployment values (paths, URLs, mode) with tuning paramete
   - **Commit**: `694ac4c` `feat(config): read article classification and size settings from settings.toml`.
 - [x] **TASK-03: Group `quality` (level thresholds and text sampling)**
   - **Scope**: `settings.toml` sections `[quality]`, `[quality_text_sample]`, `[quality_level]`; `src/infrastructure/env_config.py`; tests that asserted the old defaults 400 and 8000.
-  - **Outcome**: 12 values read from `[quality]`, `[quality_text_sample]`, `[quality_level]` with the values of the local `.env` (`min_sample_word_count = 10000`, `character_limit = 32000`). Four asserts expecting 400/8000 (`test_env_config.py`, `test_analyze_document_use_case_wiring.py`) now expect 10000/32000. `QUALITY_THRESHOLD` is a recommendation threshold and stays for TASK-04. Verified by gentle-ai-verify: `src` 1600 OK, `tests` 51 OK, ruff clean.
+  - **Outcome**: 12 values read from `[quality]`, `[quality_text_sample]`, `[quality_level]` with the values of the local `.env` (`min_sample_word_count = 10000`, `character_limit = 32000`). Four asserts expecting 400/8000 (`test_env_config.py`, `test_analyze_document_use_case_wiring.py`) now expect 10000/32000. `QUALITY_THRESHOLD` is a recommendation threshold and stays for TASK-04. Verified by gentle-ai-verify: `src` 1600 OK, `tests` 51 OK, ruff clean. Native review (1 lens, medium risk) approved and acknowledged.
+  - **Commit**: `695f47e` `feat(config): read quality sampling and level settings from settings.toml`.
+- [x] **TASK-04: Group `recommendation` thresholds**
+  - **Scope**: `settings.toml` section `[recommendation]` (10 thresholds, including `QUALITY_THRESHOLD`), `src/infrastructure/env_config.py`, tests asserting the values.
+  - **User decision (2026-10-05)**: remove the two pre-existing `#` comments above `publish_threshold` in `env_config.py` (they break the no-inline-comments rule); the `[recommendation]` section name replaces them.
+  - **Outcome**: 10 thresholds read from `[recommendation]` with the values of the local `.env`; the two `#` comments are gone. Verified by gentle-ai-verify: `src` 1603 OK, `tests` 51 OK, ruff clean. Parity check by the parent: `EnvConfig` built from `settings.toml` alone equals `EnvConfig` built from the local `.env` for all 40 migrated attributes (no differences).
   - **Commit**: pending the user's approval.
-- [ ] **TASK-04: Group `recommendation` thresholds** (also decide on the two pre-existing `#` comments above `publish_threshold` in `env_config.py`, which break the no-inline-comments rule)
 - [ ] **TASK-05: Group `report` and `upload`**
 - [ ] **TASK-06: Documentation and final verification** (full `src` and `tests` suites, ruff, pyright)
