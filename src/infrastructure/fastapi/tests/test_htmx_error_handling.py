@@ -10,7 +10,7 @@ class TestHtmxErrorHandling(TestCase):
     """Unit and integration tests for HTMX error handling script and response behavior."""
 
     def setUp(self) -> None:
-        self.app = create_app(auto_open_browser=False, warm_up_language_model=False)
+        self.app = create_app(auto_open_browser=False)
         self.client = TestClient(self.app, raise_server_exceptions=False)
 
     def test_index_page_contains_htmx_error_handling_script_after_htmx(self) -> None:

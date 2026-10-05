@@ -30,7 +30,7 @@ class TestFastApiE2E(unittest.TestCase):
         self.mock_export = MagicMock()
         self.mock_json_export = MagicMock()
 
-        self.app = create_app(auto_open_browser=False, warm_up_language_model=False)
+        self.app = create_app(auto_open_browser=False)
         self.app.dependency_overrides[get_reports_directory] = lambda: self.reports_dir
         self.app.dependency_overrides[get_analyze_document_use_case] = lambda: self.mock_analyze
         self.app.dependency_overrides[get_export_report_use_case] = lambda: self.mock_export
@@ -116,7 +116,6 @@ class TestFastApiE2E(unittest.TestCase):
             rf"/reports/([0-9a-f]{{32}})/{report_word_name}", analyze_response.text
         )
         self.assertIsNotNone(analysis_folder_match)
-        assert analysis_folder_match is not None
         analysis_folder = analysis_folder_match.group(1)
         expected_word_filename = f"{analysis_folder}/{report_word_name}"
         expected_json_filename = f"{analysis_folder}/{report_json_name}"

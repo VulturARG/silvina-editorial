@@ -37,7 +37,7 @@ class TestFastApiRoutes(TestCase):
         self.mock_export = MagicMock()
         self.mock_json_export = MagicMock()
 
-        self.app = create_app(auto_open_browser=False, warm_up_language_model=False)
+        self.app = create_app(auto_open_browser=False)
         self.app.dependency_overrides[get_reports_directory] = lambda: self.reports_dir
         self.app.dependency_overrides[get_analyze_document_use_case] = lambda: self.mock_analyze
         self.app.dependency_overrides[get_export_report_use_case] = lambda: self.mock_export

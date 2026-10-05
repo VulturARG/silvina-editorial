@@ -16,14 +16,22 @@ class TestWebMain(TestCase):
         """Verify web_main exposes the assembled FastAPI application instance."""
         self.assertIs(web_main.app, expected_app)
 
+    @patch("web_main.LanguageModelWarmUpStarter")
     @patch("web_main.uvicorn.run")
-    def test_main_runs_uvicorn_with_expected_host_and_port(self, mock_run) -> None:
+    def test_main_runs_uvicorn_with_expected_host_and_port(
+        self,
+        mock_run,
+        mock_warm_up_starter,
+    ) -> None:
         """Verify main() invokes uvicorn with the FastAPI app on 127.0.0.1:7861."""
         web_main.main()
         mock_run.assert_called_once_with(expected_app, host="127.0.0.1", port=7861)
 
+    @patch(
+        "src.infrastructure.fastapi.src.utils.language_model_warm_up_starter.LanguageModelWarmUpStarter.start"
+    )
     @patch("uvicorn.run")
-    def test_web_main_module_execution(self, mock_run) -> None:
+    def test_web_main_module_execution(self, mock_run, mock_warm_up_start) -> None:
         """Verify running web_main as __main__ invokes uvicorn.run."""
         runpy.run_module("web_main", run_name="__main__")
         mock_run.assert_called_once_with(expected_app, host="127.0.0.1", port=7861)

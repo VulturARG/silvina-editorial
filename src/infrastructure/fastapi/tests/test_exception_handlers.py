@@ -24,7 +24,7 @@ class TestFastApiExceptionHandlers(TestCase):
     """Integration tests for FastAPI application setup and exception handlers."""
 
     def setUp(self) -> None:
-        self.app = create_app(auto_open_browser=False, warm_up_language_model=False)
+        self.app = create_app(auto_open_browser=False)
 
         # Test router to raise specific exceptions
         self.router = APIRouter(prefix="/test-exceptions")
