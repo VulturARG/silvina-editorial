@@ -4,9 +4,9 @@
 [![Python](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Status](https://img.shields.io/badge/status-Active%20Development-yellow)](https://github.com/P-SAL/silvina-editorial)
-[![Branch](https://img.shields.io/badge/dev%20branch-silvina__editorial__v095-orange)](https://github.com/P-SAL/silvina-editorial/tree/silvina_editorial_v095)
+[![Branch](https://img.shields.io/badge/dev%20branch-silvina__editorial__v100-orange)](https://github.com/P-SAL/silvina-editorial/tree/silvina_editorial_v100)
 
-**AI-powered manuscript review for Spanish academic journals** | EUMIC compliance • APA 7 validation • Modular architecture • LLM-powered quality analysis • Gradio web interface
+**AI-powered manuscript review for Spanish academic journals** | EUMIC compliance • APA 7 validation • Modular architecture • LLM-powered quality analysis • FastAPI web interface
 
 ---
 
@@ -14,10 +14,10 @@
 
 Silvina is an intelligent editorial assistant for **Revista Visión Conjunta** (Facultad Militar Conjunta - Universidad de la Defensa Nacional, Argentina). It automates academic manuscript review using **deterministic structural validation** and **selective AI-powered analysis**.
 
-**Current Version:** v0.100 (Q2 2026)
+**Current Version:** v0.100 (Q4 2026)
 **Architecture:** Hexagonal Architecture (Domain → Application → Infrastructure)
 **LLM Integration:** Ollama (gemma4-26b-adapted, built from hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:UD-IQ4_XS)
-**Interface:** Gradio web UI + CLI
+**Interface:** FastAPI + HTMX web UI + CLI
 **Output Location:** `Documents\Silvina\reports\` (Word report, JSON data)
 
 ---
@@ -26,7 +26,7 @@ Silvina is an intelligent editorial assistant for **Revista Visión Conjunta** (
 
 ```
 main                    ← Production branch — stable, merged from dev
-silvina_editorial_v095  ← Active development branch ← ALL work goes here
+silvina_editorial_v100  ← Active development branch ← ALL work goes here
 silvina_editorial_v09   ← Historical reference (read-only)
 silvina_editorial_v08   ← Historical reference (read-only)
 ```
@@ -39,7 +39,7 @@ silvina_editorial_v08   ← Historical reference (read-only)
 
 **Setup on development machine:**
 ```bash
-git checkout silvina_editorial_v095
+git checkout silvina_editorial_v100
 cd silvina_editorial
 source ../venv312/Scripts/activate  # Windows Git Bash
 ```
@@ -51,7 +51,7 @@ source ../venv312/Scripts/activate  # Windows Git Bash
 
 ## ✨ Key Features
 
-### 🎨 **Gradio Web Interface**
+### 🎨 **Web Interface**
 - Drag-and-drop file upload
 - Interactive result visualization
 - One-click Word/JSON download
@@ -178,7 +178,7 @@ src/infrastructure/ # Adapters (docx, ollama, win32com, language_tool), wiring, 
 | Component | Technology |
 |-----------|------------|
 | Language | Python 3.12 |
-| Web Interface | Gradio |
+| Web Interface | FastAPI + HTMX |
 | Document Parsing | python-docx |
 | Word Automation | win32com (Windows COM) |
 | LLM Integration | Ollama (local inference) |
@@ -195,8 +195,8 @@ git clone https://github.com/P-SAL/silvina-editorial.git
 cd silvina-editorial
 
 # 2. Switch to development branch
-git checkout silvina_editorial_v095
-cd silvina_editorial_v095
+git checkout silvina_editorial_v100
+cd silvina_editorial_v100
 
 # 3. Create virtual environment
 python -m venv ../venv312
@@ -244,7 +244,7 @@ EXTERNAL_LLM_MODEL_NAME=<claude model name>
 
 ### Web Interface
 ```bash
-python gradio_app.py
+python web_main.py
 ```
 
 ### Command Line
@@ -256,9 +256,9 @@ python main.py
 
 ## 📁 Project Structure
 ```
-silvina_editorial_v095/
+silvina_editorial_v100/
 ├── main.py
-├── gradio_app.py
+├── web_main.py
 ├── process_feedback.py
 ├── version.txt
 ├── requirements.txt
@@ -302,7 +302,17 @@ silvina_editorial_v095/
 
 ## 🔄 Version History
 
-### v0.95 (Q2 2026) — Current
+### v0.100 (Q4 2026) — Current
+
+- 🌐 **FastAPI + HTMX web interface** replaces Gradio (`web_main.py`, started by `launch_silvina.bat`).
+- 📄 **JSON report export** next to the Word report.
+- 📊 **Internal metrics and AI audit** in SQLite: per-analysis and per-stage durations, and every language model call with its token usage and `done_reason`.
+- 🤖 **Ollama**: reasoning disabled by default through `OLLAMA_THINK`; the official model is `gemma4-26b-adapted`, built from a versioned Modelfile with `scripts/create_ollama_model.bat`.
+- 🧪 **External LLM for debugging (Claude)** in `APP_MODE=DEBUG`.
+- 🔧 **FIXED:** classification signals S2a/S2b could never be satisfied because references were not extracted; reports keep the uploaded file name and a unique folder per analysis; specific language model error messages; concurrent analyses are cancelled or serialized; feedback rendering in the Word report.
+- ♻️ **Refactor:** the feedback, quality and editorial suitability parsers were rebuilt on single-purpose collaborators.
+
+### v0.95 (Q2 2026)
 
 - 🏗️ **Hexagonal Architecture migration**: Clean hexagonal codebase reorganization moving from the legacy 4-layer structure to Domain, Application, and Infrastructure layers.
 
@@ -351,7 +361,7 @@ silvina_editorial_v095/
 
 ## 🗺️ Roadmap
 
-### v0.95 (Q2 2026) — Active Development
+### v0.100 (Q4 2026) — Active Development
 - ✅ Classification system S6 revision — 19-case table, 0.83 threshold
 - ✅ S3 vocabulary expansion
 - ✅ Confidence calibration (0.83/0.85/0.86/0.90/0.95)
@@ -363,7 +373,7 @@ silvina_editorial_v095/
 - ⬜ Security measures (file validation, authentication, rate limiting)
 - ⬜ Web deployment preparation
 
-### v0.95 → v1.0 (Security & Deployment)
+### v0.100 → v1.0 (Security & Deployment)
 - 🔒 File validation, defusedxml, path traversal protection
 - 🔒 Authentication and rate limiting
 - 🔒 Prompt injection detection
@@ -400,7 +410,7 @@ silvina_editorial_v095/
 
 **Contact:** Pablo Salonio (P-SAL) — plsalonio@gmail.com
 **Repository:** https://github.com/P-SAL/silvina-editorial
-**Active branch:** `silvina_editorial_v095`
+**Active branch:** `silvina_editorial_v100`
 
 ---
 
@@ -419,7 +429,7 @@ MIT License
 
 ---
 
-**Last Updated:** July 2026
+**Last Updated:** October 2026
 **Version:** 0.100
-**Active Branch:** silvina_editorial_v095
+**Active Branch:** silvina_editorial_v100
 **Status:** Active Development 🚀

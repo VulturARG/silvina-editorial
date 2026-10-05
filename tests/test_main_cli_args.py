@@ -4,6 +4,7 @@ Unit tests for the CLI argument parser and main() entry point exit codes in main
 
 from contextlib import redirect_stdout
 from io import StringIO
+from os import environ
 from os.path import dirname, join
 from sys import path
 from unittest import TestCase, main
@@ -54,6 +55,17 @@ class TestBuildArgumentParser(TestCase):
         self.assertEqual(arguments.output_dir, "/tmp/salida")
         self.assertEqual(arguments.word_report_path, "/tmp/salida/reporte.docx")
         self.assertEqual(arguments.json_report_path, "/tmp/salida/reporte.json")
+
+
+class TestMainBanner(TestCase):
+    def test_banner_shows_the_configured_version(self):
+        captured_output = StringIO()
+        with patch.dict(environ, {"TESTING": "True", "SILVINA_VERSION": "7.7.7"}):
+            with patch("sys.argv", ["main.py", "nonexistent_document_xyz.docx"]):
+                with redirect_stdout(captured_output):
+                    with self.assertRaises(SystemExit):
+                        run_main()
+        self.assertIn("v7.7.7", captured_output.getvalue())
 
 
 class TestMainExitCodes(TestCase):
