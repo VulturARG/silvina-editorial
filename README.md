@@ -55,7 +55,6 @@ source ../venv312/Scripts/activate  # Windows Git Bash
 - Drag-and-drop file upload
 - Interactive result visualization
 - One-click Word/JSON download
-- Structured expert feedback panel (8 evaluation fields)
 - Clean shutdown button
 
 ### 🏗️ **Hexagonal Architecture**
@@ -166,10 +165,9 @@ src/infrastructure/ # Adapters (docx, ollama, win32com, language_tool), wiring, 
 
 ## 📊 Multi-Format Reports
 
-**3 Output Files** saved to `C:\Users\[user]\Documents\Silvina\reports\`:
+**2 Output Files** saved to `C:\Users\[user]\Documents\Silvina\reports\`:
 1. **📘 Word Report** (`_analisis.docx`)
 2. **📊 JSON Data** (`_analisis.json`)
-3. **💬 Feedback File** (`_feedback.json`) — via Gradio
 
 ---
 
@@ -270,7 +268,6 @@ python main.py
 silvina_editorial_v100/
 ├── main.py
 ├── web_main.py
-├── process_feedback.py
 ├── version.txt
 ├── requirements.txt
 ├── src/
