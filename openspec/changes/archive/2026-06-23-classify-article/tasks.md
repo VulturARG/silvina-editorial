@@ -234,7 +234,7 @@
 ## Phase 7 — Prompt template file (no test; static text)
 
 ### [x] T-16: Create `s4_s5_s6_signal_prompt.txt` and `prompts/classification/__init__.py`
-- `src/infrastructure/resources/prompts/classification/s4_s5_s6_signal_prompt.txt` — exact Spanish
+- `../../../../src/infrastructure/resources/prompts/classification/s4_s5_s6_signal_prompt.txt` — exact Spanish
   text from design.md, copied verbatim from legacy's S4/S5/S6 f-string body, with `{title}` and
   `{text_sample}` retained as literal `.format()`-style placeholders (2 placeholders, vs.
   analyze-quality's 1).
