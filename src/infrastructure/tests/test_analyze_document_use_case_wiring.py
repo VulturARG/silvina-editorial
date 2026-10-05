@@ -456,8 +456,8 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         self.assertIsInstance(
             sampler._quality_text_sampling_settings, QualityTextSamplingSettingsDTO
         )
-        self.assertEqual(sampler._quality_text_sampling_settings.min_sample_word_count, 400)
-        self.assertEqual(sampler._quality_text_sampling_settings.text_sample_character_limit, 8000)
+        self.assertEqual(sampler._quality_text_sampling_settings.min_sample_word_count, 10000)
+        self.assertEqual(sampler._quality_text_sampling_settings.text_sample_character_limit, 32000)
         self.assertEqual(sampler._quality_text_sampling_settings.reference_line_prefix_length, 80)
         self.assertEqual(sampler._quality_text_sampling_settings.introduction_paragraph_count, 3)
         self.assertEqual(sampler._quality_text_sampling_settings.middle_paragraph_count, 2)

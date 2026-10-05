@@ -102,41 +102,55 @@ class EnvConfig:
             "ARTICLE_SIZE_LONG_MAX_CHARS", "article_size", "long_max_chars"
         )
 
-        self.quality_level_excellent_threshold: float = float(
-            getenv("QUALITY_LEVEL_EXCELLENT_THRESHOLD", "9.0")
+        self.quality_level_excellent_threshold: float = settings.read_float(
+            "QUALITY_LEVEL_EXCELLENT_THRESHOLD", "quality_level", "excellent_threshold"
         )
-        self.quality_level_good_threshold: float = float(
-            getenv("QUALITY_LEVEL_GOOD_THRESHOLD", "7.0")
+        self.quality_level_good_threshold: float = settings.read_float(
+            "QUALITY_LEVEL_GOOD_THRESHOLD", "quality_level", "good_threshold"
         )
-        self.quality_level_acceptable_threshold: float = float(
-            getenv("QUALITY_LEVEL_ACCEPTABLE_THRESHOLD", "5.0")
+        self.quality_level_acceptable_threshold: float = settings.read_float(
+            "QUALITY_LEVEL_ACCEPTABLE_THRESHOLD", "quality_level", "acceptable_threshold"
         )
-        self.quality_level_needs_improvement_threshold: float = float(
-            getenv("QUALITY_LEVEL_NEEDS_IMPROVEMENT_THRESHOLD", "3.0")
+        self.quality_level_needs_improvement_threshold: float = settings.read_float(
+            "QUALITY_LEVEL_NEEDS_IMPROVEMENT_THRESHOLD",
+            "quality_level",
+            "needs_improvement_threshold",
         )
-        self.quality_min_sample_word_count: int = int(
-            getenv("QUALITY_MIN_SAMPLE_WORD_COUNT", "400")
+        self.quality_min_sample_word_count: int = settings.read_integer(
+            "QUALITY_MIN_SAMPLE_WORD_COUNT", "quality", "min_sample_word_count"
         )
-        self.quality_text_sample_character_limit: int = int(
-            getenv("QUALITY_TEXT_SAMPLE_CHARACTER_LIMIT", "8000")
+        self.quality_text_sample_character_limit: int = settings.read_integer(
+            "QUALITY_TEXT_SAMPLE_CHARACTER_LIMIT", "quality_text_sample", "character_limit"
         )
-        self.quality_text_sample_reference_line_prefix_length: int = int(
-            getenv("QUALITY_TEXT_SAMPLE_REFERENCE_LINE_PREFIX_LENGTH", "80")
+        self.quality_text_sample_reference_line_prefix_length: int = settings.read_integer(
+            "QUALITY_TEXT_SAMPLE_REFERENCE_LINE_PREFIX_LENGTH",
+            "quality_text_sample",
+            "reference_line_prefix_length",
         )
-        self.quality_text_sample_introduction_paragraph_count: int = int(
-            getenv("QUALITY_TEXT_SAMPLE_INTRODUCTION_PARAGRAPH_COUNT", "3")
+        self.quality_text_sample_introduction_paragraph_count: int = settings.read_integer(
+            "QUALITY_TEXT_SAMPLE_INTRODUCTION_PARAGRAPH_COUNT",
+            "quality_text_sample",
+            "introduction_paragraph_count",
         )
-        self.quality_text_sample_middle_paragraph_count: int = int(
-            getenv("QUALITY_TEXT_SAMPLE_MIDDLE_PARAGRAPH_COUNT", "2")
+        self.quality_text_sample_middle_paragraph_count: int = settings.read_integer(
+            "QUALITY_TEXT_SAMPLE_MIDDLE_PARAGRAPH_COUNT",
+            "quality_text_sample",
+            "middle_paragraph_count",
         )
-        self.quality_text_sample_conclusion_paragraph_limit: int = int(
-            getenv("QUALITY_TEXT_SAMPLE_CONCLUSION_PARAGRAPH_LIMIT", "3")
+        self.quality_text_sample_conclusion_paragraph_limit: int = settings.read_integer(
+            "QUALITY_TEXT_SAMPLE_CONCLUSION_PARAGRAPH_LIMIT",
+            "quality_text_sample",
+            "conclusion_paragraph_limit",
         )
-        self.quality_text_sample_fallback_tail_paragraph_count: int = int(
-            getenv("QUALITY_TEXT_SAMPLE_FALLBACK_TAIL_PARAGRAPH_COUNT", "2")
+        self.quality_text_sample_fallback_tail_paragraph_count: int = settings.read_integer(
+            "QUALITY_TEXT_SAMPLE_FALLBACK_TAIL_PARAGRAPH_COUNT",
+            "quality_text_sample",
+            "fallback_tail_paragraph_count",
         )
-        self.quality_text_sample_conclusion_header_marker: str = getenv(
-            "QUALITY_TEXT_SAMPLE_CONCLUSION_HEADER_MARKER", "conclusi"
+        self.quality_text_sample_conclusion_header_marker: str = settings.read_string(
+            "QUALITY_TEXT_SAMPLE_CONCLUSION_HEADER_MARKER",
+            "quality_text_sample",
+            "conclusion_header_marker",
         )
 
         self.ollama_model_name: str = getenv("OLLAMA_MODEL_NAME", "gemma4-26b-adapted")

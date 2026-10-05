@@ -73,6 +73,42 @@ class TestEnvConfigSettingsFile(TestCase):
 
         self.assertEqual(config.article_size_long_max_chars, 45000)
 
+    def test_project_settings_file_provides_the_quality_values(self):
+        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+            config = EnvConfig()
+
+        self.assertAlmostEqual(config.quality_level_excellent_threshold, 9.0)
+        self.assertAlmostEqual(config.quality_level_good_threshold, 7.0)
+        self.assertAlmostEqual(config.quality_level_acceptable_threshold, 5.0)
+        self.assertAlmostEqual(config.quality_level_needs_improvement_threshold, 3.0)
+        self.assertEqual(config.quality_min_sample_word_count, 10000)
+        self.assertEqual(config.quality_text_sample_character_limit, 32000)
+        self.assertEqual(config.quality_text_sample_reference_line_prefix_length, 80)
+        self.assertEqual(config.quality_text_sample_introduction_paragraph_count, 3)
+        self.assertEqual(config.quality_text_sample_middle_paragraph_count, 2)
+        self.assertEqual(config.quality_text_sample_conclusion_paragraph_limit, 3)
+        self.assertEqual(config.quality_text_sample_fallback_tail_paragraph_count, 2)
+        self.assertEqual(config.quality_text_sample_conclusion_header_marker, "conclusi")
+
+    def test_string_value_comes_from_the_given_settings_file(self):
+        self._write_project_settings_with(
+            'conclusion_header_marker = "conclusi"', 'conclusion_header_marker = "cierre"'
+        )
+
+        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+            config = EnvConfig(settings_file_path=self._settings_file_path)
+
+        self.assertEqual(config.quality_text_sample_conclusion_header_marker, "cierre")
+
+    def test_environment_variable_overrides_the_quality_level_threshold(self):
+        self._write_project_settings_with("good_threshold = 7.0", "good_threshold = 6.5")
+        environment = {**self.REQUIRED_ENVIRONMENT, "QUALITY_LEVEL_GOOD_THRESHOLD": "8.0"}
+
+        with patch.dict(environ, environment, clear=True):
+            config = EnvConfig(settings_file_path=self._settings_file_path)
+
+        self.assertAlmostEqual(config.quality_level_good_threshold, 8.0)
+
     def test_value_comes_from_the_given_settings_file(self):
         self._write_project_settings_with("max_paragraphs = 20", "max_paragraphs = 7")
 

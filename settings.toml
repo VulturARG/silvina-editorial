@@ -31,3 +31,21 @@ undefined_min_chars = 24001
 undefined_max_chars = 35999
 long_min_chars = 36000
 long_max_chars = 40000
+
+[quality]
+min_sample_word_count = 10000
+
+[quality_text_sample]
+character_limit = 32000
+reference_line_prefix_length = 80
+introduction_paragraph_count = 3
+middle_paragraph_count = 2
+conclusion_paragraph_limit = 3
+fallback_tail_paragraph_count = 2
+conclusion_header_marker = "conclusi"
+
+[quality_level]
+excellent_threshold = 9.0
+good_threshold = 7.0
+acceptable_threshold = 5.0
+needs_improvement_threshold = 3.0

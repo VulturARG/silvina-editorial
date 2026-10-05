@@ -22,7 +22,7 @@ The `.env` file mixes deployment values (paths, URLs, mode) with tuning paramete
 - `EnvConfig` keeps its public attributes and its no-argument constructor (108 callers). It only gains an optional `settings_file_path` parameter.
 - The loader lives in `src/infrastructure/`; `domain/` and `application/` are untouched.
 - `.env.example` is left untouched in every group (user decision): it keeps listing the override names.
-- Value policy: `settings.toml` starts from the values the user runs today in the local `.env` (the user authorized reading it). Where `.env` differs from the code default, ask which value `settings.toml` should carry.
+- Value policy (user decision): `settings.toml` always takes the values currently in the local `.env` (the user authorized reading it), never the code defaults, without asking again. Known differences: `QUALITY_MIN_SAMPLE_WORD_COUNT=10000`, `QUALITY_TEXT_SAMPLE_CHARACTER_LIMIT=32000`, `ARTICLE_CLASSIFICATION_SAMPLE_INTRODUCTION_CHARACTER_LIMIT=32000`.
 - Gotcha: a line left in the local `.env` overrides `settings.toml`. The user decided `.env` keeps its parameters; the agent never edits `.env`.
 - Stays in `.env` for now (deployment or mode, not tuning): `APP_MODE`, `METRICS_DATABASE_PATH`, `LOG_FILE_PATH`, `LOG_LEVEL`, `LOG_RETENTION_DAYS`, `OLLAMA_BASE_URL`, `USE_EXTERNAL_LLM`, `LLM_PROVIDER`, `EXTERNAL_LLM_MODEL_NAME`, `SILVINA_APP_NAME`.
 - Open: the Ollama tuning values (`OLLAMA_MODEL_NAME`, `OLLAMA_THINK`, `OLLAMA_MODEL_KEEP_ALIVE`, `OLLAMA_NUM_CTX`, `OLLAMA_WARMUP_ON_STARTUP`, `EXTERNAL_LLM_THINK`) are decided with the user after the main groups.
@@ -38,9 +38,12 @@ The `.env` file mixes deployment values (paths, URLs, mode) with tuning paramete
   - **Commit**: `fe22718` `feat(config): read grammar, structure and citation settings from settings.toml`.
 - [x] **TASK-02: Group `article_classifier` / `article_classification` / `article_size`**
   - **Scope**: `settings.toml`, `src/infrastructure/env_config.py`, `src/infrastructure/tests/test_env_config_settings_file.py`, `src/infrastructure/tests/test_env_config.py`.
-  - **Outcome**: 12 values (2 classifier, 4 classification sampling, 6 size bands) read from `[article_classifier]`, `[article_classification]`, `[article_size]`. User decision: `sample_introduction_character_limit = 32000` (the value in use in `.env`), not the old default 3500; the two assertions in `test_env_config.py` and the one in `test_analyze_document_use_case_wiring.py` that expected 3500 now expect 32000 (the wiring one was found by the first verifier run). Verified by gentle-ai-verify: `src` 1597 OK, `tests` 51 OK, ruff clean.
+  - **Outcome**: 12 values (2 classifier, 4 classification sampling, 6 size bands) read from `[article_classifier]`, `[article_classification]`, `[article_size]`. User decision: `sample_introduction_character_limit = 32000` (the value in use in `.env`), not the old default 3500; the two assertions in `test_env_config.py` and the one in `test_analyze_document_use_case_wiring.py` that expected 3500 now expect 32000 (the wiring one was found by the first verifier run). Verified by gentle-ai-verify: `src` 1597 OK, `tests` 51 OK, ruff clean. Native review (1 lens, medium risk) approved and acknowledged.
+  - **Commit**: `694ac4c` `feat(config): read article classification and size settings from settings.toml`.
+- [x] **TASK-03: Group `quality` (level thresholds and text sampling)**
+  - **Scope**: `settings.toml` sections `[quality]`, `[quality_text_sample]`, `[quality_level]`; `src/infrastructure/env_config.py`; tests that asserted the old defaults 400 and 8000.
+  - **Outcome**: 12 values read from `[quality]`, `[quality_text_sample]`, `[quality_level]` with the values of the local `.env` (`min_sample_word_count = 10000`, `character_limit = 32000`). Four asserts expecting 400/8000 (`test_env_config.py`, `test_analyze_document_use_case_wiring.py`) now expect 10000/32000. `QUALITY_THRESHOLD` is a recommendation threshold and stays for TASK-04. Verified by gentle-ai-verify: `src` 1600 OK, `tests` 51 OK, ruff clean.
   - **Commit**: pending the user's approval.
-- [ ] **TASK-03: Group `quality` (level thresholds and text sampling)**
 - [ ] **TASK-04: Group `recommendation` thresholds** (also decide on the two pre-existing `#` comments above `publish_threshold` in `env_config.py`, which break the no-inline-comments rule)
 - [ ] **TASK-05: Group `report` and `upload`**
 - [ ] **TASK-06: Documentation and final verification** (full `src` and `tests` suites, ruff, pyright)
