@@ -110,20 +110,20 @@ Its remaining fields (Word template visual constants: fonts, colors, sizes, tabl
 
 ### Requirement: DocxReportAdapter Hard-Fails Without python-docx
 
-`DocxReportAdapter.__init__` MUST raise `ReportExportUnavailable` at construction time when `DOCX_AVAILABLE` is `False`. The constructor MUST accept `settings: DocxReportSettings` as a **required** parameter (no default, no fallback construction) and an optional `logo_path`. The system SHALL NOT proceed to serve requests without python-docx installed.
+`DocxReportAdapter.__init__` MUST raise `ReportExportUnavailable` at construction time when `DOCX_AVAILABLE` is `False`. The constructor MUST accept `docx_report_settings: DocxReportSettings` as a **required** parameter (no default, no fallback construction) and an optional `logo_path`. The system SHALL NOT proceed to serve requests without python-docx installed.
 
 (Previously: `settings` defaulted to `None` and fell back to a default-constructed `DocxReportSettings()`. This fallback is no longer possible because `DocxReportSettings` has no defaults for its 8 deployment-config fields.)
 
 #### Scenario: Adapter raises at construction when python-docx is absent
 
 - GIVEN `DOCX_AVAILABLE = False` and a valid `settings` object
-- WHEN `DocxReportAdapter(logo_path=None, settings=settings)` is called
+- WHEN `DocxReportAdapter(logo_path=None, docx_report_settings=settings)` is called
 - THEN `ReportExportUnavailable` is raised before `__init__` returns
 
 #### Scenario: Adapter initializes normally when python-docx is present
 
 - GIVEN `DOCX_AVAILABLE = True` and a valid `settings` object
-- WHEN `DocxReportAdapter(logo_path=None, settings=settings)` is called
+- WHEN `DocxReportAdapter(logo_path=None, docx_report_settings=settings)` is called
 - THEN no exception is raised
 
 #### Scenario: Adapter construction fails without settings

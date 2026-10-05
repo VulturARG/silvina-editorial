@@ -17,7 +17,9 @@ class TestDocxReportAdapterFeedbackBlocks(TestCase):
         self._temporary_directory = TemporaryDirectory()
         self.addCleanup(self._temporary_directory.cleanup)
         self.output_path = str(Path(self._temporary_directory.name) / "report.docx")
-        self.adapter = DocxReportAdapter(logo_path=None, settings=ReportFixtures.make_settings())
+        self.adapter = DocxReportAdapter(
+            logo_path=None, docx_report_settings=ReportFixtures.make_settings()
+        )
 
     def test_export_renders_structured_feedback_blocks_and_preserves_flat_dimensions(
         self,

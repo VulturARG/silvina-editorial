@@ -12,7 +12,9 @@ class TestDocxReportAdapterExportFailure(TestCase):
         mock_doc.save.side_effect = OSError("Disk full")
         mock_document_class.return_value = mock_doc
 
-        adapter = DocxReportAdapter(logo_path=None, settings=ReportFixtures.make_settings())
+        adapter = DocxReportAdapter(
+            logo_path=None, docx_report_settings=ReportFixtures.make_settings()
+        )
         with self.assertRaises(OSError):
             adapter.export(
                 report_input=ReportFixtures.make_report_input_dto(), output_path="output.docx"

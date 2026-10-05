@@ -34,11 +34,11 @@ class RecommendationBuilder:
 
     def __init__(
         self,
-        settings: RecommendationSettingsDTO,
+        recommendation_settings: RecommendationSettingsDTO,
         rules: list[RecommendationRule] | None = None,
         verdict_evaluator: PublicationVerdictEvaluator | None = None,
     ) -> None:
-        self._settings = settings
+        self._recommendation_settings = recommendation_settings
         self._rules = rules if rules is not None else _DEFAULT_RULES
         self._verdict_evaluator = verdict_evaluator or PublicationVerdictEvaluator()
 
@@ -59,7 +59,7 @@ class RecommendationBuilder:
             citations=citations,
             apa_validation=apa_validation,
             grammar=grammar,
-            settings=self._settings,
+            settings=self._recommendation_settings,
         )
         recommendations: list[RecommendationDTO] = []
         for rule in self._rules:

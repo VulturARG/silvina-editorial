@@ -7,6 +7,12 @@ from unittest import TestCase
 from unittest.mock import patch
 
 from src.application.analyze_document_use_case import AnalyzeDocumentUseCase
+from src.domain.dtos.classification_text_sampling_settings_dto import (
+    ClassificationTextSamplingSettingsDTO,
+)
+from src.domain.dtos.quality_text_sampling_settings_dto import (
+    QualityTextSamplingSettingsDTO,
+)
 from src.domain.dtos.recommendation_settings_dto import RecommendationSettingsDTO
 from src.domain.enums.ai_provider import AiProvider
 from src.domain.enums.ai_purpose import AiPurpose
@@ -28,6 +34,9 @@ from src.domain.quality.suitability_verdict_matcher import SuitabilityVerdictMat
 from src.domain.tests.classification.fake_llm_generator_adapter import FakeLlmGeneratorAdapter
 from src.infrastructure.adapters.document.docx_citation_adapter import DocxCitationAdapter
 from src.infrastructure.adapters.grammar.language_tool_adapter import LanguageToolAdapter
+from src.infrastructure.adapters.grammar.language_tool_settings import (
+    LanguageToolSettings,
+)
 from src.infrastructure.adapters.llm_generator.audited_llm_generator_adapter import (
     AuditedLlmGeneratorAdapter,
 )
@@ -306,13 +315,17 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
     def test_env_var_overrides_quality_threshold(self):
         with patch.dict(environ, {"QUALITY_THRESHOLD": "6.5"}):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
-        settings: RecommendationSettingsDTO = result._recommendation_builder._settings
+        settings: RecommendationSettingsDTO = (
+            result._recommendation_builder._recommendation_settings
+        )
         self.assertAlmostEqual(settings.quality_threshold, 6.5)
 
     def test_env_var_overrides_grammar_threshold(self):
         with patch.dict(environ, {"GRAMMAR_THRESHOLD": "5.0"}):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
-        settings: RecommendationSettingsDTO = result._recommendation_builder._settings
+        settings: RecommendationSettingsDTO = (
+            result._recommendation_builder._recommendation_settings
+        )
         self.assertAlmostEqual(settings.grammar_threshold, 5.0)
 
     def test_default_thresholds_when_env_vars_absent(self):
@@ -320,7 +333,9 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         env_without.update(self.REQUIRED_ENVIRONMENT)
         with patch.dict(environ, env_without, clear=True):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
-        settings: RecommendationSettingsDTO = result._recommendation_builder._settings
+        settings: RecommendationSettingsDTO = (
+            result._recommendation_builder._recommendation_settings
+        )
         self.assertAlmostEqual(settings.publish_threshold, 7.0)
         self.assertAlmostEqual(settings.quality_threshold, 7.0)
         self.assertAlmostEqual(settings.grammar_threshold, 7.0)
@@ -335,13 +350,17 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
     def test_env_var_overrides_critical_quality_threshold(self):
         with patch.dict(environ, {"CRITICAL_QUALITY_THRESHOLD": "4.0"}):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
-        settings: RecommendationSettingsDTO = result._recommendation_builder._settings
+        settings: RecommendationSettingsDTO = (
+            result._recommendation_builder._recommendation_settings
+        )
         self.assertAlmostEqual(settings.critical_quality_threshold, 4.0)
 
     def test_env_var_overrides_critical_grammar_threshold(self):
         with patch.dict(environ, {"CRITICAL_GRAMMAR_THRESHOLD": "4.0"}):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
-        settings: RecommendationSettingsDTO = result._recommendation_builder._settings
+        settings: RecommendationSettingsDTO = (
+            result._recommendation_builder._recommendation_settings
+        )
         self.assertAlmostEqual(settings.critical_grammar_threshold, 4.0)
 
     def test_env_var_overrides_structure_max_header_length(self):
@@ -380,7 +399,7 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         port = result._grammar_checker._grammar_check_port
         self.assertIsInstance(port, LanguageToolAdapter)
         assert isinstance(port, LanguageToolAdapter)
-        self.assertEqual(port._max_replacements, 2)
+        self.assertEqual(port._language_tool_settings.max_replacements, 2)
 
     def test_default_grammar_max_replacements_when_env_var_absent(self):
         env_without = {k: v for k, v in environ.items() if k != "GRAMMAR_MAX_REPLACEMENTS"}
@@ -390,7 +409,142 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         port = result._grammar_checker._grammar_check_port
         self.assertIsInstance(port, LanguageToolAdapter)
         assert isinstance(port, LanguageToolAdapter)
-        self.assertEqual(port._max_replacements, 3)
+        self.assertEqual(port._language_tool_settings.max_replacements, 3)
+
+    def test_default_grammar_adapter_parameters_when_env_vars_absent(self):
+        env_without = {k: v for k, v in environ.items() if not k.startswith("GRAMMAR_MAX_")}
+        env_without.update(self.REQUIRED_ENVIRONMENT)
+        with patch.dict(environ, env_without, clear=True):
+            result = AnalyzeDocumentUseCaseWiring().create_use_case()
+        port = result._grammar_checker._grammar_check_port
+        self.assertIsInstance(port, LanguageToolAdapter)
+        assert isinstance(port, LanguageToolAdapter)
+        self.assertIsInstance(port._language_tool_settings, LanguageToolSettings)
+        self.assertEqual(port._language_tool_settings.max_replacements, 3)
+        self.assertEqual(port._language_tool_settings.max_paragraphs, 20)
+        self.assertEqual(port._language_tool_settings.max_chars, 5000)
+        self.assertEqual(port._language_tool_settings.max_errors, 10)
+
+    def test_env_vars_override_grammar_adapter_parameters(self):
+        overrides = {
+            "GRAMMAR_MAX_REPLACEMENTS": "5",
+            "GRAMMAR_MAX_PARAGRAPHS": "30",
+            "GRAMMAR_MAX_CHARS": "8000",
+            "GRAMMAR_MAX_ERRORS": "15",
+        }
+        with patch.dict(environ, overrides):
+            result = AnalyzeDocumentUseCaseWiring().create_use_case()
+        port = result._grammar_checker._grammar_check_port
+        self.assertIsInstance(port, LanguageToolAdapter)
+        assert isinstance(port, LanguageToolAdapter)
+        self.assertIsInstance(port._language_tool_settings, LanguageToolSettings)
+        self.assertEqual(port._language_tool_settings.max_replacements, 5)
+        self.assertEqual(port._language_tool_settings.max_paragraphs, 30)
+        self.assertEqual(port._language_tool_settings.max_chars, 8000)
+        self.assertEqual(port._language_tool_settings.max_errors, 15)
+
+    def test_default_quality_text_sampler_parameters_when_env_vars_absent(self):
+        env_without = {
+            k: v
+            for k, v in environ.items()
+            if not k.startswith("QUALITY_TEXT_SAMPLE_") and k != "QUALITY_MIN_SAMPLE_WORD_COUNT"
+        }
+        env_without.update(self.REQUIRED_ENVIRONMENT)
+        with patch.dict(environ, env_without, clear=True):
+            result = AnalyzeDocumentUseCaseWiring().create_use_case()
+        sampler = result._quality_analyzer._text_sampler
+        self.assertIsInstance(
+            sampler._quality_text_sampling_settings, QualityTextSamplingSettingsDTO
+        )
+        self.assertEqual(sampler._quality_text_sampling_settings.min_sample_word_count, 400)
+        self.assertEqual(sampler._quality_text_sampling_settings.text_sample_character_limit, 8000)
+        self.assertEqual(sampler._quality_text_sampling_settings.reference_line_prefix_length, 80)
+        self.assertEqual(sampler._quality_text_sampling_settings.introduction_paragraph_count, 3)
+        self.assertEqual(sampler._quality_text_sampling_settings.middle_paragraph_count, 2)
+        self.assertEqual(sampler._quality_text_sampling_settings.conclusion_paragraph_limit, 3)
+        self.assertEqual(sampler._quality_text_sampling_settings.fallback_tail_paragraph_count, 2)
+        self.assertEqual(
+            sampler._quality_text_sampling_settings.conclusion_header_marker, "conclusi"
+        )
+
+    def test_env_vars_override_quality_text_sampler_parameters(self):
+        overrides = {
+            "QUALITY_MIN_SAMPLE_WORD_COUNT": "500",
+            "QUALITY_TEXT_SAMPLE_CHARACTER_LIMIT": "9000",
+            "QUALITY_TEXT_SAMPLE_REFERENCE_LINE_PREFIX_LENGTH": "90",
+            "QUALITY_TEXT_SAMPLE_INTRODUCTION_PARAGRAPH_COUNT": "4",
+            "QUALITY_TEXT_SAMPLE_MIDDLE_PARAGRAPH_COUNT": "3",
+            "QUALITY_TEXT_SAMPLE_CONCLUSION_PARAGRAPH_LIMIT": "5",
+            "QUALITY_TEXT_SAMPLE_FALLBACK_TAIL_PARAGRAPH_COUNT": "3",
+            "QUALITY_TEXT_SAMPLE_CONCLUSION_HEADER_MARKER": "cierre",
+        }
+        with patch.dict(environ, overrides):
+            result = AnalyzeDocumentUseCaseWiring().create_use_case()
+        sampler = result._quality_analyzer._text_sampler
+        self.assertIsInstance(
+            sampler._quality_text_sampling_settings, QualityTextSamplingSettingsDTO
+        )
+        self.assertEqual(sampler._quality_text_sampling_settings.min_sample_word_count, 500)
+        self.assertEqual(sampler._quality_text_sampling_settings.text_sample_character_limit, 9000)
+        self.assertEqual(sampler._quality_text_sampling_settings.reference_line_prefix_length, 90)
+        self.assertEqual(sampler._quality_text_sampling_settings.introduction_paragraph_count, 4)
+        self.assertEqual(sampler._quality_text_sampling_settings.middle_paragraph_count, 3)
+        self.assertEqual(sampler._quality_text_sampling_settings.conclusion_paragraph_limit, 5)
+        self.assertEqual(sampler._quality_text_sampling_settings.fallback_tail_paragraph_count, 3)
+        self.assertEqual(sampler._quality_text_sampling_settings.conclusion_header_marker, "cierre")
+
+    def test_default_article_classification_text_sampler_parameters_when_env_vars_absent(self):
+        env_without = {
+            k: v
+            for k, v in environ.items()
+            if not k.startswith("ARTICLE_CLASSIFICATION_SAMPLE_")
+            and k != "ARTICLE_CLASSIFICATION_BIBLIOGRAPHY_HEADER_MAX_LENGTH"
+        }
+        env_without.update(self.REQUIRED_ENVIRONMENT)
+        with patch.dict(environ, env_without, clear=True):
+            result = AnalyzeDocumentUseCaseWiring().create_use_case()
+        sampler = result._article_classifier._text_sampler
+        self.assertIsInstance(
+            sampler._classification_text_sampling_settings, ClassificationTextSamplingSettingsDTO
+        )
+        self.assertEqual(
+            sampler._classification_text_sampling_settings.introduction_character_limit, 3500
+        )
+        self.assertEqual(
+            sampler._classification_text_sampling_settings.conclusion_character_limit, 2500
+        )
+        self.assertEqual(
+            sampler._classification_text_sampling_settings.fallback_character_limit, 6000
+        )
+        self.assertEqual(
+            sampler._classification_text_sampling_settings.bibliography_header_max_length, 30
+        )
+
+    def test_env_vars_override_article_classification_text_sampler_parameters(self):
+        overrides = {
+            "ARTICLE_CLASSIFICATION_SAMPLE_INTRODUCTION_CHARACTER_LIMIT": "4000",
+            "ARTICLE_CLASSIFICATION_SAMPLE_CONCLUSION_CHARACTER_LIMIT": "3000",
+            "ARTICLE_CLASSIFICATION_SAMPLE_FALLBACK_CHARACTER_LIMIT": "7000",
+            "ARTICLE_CLASSIFICATION_BIBLIOGRAPHY_HEADER_MAX_LENGTH": "40",
+        }
+        with patch.dict(environ, overrides):
+            result = AnalyzeDocumentUseCaseWiring().create_use_case()
+        sampler = result._article_classifier._text_sampler
+        self.assertIsInstance(
+            sampler._classification_text_sampling_settings, ClassificationTextSamplingSettingsDTO
+        )
+        self.assertEqual(
+            sampler._classification_text_sampling_settings.introduction_character_limit, 4000
+        )
+        self.assertEqual(
+            sampler._classification_text_sampling_settings.conclusion_character_limit, 3000
+        )
+        self.assertEqual(
+            sampler._classification_text_sampling_settings.fallback_character_limit, 7000
+        )
+        self.assertEqual(
+            sampler._classification_text_sampling_settings.bibliography_header_max_length, 40
+        )
 
     def test_default_ollama_think_when_env_var_absent(self):
         env_without = {k: v for k, v in environ.items() if k != "OLLAMA_THINK"}

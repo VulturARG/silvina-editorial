@@ -2,9 +2,18 @@ from os import getenv
 from pathlib import Path
 from re import fullmatch
 
+from src.domain.dtos.classification_text_sampling_settings_dto import (
+    ClassificationTextSamplingSettingsDTO,
+)
+from src.domain.dtos.quality_text_sampling_settings_dto import (
+    QualityTextSamplingSettingsDTO,
+)
 from src.domain.dtos.recommendation_settings_dto import RecommendationSettingsDTO
 from src.domain.enums.ai_provider import AiProvider
 from src.domain.enums.app_mode import AppMode
+from src.infrastructure.adapters.grammar.language_tool_settings import (
+    LanguageToolSettings,
+)
 
 _VERSION_FILE_PATH = Path(__file__).resolve().parents[2] / "version.txt"
 _DURATION_PATTERN = r"-?(\d+(\.\d+)?(ms|s|m|h))+"
@@ -22,6 +31,9 @@ class EnvConfig:
             getenv("CITATION_MAX_AUTHOR_NAME_LENGTH", "100")
         )
         self.grammar_max_replacements: int = int(getenv("GRAMMAR_MAX_REPLACEMENTS", "3"))
+        self.grammar_max_paragraphs: int = int(getenv("GRAMMAR_MAX_PARAGRAPHS", "20"))
+        self.grammar_max_chars: int = int(getenv("GRAMMAR_MAX_CHARS", "5000"))
+        self.grammar_max_errors: int = int(getenv("GRAMMAR_MAX_ERRORS", "10"))
         self.structure_max_header_length: int = int(getenv("STRUCTURE_MAX_HEADER_LENGTH", "100"))
 
         self.article_classifier_temperature: float = float(
@@ -29,6 +41,18 @@ class EnvConfig:
         )
         self.article_classifier_num_predict: int = int(
             getenv("ARTICLE_CLASSIFIER_NUM_PREDICT", "300")
+        )
+        self.article_classification_sample_introduction_character_limit: int = int(
+            getenv("ARTICLE_CLASSIFICATION_SAMPLE_INTRODUCTION_CHARACTER_LIMIT", "3500")
+        )
+        self.article_classification_sample_conclusion_character_limit: int = int(
+            getenv("ARTICLE_CLASSIFICATION_SAMPLE_CONCLUSION_CHARACTER_LIMIT", "2500")
+        )
+        self.article_classification_sample_fallback_character_limit: int = int(
+            getenv("ARTICLE_CLASSIFICATION_SAMPLE_FALLBACK_CHARACTER_LIMIT", "6000")
+        )
+        self.article_classification_bibliography_header_max_length: int = int(
+            getenv("ARTICLE_CLASSIFICATION_BIBLIOGRAPHY_HEADER_MAX_LENGTH", "30")
         )
 
         self.article_size_short_min_chars: int = int(
@@ -63,6 +87,24 @@ class EnvConfig:
         )
         self.quality_text_sample_character_limit: int = int(
             getenv("QUALITY_TEXT_SAMPLE_CHARACTER_LIMIT", "8000")
+        )
+        self.quality_text_sample_reference_line_prefix_length: int = int(
+            getenv("QUALITY_TEXT_SAMPLE_REFERENCE_LINE_PREFIX_LENGTH", "80")
+        )
+        self.quality_text_sample_introduction_paragraph_count: int = int(
+            getenv("QUALITY_TEXT_SAMPLE_INTRODUCTION_PARAGRAPH_COUNT", "3")
+        )
+        self.quality_text_sample_middle_paragraph_count: int = int(
+            getenv("QUALITY_TEXT_SAMPLE_MIDDLE_PARAGRAPH_COUNT", "2")
+        )
+        self.quality_text_sample_conclusion_paragraph_limit: int = int(
+            getenv("QUALITY_TEXT_SAMPLE_CONCLUSION_PARAGRAPH_LIMIT", "3")
+        )
+        self.quality_text_sample_fallback_tail_paragraph_count: int = int(
+            getenv("QUALITY_TEXT_SAMPLE_FALLBACK_TAIL_PARAGRAPH_COUNT", "2")
+        )
+        self.quality_text_sample_conclusion_header_marker: str = getenv(
+            "QUALITY_TEXT_SAMPLE_CONCLUSION_HEADER_MARKER", "conclusi"
         )
 
         self.ollama_model_name: str = getenv("OLLAMA_MODEL_NAME", "gemma4-26b-adapted")
@@ -132,6 +174,39 @@ class EnvConfig:
             classification_confidence_threshold=self.classification_confidence_threshold,
             critical_quality_threshold=self.critical_quality_threshold,
             critical_grammar_threshold=self.critical_grammar_threshold,
+        )
+
+    def get_quality_text_sampling_settings(self) -> QualityTextSamplingSettingsDTO:
+        """Builds QualityTextSamplingSettingsDTO from cached configuration values."""
+        return QualityTextSamplingSettingsDTO(
+            min_sample_word_count=self.quality_min_sample_word_count,
+            text_sample_character_limit=self.quality_text_sample_character_limit,
+            reference_line_prefix_length=self.quality_text_sample_reference_line_prefix_length,
+            introduction_paragraph_count=self.quality_text_sample_introduction_paragraph_count,
+            middle_paragraph_count=self.quality_text_sample_middle_paragraph_count,
+            conclusion_paragraph_limit=self.quality_text_sample_conclusion_paragraph_limit,
+            fallback_tail_paragraph_count=self.quality_text_sample_fallback_tail_paragraph_count,
+            conclusion_header_marker=self.quality_text_sample_conclusion_header_marker,
+        )
+
+    def get_classification_text_sampling_settings(
+        self,
+    ) -> ClassificationTextSamplingSettingsDTO:
+        """Builds ClassificationTextSamplingSettingsDTO from cached configuration values."""
+        return ClassificationTextSamplingSettingsDTO(
+            introduction_character_limit=self.article_classification_sample_introduction_character_limit,
+            conclusion_character_limit=self.article_classification_sample_conclusion_character_limit,
+            fallback_character_limit=self.article_classification_sample_fallback_character_limit,
+            bibliography_header_max_length=self.article_classification_bibliography_header_max_length,
+        )
+
+    def get_language_tool_settings(self) -> LanguageToolSettings:
+        """Builds LanguageToolSettings from cached configuration values."""
+        return LanguageToolSettings(
+            max_replacements=self.grammar_max_replacements,
+            max_paragraphs=self.grammar_max_paragraphs,
+            max_chars=self.grammar_max_chars,
+            max_errors=self.grammar_max_errors,
         )
 
     def _get_required_env(self, name: str) -> str:

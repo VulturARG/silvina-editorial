@@ -15,11 +15,26 @@ from src.domain.classification.methodological_vocabulary_detector import (
 )
 from src.domain.classification.reference_signal_detector import ReferenceSignalDetector
 from src.domain.dtos.article_size_thresholds_dto import ArticleSizeThresholdsDTO
+from src.domain.dtos.classification_text_sampling_settings_dto import (
+    ClassificationTextSamplingSettingsDTO,
+)
 from src.domain.dtos.document_content_dto import DocumentContentDTO
 from src.domain.enums.article_type import ArticleType
 from src.domain.enums.classification_confidence import ClassificationConfidence
 from src.domain.exceptions.classification_errors import ClassificationFailed
 from src.domain.tests.classification.fake_llm_generator_adapter import FakeLlmGeneratorAdapter
+
+
+def _build_default_text_sampler() -> ArticleClassificationTextSampler:
+    classification_text_sampling_settings = ClassificationTextSamplingSettingsDTO(
+        introduction_character_limit=3500,
+        conclusion_character_limit=2500,
+        fallback_character_limit=6000,
+        bibliography_header_max_length=30,
+    )
+    return ArticleClassificationTextSampler(
+        classification_text_sampling_settings=classification_text_sampling_settings
+    )
 
 
 class TestArticleClassifierImrydOverride(TestCase):
@@ -57,27 +72,28 @@ class TestArticleClassifierImrydOverride(TestCase):
         )
 
     def test_constructor_without_temperature_or_num_predict_raises_type_error(self) -> None:
+        kwargs = {
+            "llm_generator": self._fake_llm_generator,
+            "signal_detector": ImrydSignalDetector(),
+            "article_size_classifier": ArticleSizeClassifier(
+                thresholds=ArticleSizeThresholdsDTO(
+                    short_min_chars=16000,
+                    short_max_chars=24000,
+                    undefined_min_chars=24001,
+                    undefined_max_chars=35999,
+                    long_min_chars=36000,
+                    long_max_chars=40000,
+                )
+            ),
+            "text_sampler": _build_default_text_sampler(),
+            "response_parser": ArticleClassificationResponseParser(),
+            "signal_prompt_template": "TEXTO: {text_sample}",
+            "methodological_vocabulary_detector": MethodologicalVocabularyDetector(),
+            "reference_signal_detector": ReferenceSignalDetector(),
+            "rule_table": ClassificationRuleTable(),
+        }
         with self.assertRaises(TypeError):
-            ArticleClassifier(
-                llm_generator=self._fake_llm_generator,
-                signal_detector=ImrydSignalDetector(),
-                article_size_classifier=ArticleSizeClassifier(
-                    thresholds=ArticleSizeThresholdsDTO(
-                        short_min_chars=16000,
-                        short_max_chars=24000,
-                        undefined_min_chars=24001,
-                        undefined_max_chars=35999,
-                        long_min_chars=36000,
-                        long_max_chars=40000,
-                    )
-                ),
-                text_sampler=ArticleClassificationTextSampler(),
-                response_parser=ArticleClassificationResponseParser(),
-                signal_prompt_template="TEXTO: {text_sample}",
-                methodological_vocabulary_detector=MethodologicalVocabularyDetector(),
-                reference_signal_detector=ReferenceSignalDetector(),
-                rule_table=ClassificationRuleTable(),
-            )
+            ArticleClassifier(**kwargs)
 
     def test_domain_service_has_zero_infrastructure_imports(self) -> None:
         import inspect
@@ -112,7 +128,7 @@ class TestArticleClassifierImrydOverride(TestCase):
                     long_max_chars=40000,
                 )
             ),
-            text_sampler=ArticleClassificationTextSampler(),
+            text_sampler=_build_default_text_sampler(),
             response_parser=ArticleClassificationResponseParser(),
             signal_prompt_template="TITULO: {title}\nTEXTO: {text_sample}",
             temperature=temperature,

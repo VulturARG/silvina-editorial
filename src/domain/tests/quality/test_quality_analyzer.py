@@ -2,6 +2,9 @@ from unittest import TestCase
 
 from src.domain.dtos.document_content_dto import DocumentContentDTO
 from src.domain.dtos.editorial_suitability_dto import EditorialSuitabilityDTO
+from src.domain.dtos.quality_text_sampling_settings_dto import (
+    QualityTextSamplingSettingsDTO,
+)
 from src.domain.enums.quality_level import QualityLevel
 from src.domain.exceptions.quality_errors import QualityAnalysisFailed
 from src.domain.quality.editorial_suitability_analyzer import EditorialSuitabilityAnalyzer
@@ -60,6 +63,20 @@ SUITABILITY_ALIGNMENT_RESPONSE = (
 )
 
 
+def build_quality_text_sampler() -> QualityTextSampler:
+    quality_text_sampling_settings = QualityTextSamplingSettingsDTO(
+        min_sample_word_count=400,
+        text_sample_character_limit=8000,
+        reference_line_prefix_length=80,
+        introduction_paragraph_count=3,
+        middle_paragraph_count=2,
+        conclusion_paragraph_limit=3,
+        fallback_tail_paragraph_count=2,
+        conclusion_header_marker="conclusi",
+    )
+    return QualityTextSampler(quality_text_sampling_settings=quality_text_sampling_settings)
+
+
 def build_analyzer(fake_adapter: FakeLlmGeneratorAdapter) -> QualityAnalyzer:
     suitability_adapter = FakeLlmGeneratorAdapter(
         [SUITABILITY_CONTRIBUTION_RESPONSE, SUITABILITY_ALIGNMENT_RESPONSE]
@@ -75,7 +92,7 @@ def build_analyzer(fake_adapter: FakeLlmGeneratorAdapter) -> QualityAnalyzer:
     )
     return QualityAnalyzer(
         llm_generator=fake_adapter,
-        text_sampler=QualityTextSampler(),
+        text_sampler=build_quality_text_sampler(),
         response_parser=QualityResponseParserBuilderForTest().build(),
         clarity_coherence_prompt_template=CLARITY_COHERENCE_PROMPT_TEMPLATE,
         argumentation_conclusions_prompt_template=ARGUMENTATION_CONCLUSIONS_PROMPT_TEMPLATE,
@@ -218,7 +235,7 @@ Este bloque de claridad nunca deberia usarse porque viene de la llamada dos.
 
         analyzer.analyze(self.document_content)
 
-        text_sample = QualityTextSampler().build_sample(self.document_content)
+        text_sample = build_quality_text_sampler().build_sample(self.document_content)
         self.assertIn(
             "Eres un revisor editorial académico experto.", fake_adapter.received_prompts[0]
         )

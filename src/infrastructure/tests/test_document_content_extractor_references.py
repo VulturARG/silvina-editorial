@@ -17,6 +17,9 @@ from src.domain.classification.methodological_vocabulary_detector import (
 from src.domain.classification.reference_signal_detector import ReferenceSignalDetector
 from src.domain.document.document_content_extractor import DocumentContentExtractor
 from src.domain.dtos.article_size_thresholds_dto import ArticleSizeThresholdsDTO
+from src.domain.dtos.classification_text_sampling_settings_dto import (
+    ClassificationTextSamplingSettingsDTO,
+)
 from src.domain.enums.article_type import ArticleType
 from src.domain.tests.classification.fake_llm_generator_adapter import FakeLlmGeneratorAdapter
 from src.domain.tests.document.fake_character_count_port import FakeCharacterCountPort
@@ -74,7 +77,14 @@ class TestDocumentContentExtractorReferences(TestCase):
                     long_max_chars=40000,
                 )
             ),
-            text_sampler=ArticleClassificationTextSampler(),
+            text_sampler=ArticleClassificationTextSampler(
+                classification_text_sampling_settings=ClassificationTextSamplingSettingsDTO(
+                    introduction_character_limit=3500,
+                    conclusion_character_limit=2500,
+                    fallback_character_limit=6000,
+                    bibliography_header_max_length=30,
+                )
+            ),
             response_parser=ArticleClassificationResponseParser(),
             signal_prompt_template=read_text_resource(
                 directory=PROMPTS_DIR, filename="s4_s5_s6_signal_prompt.txt"

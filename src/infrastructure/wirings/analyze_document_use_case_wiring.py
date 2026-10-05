@@ -160,8 +160,9 @@ class AnalyzeDocumentUseCaseWiring:
         return DocxReferenceAdapter(document_text_port=self._get_document_text_port())
 
     def _get_grammar_check_port(self) -> GrammarCheckPort:
-        env_config = self._get_env_config()
-        return LanguageToolAdapter(max_replacements=env_config.grammar_max_replacements)
+        return LanguageToolAdapter(
+            language_tool_settings=self._get_env_config().get_language_tool_settings()
+        )
 
     def _get_document_format_inspection_port(self) -> DocumentFormatInspectionPort:
         return DocxEumicAdapter()
@@ -199,7 +200,9 @@ class AnalyzeDocumentUseCaseWiring:
         return StructureValidator(max_header_length=env_config.structure_max_header_length)
 
     def _get_recommendation_builder(self) -> RecommendationBuilder:
-        return RecommendationBuilder(settings=self._get_env_config().get_recommendation_settings())
+        return RecommendationBuilder(
+            recommendation_settings=self._get_env_config().get_recommendation_settings()
+        )
 
     def _get_article_classifier(self) -> ArticleClassifier:
         env_config = self._get_env_config()
@@ -207,7 +210,9 @@ class AnalyzeDocumentUseCaseWiring:
             llm_generator=self._get_llm_generator(purpose=AiPurpose.ARTICLE_CLASSIFICATION),
             signal_detector=ImrydSignalDetector(),
             article_size_classifier=self._get_article_size_classifier(),
-            text_sampler=ArticleClassificationTextSampler(),
+            text_sampler=ArticleClassificationTextSampler(
+                classification_text_sampling_settings=env_config.get_classification_text_sampling_settings()
+            ),
             response_parser=ArticleClassificationResponseParser(),
             signal_prompt_template=read_text_resource(
                 directory=CLASSIFICATION_PROMPTS_DIR, filename="s4_s5_s6_signal_prompt.txt"
@@ -344,10 +349,8 @@ class AnalyzeDocumentUseCaseWiring:
         )
 
     def _get_quality_text_sampler(self) -> QualityTextSampler:
-        env_config = self._get_env_config()
         return QualityTextSampler(
-            min_sample_word_count=env_config.quality_min_sample_word_count,
-            text_sample_character_limit=env_config.quality_text_sample_character_limit,
+            quality_text_sampling_settings=self._get_env_config().get_quality_text_sampling_settings()
         )
 
     def _get_ollama_generator(self) -> LlmGeneratorPort:

@@ -4,9 +4,18 @@ from tempfile import TemporaryDirectory
 from unittest import TestCase
 from unittest.mock import patch
 
+from src.domain.dtos.classification_text_sampling_settings_dto import (
+    ClassificationTextSamplingSettingsDTO,
+)
+from src.domain.dtos.quality_text_sampling_settings_dto import (
+    QualityTextSamplingSettingsDTO,
+)
 from src.domain.dtos.recommendation_settings_dto import RecommendationSettingsDTO
 from src.domain.enums.ai_provider import AiProvider
 from src.domain.enums.app_mode import AppMode
+from src.infrastructure.adapters.grammar.language_tool_settings import (
+    LanguageToolSettings,
+)
 from src.infrastructure.env_config import EnvConfig
 
 
@@ -22,9 +31,16 @@ class TestEnvConfig(TestCase):
 
         self.assertEqual(config.citation_max_author_name_length, 100)
         self.assertEqual(config.grammar_max_replacements, 3)
+        self.assertEqual(config.grammar_max_paragraphs, 20)
+        self.assertEqual(config.grammar_max_chars, 5000)
+        self.assertEqual(config.grammar_max_errors, 10)
         self.assertEqual(config.structure_max_header_length, 100)
         self.assertAlmostEqual(config.article_classifier_temperature, 0.1)
         self.assertEqual(config.article_classifier_num_predict, 300)
+        self.assertEqual(config.article_classification_sample_introduction_character_limit, 3500)
+        self.assertEqual(config.article_classification_sample_conclusion_character_limit, 2500)
+        self.assertEqual(config.article_classification_sample_fallback_character_limit, 6000)
+        self.assertEqual(config.article_classification_bibliography_header_max_length, 30)
         self.assertEqual(config.article_size_short_min_chars, 16000)
         self.assertEqual(config.article_size_short_max_chars, 24000)
         self.assertEqual(config.article_size_undefined_min_chars, 24001)
@@ -37,6 +53,12 @@ class TestEnvConfig(TestCase):
         self.assertAlmostEqual(config.quality_level_needs_improvement_threshold, 3.0)
         self.assertEqual(config.quality_min_sample_word_count, 400)
         self.assertEqual(config.quality_text_sample_character_limit, 8000)
+        self.assertEqual(config.quality_text_sample_reference_line_prefix_length, 80)
+        self.assertEqual(config.quality_text_sample_introduction_paragraph_count, 3)
+        self.assertEqual(config.quality_text_sample_middle_paragraph_count, 2)
+        self.assertEqual(config.quality_text_sample_conclusion_paragraph_limit, 3)
+        self.assertEqual(config.quality_text_sample_fallback_tail_paragraph_count, 2)
+        self.assertEqual(config.quality_text_sample_conclusion_header_marker, "conclusi")
         self.assertEqual(config.ollama_model_name, "gemma4-26b-adapted")
         self.assertEqual(config.ollama_base_url, "http://localhost:11434")
         self.assertFalse(config.ollama_think)
@@ -109,6 +131,21 @@ class TestEnvConfig(TestCase):
             config = EnvConfig()
         self.assertEqual(config.grammar_max_replacements, 7)
 
+    def test_env_var_overrides_grammar_max_paragraphs(self):
+        with patch.dict(environ, {"GRAMMAR_MAX_PARAGRAPHS": "25"}):
+            config = EnvConfig()
+        self.assertEqual(config.grammar_max_paragraphs, 25)
+
+    def test_env_var_overrides_grammar_max_chars(self):
+        with patch.dict(environ, {"GRAMMAR_MAX_CHARS": "6000"}):
+            config = EnvConfig()
+        self.assertEqual(config.grammar_max_chars, 6000)
+
+    def test_env_var_overrides_grammar_max_errors(self):
+        with patch.dict(environ, {"GRAMMAR_MAX_ERRORS": "15"}):
+            config = EnvConfig()
+        self.assertEqual(config.grammar_max_errors, 15)
+
     def test_env_var_overrides_structure_max_header_length(self):
         with patch.dict(environ, {"STRUCTURE_MAX_HEADER_LENGTH": "42"}):
             config = EnvConfig()
@@ -118,6 +155,32 @@ class TestEnvConfig(TestCase):
         with patch.dict(environ, {"ARTICLE_CLASSIFIER_TEMPERATURE": "0.5"}):
             config = EnvConfig()
         self.assertAlmostEqual(config.article_classifier_temperature, 0.5)
+
+    def test_env_var_overrides_article_classification_sample_introduction_character_limit(self):
+        with patch.dict(
+            environ, {"ARTICLE_CLASSIFICATION_SAMPLE_INTRODUCTION_CHARACTER_LIMIT": "4000"}
+        ):
+            config = EnvConfig()
+        self.assertEqual(config.article_classification_sample_introduction_character_limit, 4000)
+
+    def test_env_var_overrides_article_classification_sample_conclusion_character_limit(self):
+        with patch.dict(
+            environ, {"ARTICLE_CLASSIFICATION_SAMPLE_CONCLUSION_CHARACTER_LIMIT": "3000"}
+        ):
+            config = EnvConfig()
+        self.assertEqual(config.article_classification_sample_conclusion_character_limit, 3000)
+
+    def test_env_var_overrides_article_classification_sample_fallback_character_limit(self):
+        with patch.dict(
+            environ, {"ARTICLE_CLASSIFICATION_SAMPLE_FALLBACK_CHARACTER_LIMIT": "7000"}
+        ):
+            config = EnvConfig()
+        self.assertEqual(config.article_classification_sample_fallback_character_limit, 7000)
+
+    def test_env_var_overrides_article_classification_bibliography_header_max_length(self):
+        with patch.dict(environ, {"ARTICLE_CLASSIFICATION_BIBLIOGRAPHY_HEADER_MAX_LENGTH": "40"}):
+            config = EnvConfig()
+        self.assertEqual(config.article_classification_bibliography_header_max_length, 40)
 
     def test_env_var_overrides_ollama_model_name(self):
         with patch.dict(environ, {"OLLAMA_MODEL_NAME": "custom-model"}):
@@ -247,6 +310,36 @@ class TestEnvConfig(TestCase):
             config = EnvConfig()
         self.assertTrue(config.external_llm_think)
 
+    def test_env_var_overrides_quality_text_sample_reference_line_prefix_length(self):
+        with patch.dict(environ, {"QUALITY_TEXT_SAMPLE_REFERENCE_LINE_PREFIX_LENGTH": "120"}):
+            config = EnvConfig()
+        self.assertEqual(config.quality_text_sample_reference_line_prefix_length, 120)
+
+    def test_env_var_overrides_quality_text_sample_introduction_paragraph_count(self):
+        with patch.dict(environ, {"QUALITY_TEXT_SAMPLE_INTRODUCTION_PARAGRAPH_COUNT": "5"}):
+            config = EnvConfig()
+        self.assertEqual(config.quality_text_sample_introduction_paragraph_count, 5)
+
+    def test_env_var_overrides_quality_text_sample_middle_paragraph_count(self):
+        with patch.dict(environ, {"QUALITY_TEXT_SAMPLE_MIDDLE_PARAGRAPH_COUNT": "4"}):
+            config = EnvConfig()
+        self.assertEqual(config.quality_text_sample_middle_paragraph_count, 4)
+
+    def test_env_var_overrides_quality_text_sample_conclusion_paragraph_limit(self):
+        with patch.dict(environ, {"QUALITY_TEXT_SAMPLE_CONCLUSION_PARAGRAPH_LIMIT": "6"}):
+            config = EnvConfig()
+        self.assertEqual(config.quality_text_sample_conclusion_paragraph_limit, 6)
+
+    def test_env_var_overrides_quality_text_sample_fallback_tail_paragraph_count(self):
+        with patch.dict(environ, {"QUALITY_TEXT_SAMPLE_FALLBACK_TAIL_PARAGRAPH_COUNT": "4"}):
+            config = EnvConfig()
+        self.assertEqual(config.quality_text_sample_fallback_tail_paragraph_count, 4)
+
+    def test_env_var_overrides_quality_text_sample_conclusion_header_marker(self):
+        with patch.dict(environ, {"QUALITY_TEXT_SAMPLE_CONCLUSION_HEADER_MARKER": "cierre"}):
+            config = EnvConfig()
+        self.assertEqual(config.quality_text_sample_conclusion_header_marker, "cierre")
+
     def test_env_var_overrides_quality_threshold(self):
         with patch.dict(environ, {"QUALITY_THRESHOLD": "6.5"}):
             config = EnvConfig()
@@ -311,6 +404,94 @@ class TestEnvConfig(TestCase):
 
         self.assertAlmostEqual(settings.publish_threshold, 8.0)
         self.assertEqual(settings.citation_count_threshold, 20)
+
+    def test_get_quality_text_sampling_settings_returns_dto_with_defaults(self):
+        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+            config = EnvConfig()
+            settings = config.get_quality_text_sampling_settings()
+
+        self.assertIsInstance(settings, QualityTextSamplingSettingsDTO)
+        self.assertEqual(settings.min_sample_word_count, 400)
+        self.assertEqual(settings.text_sample_character_limit, 8000)
+        self.assertEqual(settings.reference_line_prefix_length, 80)
+        self.assertEqual(settings.introduction_paragraph_count, 3)
+        self.assertEqual(settings.middle_paragraph_count, 2)
+        self.assertEqual(settings.conclusion_paragraph_limit, 3)
+        self.assertEqual(settings.fallback_tail_paragraph_count, 2)
+        self.assertEqual(settings.conclusion_header_marker, "conclusi")
+
+    def test_get_quality_text_sampling_settings_reflects_env_overrides(self):
+        overrides = {
+            "QUALITY_MIN_SAMPLE_WORD_COUNT": "500",
+            "QUALITY_TEXT_SAMPLE_CHARACTER_LIMIT": "9000",
+            "QUALITY_TEXT_SAMPLE_REFERENCE_LINE_PREFIX_LENGTH": "90",
+            "QUALITY_TEXT_SAMPLE_INTRODUCTION_PARAGRAPH_COUNT": "4",
+            "QUALITY_TEXT_SAMPLE_MIDDLE_PARAGRAPH_COUNT": "3",
+            "QUALITY_TEXT_SAMPLE_CONCLUSION_PARAGRAPH_LIMIT": "5",
+            "QUALITY_TEXT_SAMPLE_FALLBACK_TAIL_PARAGRAPH_COUNT": "3",
+            "QUALITY_TEXT_SAMPLE_CONCLUSION_HEADER_MARKER": "cierre",
+        }
+        with patch.dict(environ, overrides):
+            settings = EnvConfig().get_quality_text_sampling_settings()
+
+        self.assertEqual(settings.min_sample_word_count, 500)
+        self.assertEqual(settings.text_sample_character_limit, 9000)
+        self.assertEqual(settings.reference_line_prefix_length, 90)
+        self.assertEqual(settings.introduction_paragraph_count, 4)
+        self.assertEqual(settings.middle_paragraph_count, 3)
+        self.assertEqual(settings.conclusion_paragraph_limit, 5)
+        self.assertEqual(settings.fallback_tail_paragraph_count, 3)
+        self.assertEqual(settings.conclusion_header_marker, "cierre")
+
+    def test_get_classification_text_sampling_settings_returns_dto_with_defaults(self):
+        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+            settings = EnvConfig().get_classification_text_sampling_settings()
+
+        self.assertIsInstance(settings, ClassificationTextSamplingSettingsDTO)
+        self.assertEqual(settings.introduction_character_limit, 3500)
+        self.assertEqual(settings.conclusion_character_limit, 2500)
+        self.assertEqual(settings.fallback_character_limit, 6000)
+        self.assertEqual(settings.bibliography_header_max_length, 30)
+
+    def test_get_classification_text_sampling_settings_reflects_env_overrides(self):
+        overrides = {
+            "ARTICLE_CLASSIFICATION_SAMPLE_INTRODUCTION_CHARACTER_LIMIT": "4000",
+            "ARTICLE_CLASSIFICATION_SAMPLE_CONCLUSION_CHARACTER_LIMIT": "3000",
+            "ARTICLE_CLASSIFICATION_SAMPLE_FALLBACK_CHARACTER_LIMIT": "7000",
+            "ARTICLE_CLASSIFICATION_BIBLIOGRAPHY_HEADER_MAX_LENGTH": "40",
+        }
+        with patch.dict(environ, overrides):
+            settings = EnvConfig().get_classification_text_sampling_settings()
+
+        self.assertEqual(settings.introduction_character_limit, 4000)
+        self.assertEqual(settings.conclusion_character_limit, 3000)
+        self.assertEqual(settings.fallback_character_limit, 7000)
+        self.assertEqual(settings.bibliography_header_max_length, 40)
+
+    def test_get_language_tool_settings_returns_settings_with_defaults(self):
+        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+            settings = EnvConfig().get_language_tool_settings()
+
+        self.assertIsInstance(settings, LanguageToolSettings)
+        self.assertEqual(settings.max_replacements, 3)
+        self.assertEqual(settings.max_paragraphs, 20)
+        self.assertEqual(settings.max_chars, 5000)
+        self.assertEqual(settings.max_errors, 10)
+
+    def test_get_language_tool_settings_reflects_env_overrides(self):
+        overrides = {
+            "GRAMMAR_MAX_REPLACEMENTS": "5",
+            "GRAMMAR_MAX_PARAGRAPHS": "30",
+            "GRAMMAR_MAX_CHARS": "8000",
+            "GRAMMAR_MAX_ERRORS": "15",
+        }
+        with patch.dict(environ, overrides):
+            settings = EnvConfig().get_language_tool_settings()
+
+        self.assertEqual(settings.max_replacements, 5)
+        self.assertEqual(settings.max_paragraphs, 30)
+        self.assertEqual(settings.max_chars, 8000)
+        self.assertEqual(settings.max_errors, 15)
 
     def test_app_mode_defaults_to_prod_when_env_is_empty(self):
         with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):

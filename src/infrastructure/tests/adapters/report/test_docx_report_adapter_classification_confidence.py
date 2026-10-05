@@ -15,7 +15,9 @@ class TestDocxReportAdapterClassificationConfidence(TestCase):
     def test_export_succeeds_and_renders_formatted_confidence_percentage(self):
         with TemporaryDirectory() as temporary_directory:
             output_path = str(Path(temporary_directory) / "test_report.docx")
-            adapter = DocxReportAdapter(logo_path=None, settings=ReportFixtures.make_settings())
+            adapter = DocxReportAdapter(
+                logo_path=None, docx_report_settings=ReportFixtures.make_settings()
+            )
             classification = ReportFixtures.make_classification_mock()
             classification.confidence = ClassificationConfidence.FULL_SIGNAL_MATCH
             report_input = ReportFixtures.make_report_input_dto(classification=classification)
