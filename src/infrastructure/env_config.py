@@ -14,27 +14,45 @@ from src.domain.enums.app_mode import AppMode
 from src.infrastructure.adapters.grammar.language_tool_settings import (
     LanguageToolSettings,
 )
+from src.infrastructure.settings_file_loader import SettingsFileLoader
+from src.infrastructure.settings_value_resolver import SettingsValueResolver
 
-_VERSION_FILE_PATH = Path(__file__).resolve().parents[2] / "version.txt"
+_PROJECT_ROOT_PATH = Path(__file__).resolve().parents[2]
+_VERSION_FILE_PATH = _PROJECT_ROOT_PATH / "version.txt"
+_SETTINGS_FILE_PATH = _PROJECT_ROOT_PATH / "settings.toml"
 _DURATION_PATTERN = r"-?(\d+(\.\d+)?(ms|s|m|h))+"
 
 
 class EnvConfig:
-    """Centralized environment variable configuration.
+    """Centralized application configuration.
 
-    Parses, casts, and caches all environment variables as typed instance
-    attributes at instantiation time (fail-fast on bad config).
+    Parses, casts, and caches the settings file values and the environment
+    variables as typed instance attributes at instantiation time (fail-fast
+    on bad config). For settings-file values, an environment variable of the
+    same name overrides the file.
     """
 
-    def __init__(self) -> None:
-        self.citation_max_author_name_length: int = int(
-            getenv("CITATION_MAX_AUTHOR_NAME_LENGTH", "100")
+    def __init__(self, settings_file_path: Path = _SETTINGS_FILE_PATH) -> None:
+        """Load the settings file and resolve every configuration attribute."""
+        settings = SettingsValueResolver(SettingsFileLoader(settings_file_path).load())
+        self.citation_max_author_name_length: int = settings.read_integer(
+            "CITATION_MAX_AUTHOR_NAME_LENGTH", "citation", "max_author_name_length"
         )
-        self.grammar_max_replacements: int = int(getenv("GRAMMAR_MAX_REPLACEMENTS", "3"))
-        self.grammar_max_paragraphs: int = int(getenv("GRAMMAR_MAX_PARAGRAPHS", "20"))
-        self.grammar_max_chars: int = int(getenv("GRAMMAR_MAX_CHARS", "5000"))
-        self.grammar_max_errors: int = int(getenv("GRAMMAR_MAX_ERRORS", "10"))
-        self.structure_max_header_length: int = int(getenv("STRUCTURE_MAX_HEADER_LENGTH", "100"))
+        self.grammar_max_replacements: int = settings.read_integer(
+            "GRAMMAR_MAX_REPLACEMENTS", "grammar", "max_replacements"
+        )
+        self.grammar_max_paragraphs: int = settings.read_integer(
+            "GRAMMAR_MAX_PARAGRAPHS", "grammar", "max_paragraphs"
+        )
+        self.grammar_max_chars: int = settings.read_integer(
+            "GRAMMAR_MAX_CHARS", "grammar", "max_chars"
+        )
+        self.grammar_max_errors: int = settings.read_integer(
+            "GRAMMAR_MAX_ERRORS", "grammar", "max_errors"
+        )
+        self.structure_max_header_length: int = settings.read_integer(
+            "STRUCTURE_MAX_HEADER_LENGTH", "structure", "max_header_length"
+        )
 
         self.article_classifier_temperature: float = float(
             getenv("ARTICLE_CLASSIFIER_TEMPERATURE", "0.1")

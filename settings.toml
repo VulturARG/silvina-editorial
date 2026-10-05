@@ -1,0 +1,15 @@
+# Tuning parameters of Silvina Editorial Assistant.
+# Versioned with the code. Machine-specific values and secrets belong in .env.
+# An environment variable of the same name as before overrides any value here.
+
+[grammar]
+max_replacements = 3
+max_paragraphs = 20
+max_chars = 5000
+max_errors = 10
+
+[structure]
+max_header_length = 100
+
+[citation]
+max_author_name_length = 100
