@@ -31,6 +31,7 @@ class WarmUpLanguageModelUseCaseWiring:
                 model_name=env_config.ollama_model_name,
                 base_url=env_config.ollama_base_url,
                 keep_alive=env_config.ollama_model_keep_alive,
+                num_ctx=env_config.ollama_num_ctx,
                 error_mapper=OllamaBackendErrorMapper(),
             )
         return NoOpLanguageModelWarmupAdapter()

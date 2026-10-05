@@ -28,6 +28,7 @@ class TestOllamaLanguageModelWarmupAdapter(TestCase):
             model_name=self.model_name,
             base_url=self.base_url,
             keep_alive=self.keep_alive,
+            num_ctx=None,
             error_mapper=self.error_mapper,
         )
 
@@ -49,6 +50,30 @@ class TestOllamaLanguageModelWarmupAdapter(TestCase):
             model=self.model_name,
             prompt="",
             keep_alive=self.keep_alive,
+        )
+
+    @patch(
+        "src.infrastructure.adapters.llm_generator.ollama_language_model_warmup_adapter.ollama.Client"
+    )
+    def test_warm_up_calls_client_generate_with_options_when_num_ctx_is_configured(
+        self, mock_client_class
+    ):
+        adapter = OllamaLanguageModelWarmupAdapter(
+            model_name=self.model_name,
+            base_url=self.base_url,
+            keep_alive=self.keep_alive,
+            num_ctx=16384,
+            error_mapper=self.error_mapper,
+        )
+        mock_client = mock_client_class.return_value
+
+        adapter.warm_up()
+
+        mock_client.generate.assert_called_once_with(
+            model=self.model_name,
+            prompt="",
+            keep_alive=self.keep_alive,
+            options={"num_ctx": 16384},
         )
 
     @patch(

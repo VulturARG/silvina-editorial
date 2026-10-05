@@ -132,7 +132,7 @@ The `RecommendationPriority` enum MUST live in `src/domain/enums/recommendation_
 
 ### Requirement: EnvConfig Infrastructure Config Class
 
-`EnvConfig` MUST reside in `src/infrastructure/env_config.py`. It MUST parse environment variables at instantiation, cast them, and cache them as typed instance attributes. Values for `APP_MODE` are `DEBUG` or `PROD` (case-insensitive); any other value fails fast. `METRICS_DATABASE_PATH` and `LOG_FILE_PATH` have no default and MUST be set; a missing or empty value fails fast naming the variable. `OLLAMA_THINK` accepts only `true` or `false` (case-insensitive) and any other value fails fast. It MUST expose a method `get_recommendation_settings() -> RecommendationSettingsDTO` to build recommendation settings.
+`EnvConfig` MUST reside in `src/infrastructure/env_config.py`. It MUST parse environment variables at instantiation, cast them, and cache them as typed instance attributes. Values for `APP_MODE` are `DEBUG` or `PROD` (case-insensitive); any other value fails fast. `METRICS_DATABASE_PATH` and `LOG_FILE_PATH` have no default and MUST be set; a missing or empty value fails fast naming the variable. `OLLAMA_THINK` accepts only `true` or `false` (case-insensitive) and any other value fails fast. `OLLAMA_MODEL_KEEP_ALIVE` accepts duration strings (e.g., `15m`, `1h`) and any invalid format fails fast. `OLLAMA_NUM_CTX` is optional (absent or blank evaluates to `None`); when provided, it MUST parse as a positive integer or fail fast. It MUST expose a method `get_recommendation_settings() -> RecommendationSettingsDTO` to build recommendation settings.
 
 The application version attribute (`silvina_version`) MUST be resolved dynamically:
 - In production/standard mode: `EnvConfig` MUST load the version string from the file `version.txt` located in the project root directory (resolved relative to `EnvConfig` file location: `Path(__file__).resolve().parents[2] / "version.txt"`). The version string MUST be stripped of surrounding whitespace. If the file is missing or unreadable, `EnvConfig` MUST raise `FileNotFoundError` (or standard OS/permission errors).
@@ -142,9 +142,16 @@ The application version attribute (`silvina_version`) MUST be resolved dynamical
 |---|---|---|---|
 | `CITATION_MAX_AUTHOR_NAME_LENGTH` | `int` | `100` | `citation_max_author_name_length` |
 | `GRAMMAR_MAX_REPLACEMENTS` | `int` | `3` | `grammar_max_replacements` |
+| `GRAMMAR_MAX_PARAGRAPHS` | `int` | `20` | `grammar_max_paragraphs` |
+| `GRAMMAR_MAX_CHARS` | `int` | `5000` | `grammar_max_chars` |
+| `GRAMMAR_MAX_ERRORS` | `int` | `10` | `grammar_max_errors` |
 | `STRUCTURE_MAX_HEADER_LENGTH` | `int` | `100` | `structure_max_header_length` |
 | `ARTICLE_CLASSIFIER_TEMPERATURE` | `float` | `0.1` | `article_classifier_temperature` |
 | `ARTICLE_CLASSIFIER_NUM_PREDICT` | `int` | `300` | `article_classifier_num_predict` |
+| `ARTICLE_CLASSIFICATION_SAMPLE_INTRODUCTION_CHARACTER_LIMIT` | `int` | `3500` | `article_classification_sample_introduction_character_limit` |
+| `ARTICLE_CLASSIFICATION_SAMPLE_CONCLUSION_CHARACTER_LIMIT` | `int` | `2500` | `article_classification_sample_conclusion_character_limit` |
+| `ARTICLE_CLASSIFICATION_SAMPLE_FALLBACK_CHARACTER_LIMIT` | `int` | `6000` | `article_classification_sample_fallback_character_limit` |
+| `ARTICLE_CLASSIFICATION_BIBLIOGRAPHY_HEADER_MAX_LENGTH` | `int` | `30` | `article_classification_bibliography_header_max_length` |
 | `ARTICLE_SIZE_SHORT_MIN_CHARS` | `int` | `16000` | `article_size_short_min_chars` |
 | `ARTICLE_SIZE_SHORT_MAX_CHARS` | `int` | `24000` | `article_size_short_max_chars` |
 | `ARTICLE_SIZE_UNDEFINED_MIN_CHARS` | `int` | `24001` | `article_size_undefined_min_chars` |
@@ -157,10 +164,17 @@ The application version attribute (`silvina_version`) MUST be resolved dynamical
 | `QUALITY_LEVEL_NEEDS_IMPROVEMENT_THRESHOLD` | `float` | `3.0` | `quality_level_needs_improvement_threshold` |
 | `QUALITY_MIN_SAMPLE_WORD_COUNT` | `int` | `400` | `quality_min_sample_word_count` |
 | `QUALITY_TEXT_SAMPLE_CHARACTER_LIMIT` | `int` | `8000` | `quality_text_sample_character_limit` |
+| `QUALITY_TEXT_SAMPLE_REFERENCE_LINE_PREFIX_LENGTH` | `int` | `80` | `quality_text_sample_reference_line_prefix_length` |
+| `QUALITY_TEXT_SAMPLE_INTRODUCTION_PARAGRAPH_COUNT` | `int` | `3` | `quality_text_sample_introduction_paragraph_count` |
+| `QUALITY_TEXT_SAMPLE_MIDDLE_PARAGRAPH_COUNT` | `int` | `2` | `quality_text_sample_middle_paragraph_count` |
+| `QUALITY_TEXT_SAMPLE_CONCLUSION_PARAGRAPH_LIMIT` | `int` | `3` | `quality_text_sample_conclusion_paragraph_limit` |
+| `QUALITY_TEXT_SAMPLE_FALLBACK_TAIL_PARAGRAPH_COUNT` | `int` | `2` | `quality_text_sample_fallback_tail_paragraph_count` |
+| `QUALITY_TEXT_SAMPLE_CONCLUSION_HEADER_MARKER` | `str` | `"conclusi"` | `quality_text_sample_conclusion_header_marker` |
 | `OLLAMA_MODEL_NAME` | `str` | `"gemma4-26b-adapted"` | `ollama_model_name` |
 | `OLLAMA_BASE_URL` | `str` | `"http://localhost:11434"` | `ollama_base_url` |
 | `OLLAMA_THINK` | `bool` | `false` | `ollama_think` |
 | `OLLAMA_MODEL_KEEP_ALIVE` | `str` | `"15m"` | `ollama_model_keep_alive` |
+| `OLLAMA_NUM_CTX` | `int \| None` | `None` | `ollama_num_ctx` |
 | `OLLAMA_WARMUP_ON_STARTUP` | `bool` | `true` | `ollama_warmup_on_startup` |
 | `APP_MODE` | `AppMode` | `"PROD"` | `app_mode` |
 | `METRICS_DATABASE_PATH` | `str` | `— (required)` | `metrics_database_path` |
@@ -279,7 +293,7 @@ Seven concrete rule classes MUST reside in `src/domain/recommendation/`, one cla
 ### Requirement: RecommendationBuilder Domain Service (Rule Pattern)
 
 `RecommendationBuilder` MUST reside in `src/domain/recommendation/recommendation_builder.py`. Its constructor accepts:
-- `settings: RecommendationSettingsDTO`
+- `recommendation_settings: RecommendationSettingsDTO`
 - `rules: list[RecommendationRule] | None` (defaults to the 7 concrete rules)
 - `verdict_evaluator: PublicationVerdictEvaluator | None` (defaults to a new instance)
 
@@ -431,13 +445,23 @@ When `document_name` is provided, it is used as the display name for analysis tr
 - `_get_document_content_extractor()` returns `DocumentContentExtractor(self._get_document_text_port(), self._get_content_extraction_port(), self._get_character_count_port())`.
 - `_get_citation_extractor()` returns `CitationExtractor(self._get_citation_extraction_port(), self._get_reference_extraction_port())`.
 - `_get_document_format_inspector()` returns `DocumentFormatInspector(self._get_document_format_inspection_port())`.
+- `_get_grammar_check_port()` returns `LanguageToolAdapter(language_tool_settings=self._get_env_config().get_language_tool_settings())`.
 - `_get_grammar_checker()` returns `GrammarChecker(self._get_grammar_check_port())`.
+- `_get_article_classifier()` instantiates `ArticleClassificationTextSampler(classification_text_sampling_settings=env_config.get_classification_text_sampling_settings())`.
+- `_get_quality_text_sampler()` returns `QualityTextSampler(quality_text_sampling_settings=self._get_env_config().get_quality_text_sampling_settings())`.
 (Previously: Constructed and injected 7 ports and 5 domain services directly into the orchestrator.)
 
 #### Scenario: Wiring constructs correct dependency graph
 - GIVEN the wiring configuration
 - WHEN `AnalyzeDocumentUseCaseWiring().create_use_case()` is called
 - THEN it returns a valid `AnalyzeDocumentUseCase` with all 10 domain service dependencies injected
+
+#### Scenario: Settings objects group configurable limits at wiring time
+- GIVEN the wiring configuration
+- WHEN `AnalyzeDocumentUseCaseWiring().create_use_case()` is called
+- THEN `LanguageToolAdapter` is constructed with `LanguageToolSettings` from `EnvConfig.get_language_tool_settings()`
+- AND `ArticleClassificationTextSampler` is constructed with `ClassificationTextSamplingSettingsDTO` from `EnvConfig.get_classification_text_sampling_settings()`
+- AND `QualityTextSampler` is constructed with `QualityTextSamplingSettingsDTO` from `EnvConfig.get_quality_text_sampling_settings()`
 
 #### Scenario: Article classifier and quality analyzer share one LLM generator instance
 - GIVEN `AnalyzeDocumentUseCaseWiring().create_use_case()`

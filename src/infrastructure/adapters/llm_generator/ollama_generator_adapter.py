@@ -20,12 +20,14 @@ class OllamaGeneratorAdapter(LlmGeneratorPort):
         base_url: str,
         think: bool,
         keep_alive: str,
+        num_ctx: int | None,
         error_mapper: OllamaBackendErrorMapper,
     ) -> None:
         self._model_name = model_name
         self._base_url = base_url
         self._think = think
         self._keep_alive = keep_alive
+        self._num_ctx = num_ctx
         self._error_mapper = error_mapper
 
     def generate(self, prompt: str, options: dict | None = None) -> str:
@@ -34,12 +36,15 @@ class OllamaGeneratorAdapter(LlmGeneratorPort):
 
     def generate_with_usage(self, prompt: str, options: dict | None = None) -> LlmGenerationDTO:
         """Return Ollama's generated text and usage metadata for the given prompt."""
+        request_options = (
+            {**(options or {}), "num_ctx": self._num_ctx} if self._num_ctx is not None else options
+        )
         try:
             client = ollama.Client(host=self._base_url)
             response = client.generate(
                 model=self._model_name,
                 prompt=prompt,
-                options=options,
+                options=request_options,
                 think=self._think,
                 keep_alive=self._keep_alive,
             )

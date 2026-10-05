@@ -8,6 +8,7 @@ from src.infrastructure.fastapi.fastapi_app import app as expected_app
 class TestWebMainLogging(TestCase):
     """Test suite verifying logging initialization in web_main entry point."""
 
+    @patch("web_main.initialize_dependencies")
     @patch("web_main.LanguageModelWarmUpStarter")
     @patch("web_main.uvicorn.run")
     @patch("web_main.LoggingConfigWiring")
@@ -16,6 +17,7 @@ class TestWebMainLogging(TestCase):
         mock_logging_config_wiring_class,
         mock_uvicorn_run,
         mock_language_model_warm_up_starter_class,
+        mock_initialize_dependencies,
     ) -> None:
         execution_order = []
         mock_logging_config_wiring_class.return_value.create_logging_config.return_value.configure.side_effect = (
@@ -29,6 +31,7 @@ class TestWebMainLogging(TestCase):
         mock_uvicorn_run.assert_called_once_with(expected_app, host="127.0.0.1", port=7861)
         self.assertEqual(execution_order, ["configure_logging", "uvicorn_run"])
 
+    @patch("web_main.initialize_dependencies")
     @patch("web_main.LanguageModelWarmUpStarter")
     @patch("web_main.uvicorn.run")
     @patch("web_main.LoggingConfigWiring")
@@ -37,6 +40,7 @@ class TestWebMainLogging(TestCase):
         mock_logging_config_wiring_class,
         mock_uvicorn_run,
         mock_language_model_warm_up_starter_class,
+        mock_initialize_dependencies,
     ) -> None:
         manager = Mock()
         manager.attach_mock(mock_logging_config_wiring_class, "LoggingConfigWiring")
@@ -51,6 +55,7 @@ class TestWebMainLogging(TestCase):
         uvicorn_index = call_names.index("uvicorn_run")
         self.assertLess(configure_index, uvicorn_index)
 
+    @patch("web_main.initialize_dependencies")
     @patch("web_main.LanguageModelWarmUpStarter")
     @patch("web_main.uvicorn.run")
     @patch("web_main.LoggingConfigWiring")
@@ -59,6 +64,7 @@ class TestWebMainLogging(TestCase):
         mock_logging_config_wiring_class,
         mock_uvicorn_run,
         mock_language_model_warm_up_starter_class,
+        mock_initialize_dependencies,
     ) -> None:
         execution_order = []
         mock_logging_config_wiring_class.return_value.create_logging_config.return_value.configure.side_effect = (
@@ -77,6 +83,7 @@ class TestWebMainLogging(TestCase):
             ["configure_logging", "warm_up_start", "uvicorn_run"],
         )
 
+    @patch("web_main.initialize_dependencies")
     @patch("web_main.LanguageModelWarmUpStarter")
     @patch("web_main.uvicorn.run")
     @patch("web_main.LoggingConfigWiring")
@@ -85,6 +92,7 @@ class TestWebMainLogging(TestCase):
         mock_logging_config_wiring_class,
         mock_uvicorn_run,
         mock_language_model_warm_up_starter_class,
+        mock_initialize_dependencies,
     ) -> None:
         manager = Mock()
         manager.attach_mock(mock_logging_config_wiring_class, "LoggingConfigWiring")

@@ -13,7 +13,9 @@ class TestDocxReportAdapterFieldTranslations(TestCase):
     @patch("src.infrastructure.adapters.report.docx_report_adapter.Document")
     def test_add_grammar_analysis_reads_report_input_grammar_directly(self, mock_document_class):
         mock_document_class.return_value = MagicMock()
-        adapter = DocxReportAdapter(logo_path=None, settings=ReportFixtures.make_settings())
+        adapter = DocxReportAdapter(
+            logo_path=None, docx_report_settings=ReportFixtures.make_settings()
+        )
 
         grammar = ReportFixtures.make_grammar_mock(score=6.5)
         report_input = ReportFixtures.make_report_input_dto(grammar=grammar)
@@ -25,7 +27,9 @@ class TestDocxReportAdapterFieldTranslations(TestCase):
     @patch("src.infrastructure.adapters.report.docx_report_adapter.Document")
     def test_add_apa_validation_reads_citation_text_attribute(self, mock_document_class):
         mock_document_class.return_value = MagicMock()
-        adapter = DocxReportAdapter(logo_path=None, settings=ReportFixtures.make_settings())
+        adapter = DocxReportAdapter(
+            logo_path=None, docx_report_settings=ReportFixtures.make_settings()
+        )
 
         violation = ApaViolationDTO(
             citation_text="(Smith, 2020)",
@@ -42,7 +46,9 @@ class TestDocxReportAdapterFieldTranslations(TestCase):
     @patch("src.infrastructure.adapters.report.docx_report_adapter.Document")
     def test_add_classification_reads_article_type_attribute(self, mock_document_class):
         mock_document_class.return_value = MagicMock()
-        adapter = DocxReportAdapter(logo_path=None, settings=ReportFixtures.make_settings())
+        adapter = DocxReportAdapter(
+            logo_path=None, docx_report_settings=ReportFixtures.make_settings()
+        )
 
         classification = ReportFixtures.make_classification_mock(article_type_value="investigacion")
         report_input = ReportFixtures.make_report_input_dto(classification=classification)
@@ -52,7 +58,9 @@ class TestDocxReportAdapterFieldTranslations(TestCase):
     @patch("src.infrastructure.adapters.report.docx_report_adapter.Document")
     def test_add_document_info_derives_estimated_pages_from_word_count(self, mock_document_class):
         mock_document_class.return_value = MagicMock()
-        adapter = DocxReportAdapter(logo_path=None, settings=ReportFixtures.make_settings())
+        adapter = DocxReportAdapter(
+            logo_path=None, docx_report_settings=ReportFixtures.make_settings()
+        )
 
         doc_content = ReportFixtures.make_doc_content_mock(word_count=500)
         report_input = ReportFixtures.make_report_input_dto(document_content=doc_content)

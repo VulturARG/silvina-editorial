@@ -12,7 +12,7 @@ from src.infrastructure.tests.adapters.report.fixtures import ReportFixtures
 class TestDocxReportAdapterSettings(TestCase):
     def test_estimated_pages_uses_settings_words_per_page(self):
         settings = ReportFixtures.make_settings(words_per_page=100)
-        adapter = DocxReportAdapter(logo_path=None, settings=settings)
+        adapter = DocxReportAdapter(logo_path=None, docx_report_settings=settings)
         doc = Document()
         doc_content = ReportFixtures.make_doc_content_mock(word_count=250)
         report_input = ReportFixtures.make_report_input_dto(document_content=doc_content)
@@ -26,7 +26,7 @@ class TestDocxReportAdapterSettings(TestCase):
         settings = ReportFixtures.make_settings(
             max_errors_displayed=1, context_truncation_limit=150, max_replacements=3
         )
-        adapter = DocxReportAdapter(logo_path=None, settings=settings)
+        adapter = DocxReportAdapter(logo_path=None, docx_report_settings=settings)
         doc = Document()
         errors = [
             GrammarErrorDTO(
@@ -46,7 +46,7 @@ class TestDocxReportAdapterSettings(TestCase):
         settings = ReportFixtures.make_settings(
             max_errors_displayed=5, context_truncation_limit=10, max_replacements=3
         )
-        adapter = DocxReportAdapter(logo_path=None, settings=settings)
+        adapter = DocxReportAdapter(logo_path=None, docx_report_settings=settings)
         doc = Document()
         errors = [
             GrammarErrorDTO(
@@ -70,7 +70,7 @@ class TestDocxReportAdapterSettings(TestCase):
         settings = ReportFixtures.make_settings(
             max_errors_displayed=5, context_truncation_limit=150, max_replacements=1
         )
-        adapter = DocxReportAdapter(logo_path=None, settings=settings)
+        adapter = DocxReportAdapter(logo_path=None, docx_report_settings=settings)
         doc = Document()
         errors = [
             GrammarErrorDTO(
@@ -92,7 +92,7 @@ class TestDocxReportAdapterSettings(TestCase):
 
     def test_apa_violations_limited_by_max_errors_displayed(self):
         settings = ReportFixtures.make_settings(max_errors_displayed=1)
-        adapter = DocxReportAdapter(logo_path=None, settings=settings)
+        adapter = DocxReportAdapter(logo_path=None, docx_report_settings=settings)
         doc = Document()
         violations = [
             ApaViolationDTO(

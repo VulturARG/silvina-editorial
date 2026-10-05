@@ -1,8 +1,9 @@
-import tempfile
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest import TestCase
 
 from docx import Document
+from docx.document import Document as DocxDocument
 
 from src.domain.dtos.editorial_suitability_dto import EditorialSuitabilityDTO
 from src.domain.dtos.quality_result_dto import QualityResultDTO
@@ -11,7 +12,7 @@ from src.infrastructure.adapters.report.docx_report_adapter import DocxReportAda
 from src.infrastructure.tests.adapters.report.fixtures import ReportFixtures
 
 
-def _all_paragraph_text(document: Document) -> str:
+def _all_paragraph_text(document: DocxDocument) -> str:
     return "\n".join(paragraph.text for paragraph in document.paragraphs)
 
 
@@ -19,10 +20,12 @@ class TestDocxReportAdapterEditorialSuitability(TestCase):
     """Integration test: real Document generation and Word-file round-trip."""
 
     def setUp(self):
-        self._tmp_dir = tempfile.TemporaryDirectory()
+        self._tmp_dir = TemporaryDirectory()
         self.addCleanup(self._tmp_dir.cleanup)
         self.output_path = str(Path(self._tmp_dir.name) / "report.docx")
-        self.adapter = DocxReportAdapter(logo_path=None, settings=ReportFixtures.make_settings())
+        self.adapter = DocxReportAdapter(
+            logo_path=None, docx_report_settings=ReportFixtures.make_settings()
+        )
 
     def test_export_renders_editorial_suitability_section_when_present(self):
         suitability = EditorialSuitabilityDTO(

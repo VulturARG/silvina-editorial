@@ -37,6 +37,7 @@ class TestWarmUpLanguageModelUseCaseWiring(TestCase):
         self.assertEqual(adapter._model_name, "test-model")
         self.assertEqual(adapter._base_url, "http://localhost:11434")
         self.assertEqual(adapter._keep_alive, "15m")
+        self.assertIsNone(adapter._num_ctx)
         self.assertIsInstance(adapter._error_mapper, OllamaBackendErrorMapper)
 
     def test_warmup_disabled_via_environment_wires_noop_adapter(self):
@@ -78,3 +79,16 @@ class TestWarmUpLanguageModelUseCaseWiring(TestCase):
         self.assertIsInstance(adapter, OllamaLanguageModelWarmupAdapter)
         assert isinstance(adapter, OllamaLanguageModelWarmupAdapter)
         self.assertEqual(adapter._model_name, "test-model")
+
+    def test_env_var_overrides_ollama_num_ctx(self):
+        environment = {
+            **self.REQUIRED_ENVIRONMENT,
+            "OLLAMA_NUM_CTX": "16384",
+        }
+        with patch.dict(environ, environment, clear=True):
+            use_case = WarmUpLanguageModelUseCaseWiring().get_warm_up_language_model_use_case()
+
+        adapter = use_case._language_model_warmer._language_model_warmup_port
+        self.assertIsInstance(adapter, OllamaLanguageModelWarmupAdapter)
+        assert isinstance(adapter, OllamaLanguageModelWarmupAdapter)
+        self.assertEqual(adapter._num_ctx, 16384)

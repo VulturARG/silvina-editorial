@@ -93,12 +93,12 @@ Both MUST inherit from `BaseDTO` (or `object` if project convention allows). Fie
 
 `LanguageToolAdapter(GrammarCheckPort)` MUST:
 - Import `language_tool_python` at module level
-- Accept a required `max_replacements: int` in its constructor (no default — the sole default lives in the wiring's env-var read) and store it
-- Store `self._tool: language_tool_python.LanguageTool | None = None`; initialize `LanguageTool('es')` inside `check()` on first call only
-- Sample first 20 paragraphs, truncated to 5000 chars total before passing to LanguageTool
+- Accept a required `language_tool_settings: LanguageToolSettings` in its constructor (no default — the default values live in `EnvConfig`'s env-var reads) and optional `language: str = "es"`
+- Store `self._tool: Any | None = None`; initialize `LanguageTool(self._language)` inside `check()` on first call only
+- Sample first `language_tool_settings.max_paragraphs` paragraphs, truncated to `language_tool_settings.max_chars` total before passing to LanguageTool
 - Filter out matches where `rule_issue_type == 'misspelling'`
-- Return at most the first 10 errors as `list[GrammarErrorDTO]`
-- Limit the replacements (suggestions) in each `GrammarErrorDTO` to at most `max_replacements`
+- Return at most the first `language_tool_settings.max_errors` errors as `list[GrammarErrorDTO]`
+- Limit the replacements (suggestions) in each `GrammarErrorDTO` to at most `language_tool_settings.max_replacements`
 - Catch exceptions raised during `LanguageTool` initialization or `check()` and re-raise as `GrammarCheckUnavailable` (manual try/except; `@generic_error_handler` is not used here, since it is scoped to the use-case boundary, not adapters)
 
 #### Scenario: Lazy init — no Java on import
@@ -134,7 +134,7 @@ Both MUST inherit from `BaseDTO` (or `object` if project convention allows). Fie
 
 ### Requirement: AnalyzeDocumentUseCaseWiring Wires the Grammar Port Directly
 
-`AnalyzeDocumentUseCaseWiring` MUST expose a private `_get_grammar_check_port() -> GrammarCheckPort` returning a `LanguageToolAdapter` constructed with `max_replacements` loaded from the environment variable `GRAMMAR_MAX_REPLACEMENTS` (defaulting to 3). No business logic in the wiring class.
+`AnalyzeDocumentUseCaseWiring` MUST expose a private `_get_grammar_check_port() -> GrammarCheckPort` returning a `LanguageToolAdapter` constructed with `language_tool_settings` loaded via `EnvConfig.get_language_tool_settings()`. No business logic in the wiring class.
 
 #### Scenario: Wiring produces correctly typed instance
 
@@ -160,7 +160,9 @@ Both MUST inherit from `BaseDTO` (or `object` if project convention allows). Fie
 | `src/domain/tests/exceptions/test_grammar_error.py` | exception tests |
 | `src/domain/tests/exceptions/test_grammar_check_unavailable.py` | exception tests |
 | `src/infrastructure/adapters/grammar/__init__.py` | package |
+| `src/infrastructure/adapters/grammar/language_tool_settings.py` | `LanguageToolSettings` |
 | `src/infrastructure/adapters/grammar/language_tool_adapter.py` | `LanguageToolAdapter` |
+| `src/infrastructure/tests/test_language_tool_settings.py` | settings tests |
 | `src/application/analyze_document_use_case.py` | `AnalyzeDocumentUseCase._check_grammar()` (orchestration) |
 | `src/infrastructure/wirings/analyze_document_use_case_wiring.py` | `AnalyzeDocumentUseCaseWiring._get_grammar_check_port()` (wiring) |
 

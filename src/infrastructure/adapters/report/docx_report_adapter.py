@@ -32,20 +32,20 @@ class DocxReportAdapter(ReportExportPort):
 
     def __init__(
         self,
-        settings: DocxReportSettings,
+        docx_report_settings: DocxReportSettings,
         logo_path: str | None = None,
     ) -> None:
         if not DOCX_AVAILABLE:
             raise ReportExportUnavailable()
         self._logo_path = logo_path
-        self._settings = settings
+        self._docx_report_settings = docx_report_settings
 
     def _color_for_score(self, score: float) -> tuple[int, int, int]:
-        if score >= self._settings.score_high_threshold:
-            return self._settings.publishable_color_rgb
-        if score >= self._settings.score_medium_threshold:
-            return self._settings.warning_color_rgb
-        return self._settings.reject_color_rgb
+        if score >= self._docx_report_settings.score_high_threshold:
+            return self._docx_report_settings.publishable_color_rgb
+        if score >= self._docx_report_settings.score_medium_threshold:
+            return self._docx_report_settings.warning_color_rgb
+        return self._docx_report_settings.reject_color_rgb
 
     def _add_styled_runs_to_paragraph(
         self,
@@ -141,9 +141,9 @@ class DocxReportAdapter(ReportExportPort):
         doc = Document()
 
         style = doc.styles["Normal"]
-        style.font.name = self._settings.font_name
-        style.font.size = Pt(self._settings.base_font_size_pt)
-        style.paragraph_format.line_spacing = self._settings.line_spacing
+        style.font.name = self._docx_report_settings.font_name
+        style.font.size = Pt(self._docx_report_settings.base_font_size_pt)
+        style.paragraph_format.line_spacing = self._docx_report_settings.line_spacing
         style.paragraph_format.space_after = Pt(0)
         style.paragraph_format.space_before = Pt(0)
 
@@ -169,8 +169,8 @@ class DocxReportAdapter(ReportExportPort):
         title = doc.add_heading("INFORME DE ANÁLISIS EDITORIAL", 0)
         title.alignment = WD_ALIGN_PARAGRAPH.CENTER
         for run in title.runs:
-            run.font.size = Pt(self._settings.title_font_size_pt)
-            run.font.color.rgb = RGBColor(*self._settings.heading_color_rgb)
+            run.font.size = Pt(self._docx_report_settings.title_font_size_pt)
+            run.font.color.rgb = RGBColor(*self._docx_report_settings.heading_color_rgb)
             run.font.bold = True
             run.font.underline = True
 
@@ -180,7 +180,7 @@ class DocxReportAdapter(ReportExportPort):
         title_paragraph = doc.add_paragraph()
         title_paragraph.add_run(doc_title).bold = True
         title_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        title_paragraph.runs[0].font.size = Pt(self._settings.base_font_size_pt)
+        title_paragraph.runs[0].font.size = Pt(self._docx_report_settings.base_font_size_pt)
 
     def _add_header_logo(self, doc) -> None:
         if self._logo_path is None:
@@ -193,34 +193,36 @@ class DocxReportAdapter(ReportExportPort):
             table = header.add_table(
                 rows=1,
                 cols=2,
-                width=Inches(self._settings.header_table_width_inches),
+                width=Inches(self._docx_report_settings.header_table_width_inches),
             )
 
             left_cell = table.rows[0].cells[0]
-            left_cell.width = Inches(self._settings.header_left_cell_width_inches)
+            left_cell.width = Inches(self._docx_report_settings.header_left_cell_width_inches)
             left_cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
             left_paragraph = left_cell.paragraphs[0]
             left_paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
 
             app_label_run = left_paragraph.add_run(
-                f"Generado por {self._settings.app_name} v{self._settings.app_version}\n"
+                f"Generado por {self._docx_report_settings.app_name} v{self._docx_report_settings.app_version}\n"
             )
             app_label_run.italic = True
-            app_label_run.font.size = Pt(self._settings.metadata_font_size_pt)
-            app_label_run.font.color.rgb = RGBColor(*self._settings.neutral_color_rgb)
+            app_label_run.font.size = Pt(self._docx_report_settings.metadata_font_size_pt)
+            app_label_run.font.color.rgb = RGBColor(*self._docx_report_settings.neutral_color_rgb)
 
             date_run = left_paragraph.add_run(datetime.now().strftime("%d de %B de %Y"))
-            date_run.font.size = Pt(self._settings.metadata_font_size_pt)
-            date_run.font.color.rgb = RGBColor(*self._settings.neutral_color_rgb)
+            date_run.font.size = Pt(self._docx_report_settings.metadata_font_size_pt)
+            date_run.font.color.rgb = RGBColor(*self._docx_report_settings.neutral_color_rgb)
 
             right_cell = table.rows[0].cells[1]
-            right_cell.width = Inches(self._settings.header_right_cell_width_inches)
+            right_cell.width = Inches(self._docx_report_settings.header_right_cell_width_inches)
             right_cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
             right_paragraph = right_cell.paragraphs[0]
             right_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
             logo_run = right_paragraph.add_run()
-            logo_run.add_picture(self._logo_path, width=Inches(self._settings.logo_width_inches))
+            logo_run.add_picture(
+                self._logo_path, width=Inches(self._docx_report_settings.logo_width_inches)
+            )
 
             table_element = table._element
             table_properties = table_element.tblPr
@@ -265,7 +267,7 @@ class DocxReportAdapter(ReportExportPort):
         page_number_run._element.append(page_field_end)
 
         separator_run = paragraph.add_run(" de ")
-        separator_run.font.size = Pt(self._settings.page_number_font_size_pt)
+        separator_run.font.size = Pt(self._docx_report_settings.page_number_font_size_pt)
 
         num_pages_run = paragraph.add_run()
 
@@ -283,13 +285,13 @@ class DocxReportAdapter(ReportExportPort):
         num_pages_run._element.append(num_pages_field_end)
 
         for text_run in paragraph.runs:
-            text_run.font.size = Pt(self._settings.page_number_font_size_pt)
-            text_run.font.color.rgb = RGBColor(*self._settings.neutral_color_rgb)
+            text_run.font.size = Pt(self._docx_report_settings.page_number_font_size_pt)
+            text_run.font.color.rgb = RGBColor(*self._docx_report_settings.neutral_color_rgb)
 
     def _add_executive_summary(self, doc, report_input: ReportInputDTO) -> None:
         heading = doc.add_heading("RESUMEN EJECUTIVO", 1)
         for run in heading.runs:
-            run.font.color.rgb = RGBColor(*self._settings.heading_color_rgb)
+            run.font.color.rgb = RGBColor(*self._docx_report_settings.heading_color_rgb)
 
         can_publish = report_input.is_publishable
         reason = report_input.publishability_reason
@@ -299,18 +301,18 @@ class DocxReportAdapter(ReportExportPort):
             "✅ APTO PARA PUBLICACIÓN" if can_publish else "⚠️ REQUIERE REVISIÓN"
         )
         decision_run.bold = True
-        decision_run.font.size = Pt(self._settings.decision_font_size_pt)
+        decision_run.font.size = Pt(self._docx_report_settings.decision_font_size_pt)
         decision_run.font.color.rgb = (
-            RGBColor(*self._settings.publishable_color_rgb)
+            RGBColor(*self._docx_report_settings.publishable_color_rgb)
             if can_publish
-            else RGBColor(*self._settings.reject_color_rgb)
+            else RGBColor(*self._docx_report_settings.reject_color_rgb)
         )
 
         doc.add_paragraph(reason)
         doc.add_paragraph()
 
         table = doc.add_table(rows=6, cols=2)
-        table.style = self._settings.table_style
+        table.style = self._docx_report_settings.table_style
 
         header_cells = table.rows[0].cells
         header_cells[0].text = "Métrica"
@@ -344,10 +346,10 @@ class DocxReportAdapter(ReportExportPort):
     def _add_document_info(self, doc, report_input: ReportInputDTO) -> None:
         heading = doc.add_heading("📄 INFORMACIÓN DEL DOCUMENTO", 1)
         for run in heading.runs:
-            run.font.color.rgb = RGBColor(*self._settings.heading_color_rgb)
+            run.font.color.rgb = RGBColor(*self._docx_report_settings.heading_color_rgb)
 
         doc_content = report_input.document_content
-        estimated_pages = doc_content.word_count // self._settings.words_per_page
+        estimated_pages = doc_content.word_count // self._docx_report_settings.words_per_page
 
         paragraph = doc.add_paragraph()
         paragraph.add_run("Título: ").bold = True
@@ -372,7 +374,7 @@ class DocxReportAdapter(ReportExportPort):
     def _add_classification(self, doc, report_input: ReportInputDTO) -> None:
         heading = doc.add_heading("🏷️ CLASIFICACIÓN DEL ARTÍCULO", 1)
         for run in heading.runs:
-            run.font.color.rgb = RGBColor(*self._settings.heading_color_rgb)
+            run.font.color.rgb = RGBColor(*self._docx_report_settings.heading_color_rgb)
 
         classification = report_input.classification
 
@@ -395,7 +397,7 @@ class DocxReportAdapter(ReportExportPort):
     def _add_quality_analysis(self, doc, report_input: ReportInputDTO) -> None:
         heading = doc.add_heading("⭐ ANÁLISIS DE CALIDAD SEMÁNTICA", 1)
         for run in heading.runs:
-            run.font.color.rgb = RGBColor(*self._settings.heading_color_rgb)
+            run.font.color.rgb = RGBColor(*self._docx_report_settings.heading_color_rgb)
 
         quality = report_input.quality
 
@@ -403,7 +405,7 @@ class DocxReportAdapter(ReportExportPort):
         paragraph.add_run("Puntuación General: ").bold = True
         score_run = paragraph.add_run(f"{quality.overall_score:.1f}/10")
         score_run.bold = True
-        score_run.font.size = Pt(self._settings.score_font_size_pt)
+        score_run.font.size = Pt(self._docx_report_settings.score_font_size_pt)
         score_run.font.color.rgb = RGBColor(*self._color_for_score(score=quality.overall_score))
 
         if quality.dimension_scores:
@@ -427,7 +429,7 @@ class DocxReportAdapter(ReportExportPort):
 
         heading = doc.add_heading("🎯 PERTINENCIA EDITORIAL", 1)
         for run in heading.runs:
-            run.font.color.rgb = RGBColor(*self._settings.heading_color_rgb)
+            run.font.color.rgb = RGBColor(*self._docx_report_settings.heading_color_rgb)
 
         doc.add_heading("Contribución", level=3)
         paragraph = doc.add_paragraph()
@@ -459,7 +461,7 @@ class DocxReportAdapter(ReportExportPort):
     def _add_grammar_analysis(self, doc, report_input: ReportInputDTO) -> None:
         heading = doc.add_heading("📝 GRAMÁTICA Y ORTOGRAFÍA", 1)
         for run in heading.runs:
-            run.font.color.rgb = RGBColor(*self._settings.heading_color_rgb)
+            run.font.color.rgb = RGBColor(*self._docx_report_settings.heading_color_rgb)
 
         grammar = report_input.grammar
 
@@ -475,8 +477,8 @@ class DocxReportAdapter(ReportExportPort):
             doc.add_paragraph()
             doc.add_paragraph("Errores Detectados:").bold = True
 
-            max_errors = self._settings.max_errors_displayed
-            context_limit = self._settings.context_truncation_limit
+            max_errors = self._docx_report_settings.max_errors_displayed
+            context_limit = self._docx_report_settings.context_truncation_limit
             for err in grammar.errors[:max_errors]:
                 doc.add_paragraph(err.message, style="List Number")
 
@@ -488,7 +490,7 @@ class DocxReportAdapter(ReportExportPort):
                 doc.add_paragraph(f'   Contexto: "{context_text}"', style="List Bullet 2")
 
                 if err.replacements:
-                    max_replacements = self._settings.max_replacements
+                    max_replacements = self._docx_report_settings.max_replacements
                     doc.add_paragraph(
                         f"   Sugerencia: {', '.join(err.replacements[:max_replacements])}",
                         style="List Bullet 2",
@@ -497,7 +499,7 @@ class DocxReportAdapter(ReportExportPort):
     def _add_apa_validation(self, doc, report_input: ReportInputDTO) -> None:
         heading = doc.add_heading("📖 VALIDACIÓN APA 7 (ESPAÑOL)", 1)
         for run in heading.runs:
-            run.font.color.rgb = RGBColor(*self._settings.heading_color_rgb)
+            run.font.color.rgb = RGBColor(*self._docx_report_settings.heading_color_rgb)
 
         violations = report_input.apa_validation.violations
 
@@ -509,9 +511,9 @@ class DocxReportAdapter(ReportExportPort):
                 else "✅ Sin errores de formato APA 7 detectados"
             )
             color = (
-                self._settings.neutral_color_rgb
+                self._docx_report_settings.neutral_color_rgb
                 if no_citations
-                else self._settings.publishable_color_rgb
+                else self._docx_report_settings.publishable_color_rgb
             )
             doc.add_paragraph().add_run(message).font.color.rgb = RGBColor(*color)
             doc.add_paragraph()
@@ -521,7 +523,7 @@ class DocxReportAdapter(ReportExportPort):
         for violation in violations:
             by_type[violation.error_type].append(violation)
 
-        max_errors = self._settings.max_errors_displayed
+        max_errors = self._docx_report_settings.max_errors_displayed
         for _, errors in by_type.items():
             doc.add_paragraph(f"CITACIÓN INCORRECTA ({len(errors)}):", style="Heading 3")
 
@@ -535,18 +537,18 @@ class DocxReportAdapter(ReportExportPort):
     def _add_structure_validation(self, doc, report_input: ReportInputDTO) -> None:
         heading = doc.add_heading("📋 VALIDACIÓN DE ESTRUCTURA (EUMIC)", 1)
         for run in heading.runs:
-            run.font.color.rgb = RGBColor(*self._settings.heading_color_rgb)
+            run.font.color.rgb = RGBColor(*self._docx_report_settings.heading_color_rgb)
 
         structure = report_input.structure
 
         if structure.is_valid:
             doc.add_paragraph().add_run(
                 "✓ Estructura válida según normas EUMIC"
-            ).font.color.rgb = RGBColor(*self._settings.publishable_color_rgb)
+            ).font.color.rgb = RGBColor(*self._docx_report_settings.publishable_color_rgb)
             return
 
         doc.add_paragraph().add_run("✗ Estructura incompleta").font.color.rgb = RGBColor(
-            *self._settings.reject_color_rgb
+            *self._docx_report_settings.reject_color_rgb
         )
 
         if not structure.missing_sections:
@@ -560,12 +562,12 @@ class DocxReportAdapter(ReportExportPort):
     def _add_citations_analysis(self, doc, report_input: ReportInputDTO) -> None:
         heading = doc.add_heading("📚 ANÁLISIS DE CITAS Y REFERENCIAS", 1)
         for run in heading.runs:
-            run.font.color.rgb = RGBColor(*self._settings.heading_color_rgb)
+            run.font.color.rgb = RGBColor(*self._docx_report_settings.heading_color_rgb)
 
         citations = report_input.citations
 
         table = doc.add_table(rows=4, cols=2)
-        table.style = self._settings.table_style
+        table.style = self._docx_report_settings.table_style
 
         table.rows[0].cells[0].text = "Total de citas en texto"
         table.rows[0].cells[1].text = str(citations.total_citations)
@@ -582,17 +584,17 @@ class DocxReportAdapter(ReportExportPort):
     def _add_recommendations(self, doc, report_input: ReportInputDTO) -> None:
         heading = doc.add_heading("💡 RECOMENDACIONES", 1)
         for run in heading.runs:
-            run.font.color.rgb = RGBColor(*self._settings.heading_color_rgb)
+            run.font.color.rgb = RGBColor(*self._docx_report_settings.heading_color_rgb)
 
         verdict = report_input.verdict
         verdict_colors = {
-            PublicationVerdict.CRITICAL: self._settings.reject_color_rgb,
-            PublicationVerdict.WARNING: self._settings.reject_color_rgb,
-            PublicationVerdict.APPROVED: self._settings.publishable_color_rgb,
+            PublicationVerdict.CRITICAL: self._docx_report_settings.reject_color_rgb,
+            PublicationVerdict.WARNING: self._docx_report_settings.reject_color_rgb,
+            PublicationVerdict.APPROVED: self._docx_report_settings.publishable_color_rgb,
         }
         paragraph = doc.add_paragraph()
         paragraph.add_run(verdict.message).bold = True
-        paragraph.runs[0].font.size = Pt(self._settings.recommendation_font_size_pt)
+        paragraph.runs[0].font.size = Pt(self._docx_report_settings.recommendation_font_size_pt)
         paragraph.runs[0].font.color.rgb = RGBColor(*verdict_colors[verdict.verdict])
 
         if not report_input.recommendations:
@@ -614,11 +616,15 @@ class DocxReportAdapter(ReportExportPort):
 
         footer_paragraph = doc.add_paragraph()
         footer_paragraph.add_run(
-            f"Generado por {self._settings.app_name} v{self._settings.app_version} | "
+            f"Generado por {self._docx_report_settings.app_name} v{self._docx_report_settings.app_version} | "
         ).italic = True
         footer_paragraph.add_run(datetime.now().strftime("%d/%m/%Y %H:%M")).italic = True
         footer_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        footer_paragraph.runs[0].font.size = Pt(self._settings.metadata_font_size_pt)
-        footer_paragraph.runs[0].font.color.rgb = RGBColor(*self._settings.neutral_color_rgb)
-        footer_paragraph.runs[1].font.size = Pt(self._settings.metadata_font_size_pt)
-        footer_paragraph.runs[1].font.color.rgb = RGBColor(*self._settings.neutral_color_rgb)
+        footer_paragraph.runs[0].font.size = Pt(self._docx_report_settings.metadata_font_size_pt)
+        footer_paragraph.runs[0].font.color.rgb = RGBColor(
+            *self._docx_report_settings.neutral_color_rgb
+        )
+        footer_paragraph.runs[1].font.size = Pt(self._docx_report_settings.metadata_font_size_pt)
+        footer_paragraph.runs[1].font.color.rgb = RGBColor(
+            *self._docx_report_settings.neutral_color_rgb
+        )
