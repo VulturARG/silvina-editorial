@@ -1,6 +1,6 @@
 """
 main.py
-Main entry point for Silvina Editorial Assistant v0.9
+Main entry point for Silvina Editorial Assistant
 Orchestrates the complete document analysis workflow.
 """
 
@@ -28,6 +28,7 @@ path.insert(0, str(project_root))
 from src.domain.dtos.report_input_dto import ReportInputDTO
 from src.domain.exceptions.base_src_error import BaseSrcError
 from src.domain.exceptions.language_model_errors import LanguageModelError
+from src.infrastructure.env_config import EnvConfig
 from src.infrastructure.wirings.analyze_document_use_case_wiring import (
     AnalyzeDocumentUseCaseWiring,
 )
@@ -41,7 +42,7 @@ class SilvinaEditorialAssistant:
 
     def __init__(self) -> None:
         """Initialize Silvina wiring the hexagonal use cases."""
-        print("🔧 Inicializando Silvina Editorial Assistant v0.9...")
+        print("🔧 Inicializando Silvina Editorial Assistant...")
 
         try:
             self._analyze_document_use_case = AnalyzeDocumentUseCaseWiring().create_use_case()
@@ -207,7 +208,7 @@ def main():
     """Main execution function."""
     LoggingConfigWiring().create_logging_config().configure()
     print("\n" + "=" * 80)
-    print("   SILVINA EDITORIAL ASSISTANT v0.9")
+    print(f"   SILVINA EDITORIAL ASSISTANT v{EnvConfig().silvina_version}")
     print("   Asistente de Análisis Editorial para Documentos Académicos")
     print("=" * 80 + "\n")
 

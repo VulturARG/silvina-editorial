@@ -157,7 +157,7 @@ The application version attribute (`silvina_version`) MUST be resolved dynamical
 | `QUALITY_LEVEL_NEEDS_IMPROVEMENT_THRESHOLD` | `float` | `3.0` | `quality_level_needs_improvement_threshold` |
 | `QUALITY_MIN_SAMPLE_WORD_COUNT` | `int` | `400` | `quality_min_sample_word_count` |
 | `QUALITY_TEXT_SAMPLE_CHARACTER_LIMIT` | `int` | `8000` | `quality_text_sample_character_limit` |
-| `OLLAMA_MODEL_NAME` | `str` | `"hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:UD-IQ4_XS"` | `ollama_model_name` |
+| `OLLAMA_MODEL_NAME` | `str` | `"gemma4-26b-adapted"` | `ollama_model_name` |
 | `OLLAMA_BASE_URL` | `str` | `"http://localhost:11434"` | `ollama_base_url` |
 | `OLLAMA_THINK` | `bool` | `false` | `ollama_think` |
 | `APP_MODE` | `AppMode` | `"PROD"` | `app_mode` |
@@ -187,10 +187,10 @@ The application version attribute (`silvina_version`) MUST be resolved dynamical
 
 #### Scenario: EnvConfig defaults are loaded when env is empty and version.txt exists
 
-- GIVEN an empty environment except for a valid `version.txt` file with content `"0.95"`
+- GIVEN an empty environment except for a valid `version.txt` file with content `"1.2.3"`
 - WHEN `EnvConfig` is instantiated
 - THEN attributes match the defaults in the table above
-- AND `env_config.silvina_version` is `"0.95"`
+- AND `env_config.silvina_version` is `"1.2.3"`
 
 #### Scenario: EnvConfig parses and casts environment variables
 

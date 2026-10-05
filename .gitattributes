@@ -1,1 +1,2 @@
 src/infrastructure/tests/adapters/report/fixtures/json_export_golden.json -text
+*.Modelfile text eol=lf
