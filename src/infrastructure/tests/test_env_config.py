@@ -37,7 +37,7 @@ class TestEnvConfig(TestCase):
         self.assertEqual(config.structure_max_header_length, 100)
         self.assertAlmostEqual(config.article_classifier_temperature, 0.1)
         self.assertEqual(config.article_classifier_num_predict, 300)
-        self.assertEqual(config.article_classification_sample_introduction_character_limit, 3500)
+        self.assertEqual(config.article_classification_sample_introduction_character_limit, 32000)
         self.assertEqual(config.article_classification_sample_conclusion_character_limit, 2500)
         self.assertEqual(config.article_classification_sample_fallback_character_limit, 6000)
         self.assertEqual(config.article_classification_bibliography_header_max_length, 30)
@@ -486,7 +486,7 @@ class TestEnvConfig(TestCase):
             settings = EnvConfig().get_classification_text_sampling_settings()
 
         self.assertIsInstance(settings, ClassificationTextSamplingSettingsDTO)
-        self.assertEqual(settings.introduction_character_limit, 3500)
+        self.assertEqual(settings.introduction_character_limit, 32000)
         self.assertEqual(settings.conclusion_character_limit, 2500)
         self.assertEqual(settings.fallback_character_limit, 6000)
         self.assertEqual(settings.bibliography_header_max_length, 30)

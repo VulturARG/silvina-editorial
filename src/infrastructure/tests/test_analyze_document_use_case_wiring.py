@@ -508,7 +508,7 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
             sampler._classification_text_sampling_settings, ClassificationTextSamplingSettingsDTO
         )
         self.assertEqual(
-            sampler._classification_text_sampling_settings.introduction_character_limit, 3500
+            sampler._classification_text_sampling_settings.introduction_character_limit, 32000
         )
         self.assertEqual(
             sampler._classification_text_sampling_settings.conclusion_character_limit, 2500

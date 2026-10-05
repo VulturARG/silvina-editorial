@@ -13,3 +13,21 @@ max_header_length = 100
 
 [citation]
 max_author_name_length = 100
+
+[article_classifier]
+temperature = 0.1
+num_predict = 300
+
+[article_classification]
+sample_introduction_character_limit = 32000
+sample_conclusion_character_limit = 2500
+sample_fallback_character_limit = 6000
+bibliography_header_max_length = 30
+
+[article_size]
+short_min_chars = 16000
+short_max_chars = 24000
+undefined_min_chars = 24001
+undefined_max_chars = 35999
+long_min_chars = 36000
+long_max_chars = 40000

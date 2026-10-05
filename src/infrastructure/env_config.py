@@ -54,39 +54,53 @@ class EnvConfig:
             "STRUCTURE_MAX_HEADER_LENGTH", "structure", "max_header_length"
         )
 
-        self.article_classifier_temperature: float = float(
-            getenv("ARTICLE_CLASSIFIER_TEMPERATURE", "0.1")
+        self.article_classifier_temperature: float = settings.read_float(
+            "ARTICLE_CLASSIFIER_TEMPERATURE", "article_classifier", "temperature"
         )
-        self.article_classifier_num_predict: int = int(
-            getenv("ARTICLE_CLASSIFIER_NUM_PREDICT", "300")
+        self.article_classifier_num_predict: int = settings.read_integer(
+            "ARTICLE_CLASSIFIER_NUM_PREDICT", "article_classifier", "num_predict"
         )
-        self.article_classification_sample_introduction_character_limit: int = int(
-            getenv("ARTICLE_CLASSIFICATION_SAMPLE_INTRODUCTION_CHARACTER_LIMIT", "3500")
+        self.article_classification_sample_introduction_character_limit: int = (
+            settings.read_integer(
+                "ARTICLE_CLASSIFICATION_SAMPLE_INTRODUCTION_CHARACTER_LIMIT",
+                "article_classification",
+                "sample_introduction_character_limit",
+            )
         )
-        self.article_classification_sample_conclusion_character_limit: int = int(
-            getenv("ARTICLE_CLASSIFICATION_SAMPLE_CONCLUSION_CHARACTER_LIMIT", "2500")
+        self.article_classification_sample_conclusion_character_limit: int = settings.read_integer(
+            "ARTICLE_CLASSIFICATION_SAMPLE_CONCLUSION_CHARACTER_LIMIT",
+            "article_classification",
+            "sample_conclusion_character_limit",
         )
-        self.article_classification_sample_fallback_character_limit: int = int(
-            getenv("ARTICLE_CLASSIFICATION_SAMPLE_FALLBACK_CHARACTER_LIMIT", "6000")
+        self.article_classification_sample_fallback_character_limit: int = settings.read_integer(
+            "ARTICLE_CLASSIFICATION_SAMPLE_FALLBACK_CHARACTER_LIMIT",
+            "article_classification",
+            "sample_fallback_character_limit",
         )
-        self.article_classification_bibliography_header_max_length: int = int(
-            getenv("ARTICLE_CLASSIFICATION_BIBLIOGRAPHY_HEADER_MAX_LENGTH", "30")
+        self.article_classification_bibliography_header_max_length: int = settings.read_integer(
+            "ARTICLE_CLASSIFICATION_BIBLIOGRAPHY_HEADER_MAX_LENGTH",
+            "article_classification",
+            "bibliography_header_max_length",
         )
 
-        self.article_size_short_min_chars: int = int(
-            getenv("ARTICLE_SIZE_SHORT_MIN_CHARS", "16000")
+        self.article_size_short_min_chars: int = settings.read_integer(
+            "ARTICLE_SIZE_SHORT_MIN_CHARS", "article_size", "short_min_chars"
         )
-        self.article_size_short_max_chars: int = int(
-            getenv("ARTICLE_SIZE_SHORT_MAX_CHARS", "24000")
+        self.article_size_short_max_chars: int = settings.read_integer(
+            "ARTICLE_SIZE_SHORT_MAX_CHARS", "article_size", "short_max_chars"
         )
-        self.article_size_undefined_min_chars: int = int(
-            getenv("ARTICLE_SIZE_UNDEFINED_MIN_CHARS", "24001")
+        self.article_size_undefined_min_chars: int = settings.read_integer(
+            "ARTICLE_SIZE_UNDEFINED_MIN_CHARS", "article_size", "undefined_min_chars"
         )
-        self.article_size_undefined_max_chars: int = int(
-            getenv("ARTICLE_SIZE_UNDEFINED_MAX_CHARS", "35999")
+        self.article_size_undefined_max_chars: int = settings.read_integer(
+            "ARTICLE_SIZE_UNDEFINED_MAX_CHARS", "article_size", "undefined_max_chars"
         )
-        self.article_size_long_min_chars: int = int(getenv("ARTICLE_SIZE_LONG_MIN_CHARS", "36000"))
-        self.article_size_long_max_chars: int = int(getenv("ARTICLE_SIZE_LONG_MAX_CHARS", "40000"))
+        self.article_size_long_min_chars: int = settings.read_integer(
+            "ARTICLE_SIZE_LONG_MIN_CHARS", "article_size", "long_min_chars"
+        )
+        self.article_size_long_max_chars: int = settings.read_integer(
+            "ARTICLE_SIZE_LONG_MAX_CHARS", "article_size", "long_max_chars"
+        )
 
         self.quality_level_excellent_threshold: float = float(
             getenv("QUALITY_LEVEL_EXCELLENT_THRESHOLD", "9.0")
