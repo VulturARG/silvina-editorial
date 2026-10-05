@@ -10,6 +10,9 @@ from src.domain.exceptions.language_model_errors import (
     LanguageModelNotFound,
     LanguageModelUnavailable,
 )
+from src.infrastructure.adapters.llm_generator.ollama_backend_error_mapper import (
+    OllamaBackendErrorMapper,
+)
 from src.infrastructure.adapters.llm_generator.ollama_generator_adapter import (
     OllamaGeneratorAdapter,
 )
@@ -23,10 +26,14 @@ class TestOllamaGeneratorAdapter(TestCase):
         self.base_url = "http://localhost:11434"
         self.sample_prompt = "prompt"
         self.sample_options = {"temperature": 0.1, "num_predict": 300}
+        self.keep_alive = "15m"
+        self.error_mapper = OllamaBackendErrorMapper()
         self.adapter = OllamaGeneratorAdapter(
             model_name=self.model_name,
             base_url=self.base_url,
             think=False,
+            keep_alive=self.keep_alive,
+            error_mapper=self.error_mapper,
         )
 
     @patch("src.infrastructure.adapters.llm_generator.ollama_generator_adapter.ollama.Client")
@@ -139,6 +146,7 @@ class TestOllamaGeneratorAdapter(TestCase):
             prompt=self.sample_prompt,
             options=self.sample_options,
             think=False,
+            keep_alive=self.keep_alive,
         )
 
     @patch("src.infrastructure.adapters.llm_generator.ollama_generator_adapter.ollama.Client")
@@ -153,6 +161,7 @@ class TestOllamaGeneratorAdapter(TestCase):
             prompt=self.sample_prompt,
             options=None,
             think=False,
+            keep_alive=self.keep_alive,
         )
 
     @patch("src.infrastructure.adapters.llm_generator.ollama_generator_adapter.ollama.Client")
@@ -167,6 +176,7 @@ class TestOllamaGeneratorAdapter(TestCase):
             prompt=self.sample_prompt,
             options=self.sample_options,
             think=False,
+            keep_alive=self.keep_alive,
         )
 
     @patch("src.infrastructure.adapters.llm_generator.ollama_generator_adapter.ollama.Client")
@@ -181,6 +191,7 @@ class TestOllamaGeneratorAdapter(TestCase):
             prompt=self.sample_prompt,
             options=None,
             think=False,
+            keep_alive=self.keep_alive,
         )
 
     @patch("src.infrastructure.adapters.llm_generator.ollama_generator_adapter.ollama.Client")
@@ -189,6 +200,8 @@ class TestOllamaGeneratorAdapter(TestCase):
             model_name=self.model_name,
             base_url=self.base_url,
             think=True,
+            keep_alive=self.keep_alive,
+            error_mapper=self.error_mapper,
         )
         mock_client = mock_client_class.return_value
         mock_client.generate.return_value = {"response": "some text"}
@@ -200,6 +213,7 @@ class TestOllamaGeneratorAdapter(TestCase):
             prompt=self.sample_prompt,
             options=self.sample_options,
             think=True,
+            keep_alive=self.keep_alive,
         )
 
     @patch("src.infrastructure.adapters.llm_generator.ollama_generator_adapter.ollama.Client")
@@ -208,6 +222,8 @@ class TestOllamaGeneratorAdapter(TestCase):
             model_name=self.model_name,
             base_url=self.base_url,
             think=True,
+            keep_alive=self.keep_alive,
+            error_mapper=self.error_mapper,
         )
         mock_client = mock_client_class.return_value
         mock_client.generate.return_value = {"response": "some text"}
@@ -219,6 +235,29 @@ class TestOllamaGeneratorAdapter(TestCase):
             prompt=self.sample_prompt,
             options=None,
             think=True,
+            keep_alive=self.keep_alive,
+        )
+
+    @patch("src.infrastructure.adapters.llm_generator.ollama_generator_adapter.ollama.Client")
+    def test_generate_sends_configured_keep_alive(self, mock_client_class):
+        adapter_with_custom_keep_alive = OllamaGeneratorAdapter(
+            model_name=self.model_name,
+            base_url=self.base_url,
+            think=False,
+            keep_alive="30m",
+            error_mapper=self.error_mapper,
+        )
+        mock_client = mock_client_class.return_value
+        mock_client.generate.return_value = {"response": "some text"}
+
+        adapter_with_custom_keep_alive.generate(prompt=self.sample_prompt)
+
+        mock_client.generate.assert_called_once_with(
+            model=self.model_name,
+            prompt=self.sample_prompt,
+            options=None,
+            think=False,
+            keep_alive="30m",
         )
 
     @patch("src.infrastructure.adapters.llm_generator.ollama_generator_adapter.ollama.Client")

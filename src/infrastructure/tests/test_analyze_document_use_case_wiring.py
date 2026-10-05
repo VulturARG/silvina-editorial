@@ -31,6 +31,9 @@ from src.infrastructure.adapters.grammar.language_tool_adapter import LanguageTo
 from src.infrastructure.adapters.llm_generator.audited_llm_generator_adapter import (
     AuditedLlmGeneratorAdapter,
 )
+from src.infrastructure.adapters.llm_generator.ollama_backend_error_mapper import (
+    OllamaBackendErrorMapper,
+)
 from src.infrastructure.adapters.llm_generator.ollama_generator_adapter import (
     OllamaGeneratorAdapter,
 )
@@ -409,6 +412,28 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         self.assertIsInstance(generator, OllamaGeneratorAdapter)
         assert isinstance(generator, OllamaGeneratorAdapter)
         self.assertTrue(generator._think)
+
+    def test_default_ollama_keep_alive_when_env_var_absent(self):
+        env_without = {k: v for k, v in environ.items() if k != "OLLAMA_MODEL_KEEP_ALIVE"}
+        with patch.dict(environ, env_without, clear=True):
+            result = AnalyzeDocumentUseCaseWiring().create_use_case()
+        audited_generator = result._article_classifier._llm_generator
+        assert isinstance(audited_generator, AuditedLlmGeneratorAdapter)
+        generator = audited_generator._generator
+        self.assertIsInstance(generator, OllamaGeneratorAdapter)
+        assert isinstance(generator, OllamaGeneratorAdapter)
+        self.assertEqual(generator._keep_alive, "15m")
+        self.assertIsInstance(generator._error_mapper, OllamaBackendErrorMapper)
+
+    def test_env_var_overrides_ollama_keep_alive(self):
+        with patch.dict(environ, {"OLLAMA_MODEL_KEEP_ALIVE": "30m"}):
+            result = AnalyzeDocumentUseCaseWiring().create_use_case()
+        audited_generator = result._article_classifier._llm_generator
+        assert isinstance(audited_generator, AuditedLlmGeneratorAdapter)
+        generator = audited_generator._generator
+        self.assertIsInstance(generator, OllamaGeneratorAdapter)
+        assert isinstance(generator, OllamaGeneratorAdapter)
+        self.assertEqual(generator._keep_alive, "30m")
 
     def test_editorial_suitability_analyzer_uses_default_generation_options(self):
         environment_without_overrides = {
