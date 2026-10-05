@@ -63,6 +63,7 @@ class TestEnvConfig(TestCase):
         self.assertEqual(config.ollama_base_url, "http://localhost:11434")
         self.assertFalse(config.ollama_think)
         self.assertEqual(config.ollama_model_keep_alive, "15m")
+        self.assertIsNone(config.ollama_num_ctx)
         self.assertTrue(config.ollama_warmup_on_startup)
         self.assertFalse(config.external_llm_think)
         self.assertAlmostEqual(config.publish_threshold, 7.0)
@@ -240,6 +241,43 @@ class TestEnvConfig(TestCase):
                     with self.assertRaises(ValueError) as context:
                         EnvConfig()
                     self.assertIn("OLLAMA_MODEL_KEEP_ALIVE", str(context.exception))
+
+    def test_default_ollama_num_ctx_when_env_var_absent(self):
+        env_without = {k: v for k, v in environ.items() if k != "OLLAMA_NUM_CTX"}
+        with patch.dict(environ, env_without, clear=True):
+            config = EnvConfig()
+        self.assertIsNone(config.ollama_num_ctx)
+
+    def test_ollama_num_ctx_when_env_var_blank_returns_none(self):
+        for blank_value in ["", "   ", "\t"]:
+            with self.subTest(blank_value=blank_value):
+                with patch.dict(environ, {"OLLAMA_NUM_CTX": blank_value}):
+                    config = EnvConfig()
+                self.assertIsNone(config.ollama_num_ctx)
+
+    def test_env_var_overrides_ollama_num_ctx_with_positive_integer(self):
+        with patch.dict(environ, {"OLLAMA_NUM_CTX": "16384"}):
+            config = EnvConfig()
+        self.assertEqual(config.ollama_num_ctx, 16384)
+
+        with patch.dict(environ, {"OLLAMA_NUM_CTX": "  8192  "}):
+            config_spaced = EnvConfig()
+        self.assertEqual(config_spaced.ollama_num_ctx, 8192)
+
+        with patch.dict(environ, {"OLLAMA_NUM_CTX": "1"}):
+            config_one = EnvConfig()
+        self.assertEqual(config_one.ollama_num_ctx, 1)
+
+    def test_invalid_ollama_num_ctx_raises_value_error(self):
+        rejected_values = ["0", "-1", "-16384", "abc", "16.5", "16384tokens"]
+        for rejected_value in rejected_values:
+            with self.subTest(rejected_value=rejected_value):
+                with patch.dict(environ, {"OLLAMA_NUM_CTX": rejected_value}):
+                    with self.assertRaises(ValueError) as context:
+                        EnvConfig()
+                    self.assertIn("OLLAMA_NUM_CTX", str(context.exception))
+                    self.assertIn(rejected_value, str(context.exception))
+                    self.assertIn("positive integer", str(context.exception))
 
     def test_env_var_overrides_ollama_warmup_on_startup(self):
         with patch.dict(environ, {"OLLAMA_WARMUP_ON_STARTUP": "false"}):

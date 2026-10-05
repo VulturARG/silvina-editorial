@@ -19,7 +19,7 @@ from src.infrastructure.adapters.llm_generator.ollama_generator_adapter import (
 
 
 class TestOllamaGeneratorAdapter(TestCase):
-    """Unit tests for the OllamaGeneratorAdapter class."""
+    """Unit tests for the OllamaGeneratorAdapter."""
 
     def setUp(self) -> None:
         self.model_name = "hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:UD-IQ4_XS"
@@ -33,6 +33,7 @@ class TestOllamaGeneratorAdapter(TestCase):
             base_url=self.base_url,
             think=False,
             keep_alive=self.keep_alive,
+            num_ctx=None,
             error_mapper=self.error_mapper,
         )
 
@@ -201,6 +202,7 @@ class TestOllamaGeneratorAdapter(TestCase):
             base_url=self.base_url,
             think=True,
             keep_alive=self.keep_alive,
+            num_ctx=None,
             error_mapper=self.error_mapper,
         )
         mock_client = mock_client_class.return_value
@@ -223,6 +225,7 @@ class TestOllamaGeneratorAdapter(TestCase):
             base_url=self.base_url,
             think=True,
             keep_alive=self.keep_alive,
+            num_ctx=None,
             error_mapper=self.error_mapper,
         )
         mock_client = mock_client_class.return_value
@@ -245,6 +248,7 @@ class TestOllamaGeneratorAdapter(TestCase):
             base_url=self.base_url,
             think=False,
             keep_alive="30m",
+            num_ctx=None,
             error_mapper=self.error_mapper,
         )
         mock_client = mock_client_class.return_value
@@ -259,6 +263,71 @@ class TestOllamaGeneratorAdapter(TestCase):
             think=False,
             keep_alive="30m",
         )
+
+    @patch("src.infrastructure.adapters.llm_generator.ollama_generator_adapter.ollama.Client")
+    def test_generate_sends_num_ctx_merged_with_options(self, mock_client_class):
+        adapter = OllamaGeneratorAdapter(
+            model_name=self.model_name,
+            base_url=self.base_url,
+            think=False,
+            keep_alive=self.keep_alive,
+            num_ctx=16384,
+            error_mapper=self.error_mapper,
+        )
+        mock_client = mock_client_class.return_value
+        mock_client.generate.return_value = {"response": "some text"}
+
+        adapter.generate(prompt=self.sample_prompt, options=self.sample_options)
+
+        mock_client.generate.assert_called_once_with(
+            model=self.model_name,
+            prompt=self.sample_prompt,
+            options={"temperature": 0.1, "num_predict": 300, "num_ctx": 16384},
+            think=False,
+            keep_alive=self.keep_alive,
+        )
+
+    @patch("src.infrastructure.adapters.llm_generator.ollama_generator_adapter.ollama.Client")
+    def test_generate_sends_num_ctx_alone_when_options_is_none(self, mock_client_class):
+        adapter = OllamaGeneratorAdapter(
+            model_name=self.model_name,
+            base_url=self.base_url,
+            think=False,
+            keep_alive=self.keep_alive,
+            num_ctx=16384,
+            error_mapper=self.error_mapper,
+        )
+        mock_client = mock_client_class.return_value
+        mock_client.generate.return_value = {"response": "some text"}
+
+        adapter.generate(prompt=self.sample_prompt, options=None)
+
+        mock_client.generate.assert_called_once_with(
+            model=self.model_name,
+            prompt=self.sample_prompt,
+            options={"num_ctx": 16384},
+            think=False,
+            keep_alive=self.keep_alive,
+        )
+
+    @patch("src.infrastructure.adapters.llm_generator.ollama_generator_adapter.ollama.Client")
+    def test_generate_does_not_mutate_caller_options_dict(self, mock_client_class):
+        adapter = OllamaGeneratorAdapter(
+            model_name=self.model_name,
+            base_url=self.base_url,
+            think=False,
+            keep_alive=self.keep_alive,
+            num_ctx=16384,
+            error_mapper=self.error_mapper,
+        )
+        mock_client = mock_client_class.return_value
+        mock_client.generate.return_value = {"response": "some text"}
+        options = {"temperature": 0.2}
+
+        adapter.generate(prompt=self.sample_prompt, options=options)
+
+        self.assertEqual(options, {"temperature": 0.2})
+        self.assertNotIn("num_ctx", options)
 
     @patch("src.infrastructure.adapters.llm_generator.ollama_generator_adapter.ollama.Client")
     def test_generate_returns_empty_string_when_response_text_is_empty(self, mock_client_class):

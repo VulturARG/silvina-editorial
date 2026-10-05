@@ -111,6 +111,7 @@ class EnvConfig:
         self.ollama_base_url: str = getenv("OLLAMA_BASE_URL", "http://localhost:11434")
         self.ollama_think: bool = self._parse_boolean("OLLAMA_THINK", "false")
         self.ollama_model_keep_alive: str = self._parse_ollama_keep_alive()
+        self.ollama_num_ctx: int | None = self._parse_ollama_num_ctx()
         self.ollama_warmup_on_startup: bool = self._parse_boolean(
             "OLLAMA_WARMUP_ON_STARTUP", "true"
         )
@@ -236,6 +237,24 @@ class EnvConfig:
                 f"(expected a duration with a unit such as '15m', '1h' or '90s')"
             )
         return raw_value
+
+    def _parse_ollama_num_ctx(self) -> int | None:
+        raw_value = getenv("OLLAMA_NUM_CTX")
+        if raw_value is None:
+            return None
+        trimmed_value = raw_value.strip()
+        if not trimmed_value:
+            return None
+        try:
+            parsed_value = int(trimmed_value)
+            if parsed_value <= 0:
+                raise ValueError
+            return parsed_value
+        except ValueError:
+            raise ValueError(
+                f"Invalid value for environment variable OLLAMA_NUM_CTX: '{trimmed_value}' "
+                f"(expected a positive integer)"
+            ) from None
 
     def _parse_boolean(self, variable_name: str, default: str) -> bool:
         """Parse an environment variable strictly as a boolean."""

@@ -589,6 +589,27 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         assert isinstance(generator, OllamaGeneratorAdapter)
         self.assertEqual(generator._keep_alive, "30m")
 
+    def test_default_ollama_num_ctx_when_env_var_absent(self):
+        env_without = {k: v for k, v in environ.items() if k != "OLLAMA_NUM_CTX"}
+        with patch.dict(environ, env_without, clear=True):
+            result = AnalyzeDocumentUseCaseWiring().create_use_case()
+        audited_generator = result._article_classifier._llm_generator
+        assert isinstance(audited_generator, AuditedLlmGeneratorAdapter)
+        generator = audited_generator._generator
+        self.assertIsInstance(generator, OllamaGeneratorAdapter)
+        assert isinstance(generator, OllamaGeneratorAdapter)
+        self.assertIsNone(generator._num_ctx)
+
+    def test_env_var_overrides_ollama_num_ctx(self):
+        with patch.dict(environ, {"OLLAMA_NUM_CTX": "16384"}):
+            result = AnalyzeDocumentUseCaseWiring().create_use_case()
+        audited_generator = result._article_classifier._llm_generator
+        assert isinstance(audited_generator, AuditedLlmGeneratorAdapter)
+        generator = audited_generator._generator
+        self.assertIsInstance(generator, OllamaGeneratorAdapter)
+        assert isinstance(generator, OllamaGeneratorAdapter)
+        self.assertEqual(generator._num_ctx, 16384)
+
     def test_editorial_suitability_analyzer_uses_default_generation_options(self):
         environment_without_overrides = {
             key: value

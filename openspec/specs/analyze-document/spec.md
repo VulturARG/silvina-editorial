@@ -132,7 +132,7 @@ The `RecommendationPriority` enum MUST live in `src/domain/enums/recommendation_
 
 ### Requirement: EnvConfig Infrastructure Config Class
 
-`EnvConfig` MUST reside in `src/infrastructure/env_config.py`. It MUST parse environment variables at instantiation, cast them, and cache them as typed instance attributes. Values for `APP_MODE` are `DEBUG` or `PROD` (case-insensitive); any other value fails fast. `METRICS_DATABASE_PATH` and `LOG_FILE_PATH` have no default and MUST be set; a missing or empty value fails fast naming the variable. `OLLAMA_THINK` accepts only `true` or `false` (case-insensitive) and any other value fails fast. It MUST expose a method `get_recommendation_settings() -> RecommendationSettingsDTO` to build recommendation settings.
+`EnvConfig` MUST reside in `src/infrastructure/env_config.py`. It MUST parse environment variables at instantiation, cast them, and cache them as typed instance attributes. Values for `APP_MODE` are `DEBUG` or `PROD` (case-insensitive); any other value fails fast. `METRICS_DATABASE_PATH` and `LOG_FILE_PATH` have no default and MUST be set; a missing or empty value fails fast naming the variable. `OLLAMA_THINK` accepts only `true` or `false` (case-insensitive) and any other value fails fast. `OLLAMA_MODEL_KEEP_ALIVE` accepts duration strings (e.g., `15m`, `1h`) and any invalid format fails fast. `OLLAMA_NUM_CTX` is optional (absent or blank evaluates to `None`); when provided, it MUST parse as a positive integer or fail fast. It MUST expose a method `get_recommendation_settings() -> RecommendationSettingsDTO` to build recommendation settings.
 
 The application version attribute (`silvina_version`) MUST be resolved dynamically:
 - In production/standard mode: `EnvConfig` MUST load the version string from the file `version.txt` located in the project root directory (resolved relative to `EnvConfig` file location: `Path(__file__).resolve().parents[2] / "version.txt"`). The version string MUST be stripped of surrounding whitespace. If the file is missing or unreadable, `EnvConfig` MUST raise `FileNotFoundError` (or standard OS/permission errors).
@@ -174,6 +174,7 @@ The application version attribute (`silvina_version`) MUST be resolved dynamical
 | `OLLAMA_BASE_URL` | `str` | `"http://localhost:11434"` | `ollama_base_url` |
 | `OLLAMA_THINK` | `bool` | `false` | `ollama_think` |
 | `OLLAMA_MODEL_KEEP_ALIVE` | `str` | `"15m"` | `ollama_model_keep_alive` |
+| `OLLAMA_NUM_CTX` | `int \| None` | `None` | `ollama_num_ctx` |
 | `OLLAMA_WARMUP_ON_STARTUP` | `bool` | `true` | `ollama_warmup_on_startup` |
 | `APP_MODE` | `AppMode` | `"PROD"` | `app_mode` |
 | `METRICS_DATABASE_PATH` | `str` | `— (required)` | `metrics_database_path` |
