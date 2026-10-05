@@ -20,7 +20,7 @@ No incluye: el desarrollo industrial o científico de tecnologías (línea 7); l
 
 5. Conocimiento, gestión y protección de recursos estratégicos
 Enfoque: los recursos cuya disponibilidad es crítica para la defensa nacional y su protección.
-Incluye: identificación, evaluación y protección de recursos naturales, tecnológicos e industriales críticos; Objetivos de Valor Estratégico (OVE), entendidos como [definición institucional]; sustentabilidad en operaciones militares.
+Incluye: identificación, evaluación y protección de recursos naturales, tecnológicos e industriales críticos; Objetivos de Valor Estratégico (OVE), entendidos como bienes, instalaciones o entidades materiales de vital importancia para el Estado Nacional que, en caso de sufrir daños o destrucción, generarían graves perjuicios a la vida, la economía, el ambiente o la seguridad del país; sustentabilidad en operaciones militares.
 No incluye: el desarrollo de nuevas tecnologías (línea 7); la protección de infraestructuras frente a amenazas digitales (línea 4).
 
 6. Inteligencia en los diversos ámbitos de conflicto
