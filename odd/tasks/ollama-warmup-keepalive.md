@@ -19,7 +19,7 @@ Measured evidence (`data/metrics.db`, Ollama runs, and `server.log` of 2026-10-0
 
 ## 2. Decisions taken by the user (2026-10-04)
 
-- The warm-up happens when the SERVER starts (FastAPI lifespan), not when the page is opened and not when a file is chosen. It runs in a background daemon thread, next to the thread that opens the browser, and never blocks the app.
+- The warm-up happens when the SERVER starts (FastAPI lifespan), not when the page is opened and not when a file is chosen. It runs in a background daemon thread started by the launcher `web_main.main()` (initially it lived in the FastAPI lifespan, next to the thread that opens the browser; moved by TASK-08) and never blocks the app.
 - It is active only when Ollama is the effective provider. The user stated the rule as `USE_EXTERNAL_LLM=false`; the implementation conditions it on `llm_provider is AiProvider.OLLAMA`, which covers that case and also `APP_MODE=PROD` with `USE_EXTERNAL_LLM=true` (the flag is ignored there and Ollama is used). One-line change if a literal reading is preferred.
 - `keep_alive` default: 15 minutes (the model holds 14 of 16 GB of VRAM and the same GPU is used for OpenArma/Arma; see Engram #2508).
 - Out of scope: the CLI (`main.py`) does not warm up; warming when a file is chosen; any change to prompts or model.
@@ -31,7 +31,7 @@ Measured evidence (`data/metrics.db`, Ollama runs, and `server.log` of 2026-10-0
 - Domain, folder `src/domain/language_model/` (matches the existing `language_model_errors.py` grouping): port `LanguageModelWarmupPort` (`warm_up() -> None`) and domain service `LanguageModelWarmer` (delegates to the port, measures and logs the duration).
 - Application: `WarmUpLanguageModelUseCase.execute()` decorated with `@generic_error_handler`.
 - Infrastructure: `OllamaLanguageModelWarmupAdapter(model_name, base_url, keep_alive)` sends `client.generate(model=..., prompt="", keep_alive=...)` (an empty prompt loads the model without generating) and maps backend errors to the existing `LanguageModel*` errors (a missing model becomes `LanguageModelNotFound`, useful in the warning log); `NoOpLanguageModelWarmupAdapter` for the other cases. The wiring `WarmUpLanguageModelUseCaseWiring` picks the real adapter only when `llm_provider is OLLAMA` and `ollama_warmup_on_startup` is true, so no conditionals leak into the lifespan.
-- FastAPI: singleton in `dependencies.py`; `create_app(auto_open_browser=True, warm_up_language_model=True)` stores the flag in `app.state`; the lifespan starts the daemon thread when it is true and `TESTING` is not set; any `BaseSrcError` or `Exception` in the thread is logged as a warning, never raised. The 6 existing test call sites of `create_app` pass `warm_up_language_model=False` so tests never reach a real Ollama.
+- FastAPI/launcher (final design, TASK-08): the singleton lives in `dependencies.py`; `LanguageModelWarmUpStarter` (`src/infrastructure/fastapi/src/utils/`) runs the use case in a daemon thread and never raises (a `BaseSrcError` or any `Exception` is logged as a warning); `web_main.main()` starts it after configuring logging and before `uvicorn.run`. The app factory and its lifespan know nothing about the warm-up (`fastapi_app.py` is byte-identical to the base). Initial design (superseded): flag `warm_up_language_model` in `create_app` and a thread in the lifespan.
 - Risk to check in the real measurement: the model must not be reloaded by the first real request (the warm-up must load with the same runner parameters; the real calls send only `temperature` and `num_predict`, no `num_ctx`). Verify with `ollama ps` and the server log.
 
 ## 4. Tasks
@@ -59,6 +59,12 @@ Measured evidence (`data/metrics.db`, Ollama runs, and `server.log` of 2026-10-0
 - [x] **TASK-07: Documentation**
   - **Scope**: `README.md` (what the warm-up does, the two variables, the VRAM trade-off), spec table if not done in TASK-01. `.env.example` is left for the user.
   - **Commit 4**: `docs(config): document the Ollama warm-up and keep_alive variables`
+
+- [x] **TASK-08: Move the trigger to the launcher (residual risk found by the verifier)**
+  - **Why**: `app = create_app()` is the production instance and any test doing `with TestClient(app)` would have started a real warm-up, because `unittest discover` does not set `TESTING`.
+  - **Scope**: `web_main.py`, new `language_model_warm_up_starter.py`, `fastapi_app.py` restored to the base, the 5 test call sites restored, `test_lifespan_warm_up.py` replaced by `test_language_model_warm_up_starter.py` and a guard `test_lifespan_background_threads.py`, the launcher tests patched.
+  - **Verification**: RED then GREEN for the guard (against the old lifespan it failed with the warm-up thread being created), the starter and the launcher ordering (logging, then warm-up, then `uvicorn.run`).
+  - **Commit 4**: `refactor(fastapi): start the warm-up from the launcher instead of the app lifespan` (`950bb9d`)
 
 ## 5. Excluded on purpose
 
@@ -96,6 +102,13 @@ Setup: the FastAPI app started from a scratch script on port 7871 (`create_app(a
 
 - `src`: 1463 tests OK; `tests`: 48 OK; `ruff check` and `ruff format --check` clean on the 30 Python files changed since `6816643`. No import of infrastructure or ollama in `src/domain` or `src/application` introduced by the branch. No test can reach a real Ollama.
 - Residual risk found by the verifier (not fixed): `fastapi_app.py` builds `app = create_app()` with the warm-up enabled by default. Today no test enters the lifespan of that instance (`tests/test_web_main.py` and `test_web_main_logging.py` only compare its identity and mock `uvicorn.run`); a future test that does `with TestClient(app)` without `TESTING` would start a real warm-up.
+
+### TASK-08 (2026-10-04)
+
+- Suites after the rework (worker): `src` 1465 tests OK, `tests` 48 OK, ruff clean; `git diff 6816643 -- src/infrastructure/fastapi/fastapi_app.py` is empty; no reference to the old flag remains.
+- Real launcher check without loading the model: `python web_main.py` started for real (scratch metrics, log and reports, `TESTING` set only to skip the browser) with `OLLAMA_BASE_URL` pointing to a closed port. The server answered HTTP 200 while the warm-up failed; the log has `Language model warmup failed: The language model backend is unavailable.` as a WARNING; `ollama ps` stayed empty. The process was stopped by exact PID with `taskkill //F //T`, the port was free afterwards and the scratch directory was deleted.
+- Observation, not changed: with Ollama down the log also gets one ERROR with a traceback per start, written by `@generic_error_handler` (it logs every domain error that is not a warning). Changing it would mean touching the exception hierarchy.
+- Still not exercised against a real Ollama after the move: the success path through `web_main.main()` (the real success path was measured before the move through the lifespan; the use case, adapter and wiring are the same objects). A model not installed (404) is only covered by unit tests.
 
 ### Pending for the user
 
