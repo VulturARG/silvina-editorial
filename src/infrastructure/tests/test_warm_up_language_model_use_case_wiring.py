@@ -22,6 +22,7 @@ class TestWarmUpLanguageModelUseCaseWiring(TestCase):
     REQUIRED_ENVIRONMENT = {
         "METRICS_DATABASE_PATH": "/custom/path/metrics.db",
         "LOG_FILE_PATH": "/custom/path/silvina.log",
+        "OLLAMA_MODEL_NAME": "test-model",
     }
 
     def test_default_environment_wires_ollama_warmup_adapter(self):
@@ -33,7 +34,7 @@ class TestWarmUpLanguageModelUseCaseWiring(TestCase):
         adapter = use_case._language_model_warmer._language_model_warmup_port
         self.assertIsInstance(adapter, OllamaLanguageModelWarmupAdapter)
         assert isinstance(adapter, OllamaLanguageModelWarmupAdapter)
-        self.assertEqual(adapter._model_name, "hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:UD-IQ4_XS")
+        self.assertEqual(adapter._model_name, "test-model")
         self.assertEqual(adapter._base_url, "http://localhost:11434")
         self.assertEqual(adapter._keep_alive, "15m")
         self.assertIsInstance(adapter._error_mapper, OllamaBackendErrorMapper)
@@ -76,4 +77,4 @@ class TestWarmUpLanguageModelUseCaseWiring(TestCase):
         adapter = use_case._language_model_warmer._language_model_warmup_port
         self.assertIsInstance(adapter, OllamaLanguageModelWarmupAdapter)
         assert isinstance(adapter, OllamaLanguageModelWarmupAdapter)
-        self.assertEqual(adapter._model_name, "hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:UD-IQ4_XS")
+        self.assertEqual(adapter._model_name, "test-model")
