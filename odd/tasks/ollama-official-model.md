@@ -50,6 +50,15 @@ Why: the raw `hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:UD-IQ4_XS` declares no `thin
   - **Left untouched on purpose**: README changelog and roadmap headings that still say `v0.95` (lines 305, 354, 366), including `### v0.95 (Q2 2026) — Current`; the `(Q2 2026)` label next to the current version; `main.py` (`v0.9`).
   - **Commit 3**: `chore(release): bump the application version to 0.100` (`c44db3f`)
 
+## 3b. Follow-ups requested by the user (2026-10-04, second round)
+
+- [x] **TASK-06: Commit the `.env.example` edit** (`1f1adbc`) the user made by hand (the edit tool is blocked on that path). Old line kept as a comment, new line `OLLAMA_MODEL_NAME=gemma4-26b-adapted`.
+- [x] **TASK-07: Fix the fragile version test** (`d23a09d`; verified by simulating a bump: with `version.txt` = `9.9.9` the 61 tests of the module stay green). `test_defaults_are_loaded_when_env_is_empty` read the REAL `version.txt` and hardcoded its value. Inject a temporary version file by patching `_VERSION_FILE_PATH` in a dedicated test; the defaults test stops asserting the version. No meaningful RED (the behavior already exists; this decouples the test), so the check is that bumping `version.txt` no longer breaks it.
+- [x] **TASK-08: Stale version references in `main.py` and the README** (`6629123`; RED observed: banner showed `v0.9` instead of `v7.7.7`; GREEN: 49 tests in `tests/`). `main.py` prints the version from `EnvConfig().silvina_version` (single source: `version.txt`) instead of a hardcoded `v0.9` (test first: banner shows `SILVINA_VERSION` under `TESTING`). README: Version History, Roadmap, footer (`Last Updated`, `Active Branch`), based on the first-parent history, nothing invented.
+- [x] **TASK-09: Commit the two pre-existing Markdown files** (`7913b25`, `24ab01f`) (`odd/tasks/real-run-findings.md`, archived `classify-article/tasks.md`) as separate docs commits, as the user ordered. Their diffs are path rewrites (`src/...` -> `../../src/...`), not new content.
+- README beyond the version: besides the version and branch references, the README had instructions that no longer work (`python gradio_app.py`; the file does not exist), so the startup command, the tagline, the technology table and the project tree entry were fixed. NOT fixed because they cannot be verified from the code: the feedback file `_feedback.json` "via Gradio" (line ~172) and the "Structured expert feedback panel (8 evaluation fields)" bullets; the v0.9 history entry that mentions Gradio is history. `(Q4 2026)` next to the current version is the current quarter, not a verified release date.
+- Warm-up and `keep_alive` (design pending the user's confirmation) and the discussion about deleting the duplicated base model are NOT part of these tasks; the latter is explanation only, nothing implemented.
+
 ## 4. Excluded on purpose
 
 1. Experiment with a minimal Modelfile (`FROM` + `RENDERER` + `PARSER` only): needs loading the model on the GPU, authorized separately.
@@ -69,6 +78,17 @@ Why: the raw `hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:UD-IQ4_XS` declares no `thin
 
 - `unittest discover -s src`: 1426 tests OK (1420 baseline + 6). `unittest discover -s tests`: 48 tests OK. `ruff check` and `ruff format --check` on the changed Python files: clean. No `ollama` command was run by the verifier.
 - Not covered by an automated test: the batch script and the real `ollama create`; both were verified by hand with the temporary model (above).
+
+### Final verification, second round (gentle-ai-verify, 2026-10-04)
+
+- `unittest discover -s src`: 1427 tests OK (1426 + the dedicated version test). `unittest discover -s tests`: 49 tests OK. `ruff check` and `ruff format --check` on the 6 Python files changed since `6816643`: clean. The `ERROR: 'ValueError' exception was raised ... AnalyzeDocumentUseCase` line in the output is a log emitted by `@generic_error_handler` in a test that provokes it on purpose, not a failure.
+- No test asserts the content of the real `version.txt` any more: the version tests inject a temporary file or use the `TESTING` fallback.
+- Not verified: a real version bump (the verifier cannot edit files; the bump was simulated by hand earlier with `9.9.9`).
+
+### Native review
+
+- First candidate (the two pre-existing Markdown files): reviewed with `review-reliability`, outcome `approved`, authority burned. It did not include this feature's commits.
+- Second candidate (this file, documentation only): not started on purpose; the review contract allows skipping a trivial passive documentation-only edit. The committed range `6816643..HEAD` has not been reviewed; it can be requested with `baseRef` and `committedOnly`.
 
 ### Incident: the first script version pulled the base unconditionally
 
