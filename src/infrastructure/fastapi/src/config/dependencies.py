@@ -47,15 +47,11 @@ def _create_templates(environment_configuration: EnvConfig) -> Jinja2Templates:
 _env_config: EnvConfig = EnvConfig()
 _templates: Jinja2Templates = _create_templates(_env_config)
 
-_analyze_use_case: AnalyzeDocumentUseCase = AnalyzeDocumentUseCaseWiring().create_use_case()
-_export_use_case: ExportReportUseCase = ExportReportWiring().create_use_case()
-_json_export_use_case: ExportReportUseCase = JsonReportWiring().create_use_case()
-_analysis_cancellation_port: AnalysisCancellationPort = (
-    AnalysisCancellationWiring().get_analysis_cancellation_port()
-)
-_warm_up_language_model_use_case: WarmUpLanguageModelUseCase = (
-    WarmUpLanguageModelUseCaseWiring().get_warm_up_language_model_use_case()
-)
+_analyze_use_case: AnalyzeDocumentUseCase | None = None
+_export_use_case: ExportReportUseCase | None = None
+_json_export_use_case: ExportReportUseCase | None = None
+_analysis_cancellation_port: AnalysisCancellationPort | None = None
+_warm_up_language_model_use_case: WarmUpLanguageModelUseCase | None = None
 
 
 def get_templates() -> Jinja2Templates:
@@ -73,16 +69,25 @@ def get_reports_directory() -> Path:
 
 def get_analyze_document_use_case() -> AnalyzeDocumentUseCase:
     """Return the singleton instance of AnalyzeDocumentUseCase."""
+    global _analyze_use_case
+    if _analyze_use_case is None:
+        _analyze_use_case = AnalyzeDocumentUseCaseWiring().create_use_case()
     return _analyze_use_case
 
 
 def get_export_report_use_case() -> ExportReportUseCase:
     """Return the singleton instance of ExportReportUseCase configured for DOCX."""
+    global _export_use_case
+    if _export_use_case is None:
+        _export_use_case = ExportReportWiring().create_use_case()
     return _export_use_case
 
 
 def get_json_export_report_use_case() -> ExportReportUseCase:
     """Return the singleton instance of ExportReportUseCase configured for JSON."""
+    global _json_export_use_case
+    if _json_export_use_case is None:
+        _json_export_use_case = JsonReportWiring().create_use_case()
     return _json_export_use_case
 
 
@@ -93,12 +98,29 @@ def get_env_config() -> EnvConfig:
 
 def get_analysis_cancellation_port() -> AnalysisCancellationPort:
     """Return the singleton instance of AnalysisCancellationPort."""
+    global _analysis_cancellation_port
+    if _analysis_cancellation_port is None:
+        _analysis_cancellation_port = AnalysisCancellationWiring().get_analysis_cancellation_port()
     return _analysis_cancellation_port
 
 
 def get_warm_up_language_model_use_case() -> WarmUpLanguageModelUseCase:
     """Return the singleton instance of WarmUpLanguageModelUseCase."""
+    global _warm_up_language_model_use_case
+    if _warm_up_language_model_use_case is None:
+        _warm_up_language_model_use_case = (
+            WarmUpLanguageModelUseCaseWiring().get_warm_up_language_model_use_case()
+        )
     return _warm_up_language_model_use_case
+
+
+def initialize_dependencies() -> None:
+    """Eagerly build and cache all singleton dependencies."""
+    get_analyze_document_use_case()
+    get_export_report_use_case()
+    get_json_export_report_use_case()
+    get_analysis_cancellation_port()
+    get_warm_up_language_model_use_case()
 
 
 def reset_dependencies() -> None:
@@ -111,15 +133,13 @@ def reset_dependencies() -> None:
         _templates, \
         _analysis_cancellation_port, \
         _warm_up_language_model_use_case
-    _analyze_use_case = AnalyzeDocumentUseCaseWiring().create_use_case()
-    _export_use_case = ExportReportWiring().create_use_case()
-    _json_export_use_case = JsonReportWiring().create_use_case()
+    _analyze_use_case = None
+    _export_use_case = None
+    _json_export_use_case = None
+    _analysis_cancellation_port = None
+    _warm_up_language_model_use_case = None
     _env_config = EnvConfig()
     _templates = _create_templates(_env_config)
-    _analysis_cancellation_port = AnalysisCancellationWiring().get_analysis_cancellation_port()
-    _warm_up_language_model_use_case = (
-        WarmUpLanguageModelUseCaseWiring().get_warm_up_language_model_use_case()
-    )
 
 
 AnalyzeUseCaseDep = Annotated[AnalyzeDocumentUseCase, Depends(get_analyze_document_use_case)]

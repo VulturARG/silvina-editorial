@@ -7,27 +7,18 @@ import sys
 from importlib.util import find_spec
 from io import TextIOWrapper
 from logging import getLogger
-from os import environ
-from os.path import join
-from tempfile import TemporaryDirectory
 from unittest.mock import MagicMock
 
 from pytest import fixture
 
-# Mark the test session so EnvConfig skips the version.txt file read and
-# falls back to the SILVINA_VERSION env var instead.
-environ["TESTING"] = "True"
+from src.infrastructure.tests.isolated_test_environment import (
+    IsolatedTestEnvironment,
+)
 
-# Isolate the metrics database and the log file to a temporary directory so that
-# instantiating the wiring or configuring logging during tests never creates
-# data/metrics.db or logs/silvina.log inside the repository.
-_metrics_test_directory = TemporaryDirectory(prefix="silvina-metrics-")
-environ.setdefault("METRICS_DATABASE_PATH", join(_metrics_test_directory.name, "metrics.db"))
-environ.setdefault("LOG_FILE_PATH", join(_metrics_test_directory.name, "silvina.log"))
-
-# Never let a developer's local .env enable the external LLM during tests: the wiring would
-# call the real provider instead of the mocked Ollama client.
-environ["USE_EXTERNAL_LLM"] = "false"
+# Isolate the metrics database and log file to a temporary directory so that
+# running tests never creates data/metrics.db or logs/silvina.log inside the repository;
+# mark the session with TESTING, and ensure a local .env never enables the external LLM.
+IsolatedTestEnvironment.apply()
 
 # The Claude Agent SDK is an optional debug-only dependency (requirements-debug.txt): without it,
 # skip the tests that import it at module level instead of aborting the whole collection.
