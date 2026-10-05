@@ -40,6 +40,8 @@ class TestEnvConfig(TestCase):
         self.assertEqual(config.ollama_model_name, "gemma4-26b-adapted")
         self.assertEqual(config.ollama_base_url, "http://localhost:11434")
         self.assertFalse(config.ollama_think)
+        self.assertEqual(config.ollama_model_keep_alive, "15m")
+        self.assertTrue(config.ollama_warmup_on_startup)
         self.assertFalse(config.external_llm_think)
         self.assertAlmostEqual(config.publish_threshold, 7.0)
         self.assertAlmostEqual(config.quality_threshold, 7.0)
@@ -153,6 +155,59 @@ class TestEnvConfig(TestCase):
                     with self.assertRaises(ValueError) as context:
                         EnvConfig()
                     self.assertIn("OLLAMA_THINK", str(context.exception))
+
+    def test_env_var_overrides_ollama_model_keep_alive_with_accepted_values(self):
+        accepted_values = ["30m", "1h30m", "90s", "-1m", "500ms"]
+        for accepted_value in accepted_values:
+            with self.subTest(accepted_value=accepted_value):
+                with patch.dict(environ, {"OLLAMA_MODEL_KEEP_ALIVE": accepted_value}):
+                    config = EnvConfig()
+                self.assertEqual(config.ollama_model_keep_alive, accepted_value)
+
+    def test_env_var_strips_whitespace_for_ollama_model_keep_alive(self):
+        with patch.dict(environ, {"OLLAMA_MODEL_KEEP_ALIVE": "  30m  "}):
+            config = EnvConfig()
+        self.assertEqual(config.ollama_model_keep_alive, "30m")
+
+    def test_invalid_ollama_model_keep_alive_raises_value_error(self):
+        rejected_values = ["", "  ", "15", "-1", "15min", "abc"]
+        for rejected_value in rejected_values:
+            with self.subTest(rejected_value=rejected_value):
+                with patch.dict(environ, {"OLLAMA_MODEL_KEEP_ALIVE": rejected_value}):
+                    with self.assertRaises(ValueError) as context:
+                        EnvConfig()
+                    self.assertIn("OLLAMA_MODEL_KEEP_ALIVE", str(context.exception))
+
+    def test_env_var_overrides_ollama_warmup_on_startup(self):
+        with patch.dict(environ, {"OLLAMA_WARMUP_ON_STARTUP": "false"}):
+            config_false = EnvConfig()
+        self.assertFalse(config_false.ollama_warmup_on_startup)
+
+        with patch.dict(environ, {"OLLAMA_WARMUP_ON_STARTUP": "true"}):
+            config_true = EnvConfig()
+        self.assertTrue(config_true.ollama_warmup_on_startup)
+
+    def test_env_var_accepts_case_and_whitespace_variations_for_ollama_warmup_on_startup(self):
+        with patch.dict(environ, {"OLLAMA_WARMUP_ON_STARTUP": " TRUE "}):
+            config_true = EnvConfig()
+        self.assertTrue(config_true.ollama_warmup_on_startup)
+
+        with patch.dict(environ, {"OLLAMA_WARMUP_ON_STARTUP": "False"}):
+            config_false = EnvConfig()
+        self.assertFalse(config_false.ollama_warmup_on_startup)
+
+        with patch.dict(environ, {"OLLAMA_WARMUP_ON_STARTUP": "  false  "}):
+            config_spaced_false = EnvConfig()
+        self.assertFalse(config_spaced_false.ollama_warmup_on_startup)
+
+    def test_invalid_ollama_warmup_on_startup_raises_value_error(self):
+        invalid_values = ["yes", "1", ""]
+        for invalid_value in invalid_values:
+            with self.subTest(invalid_value=invalid_value):
+                with patch.dict(environ, {"OLLAMA_WARMUP_ON_STARTUP": invalid_value}):
+                    with self.assertRaises(ValueError) as context:
+                        EnvConfig()
+                    self.assertIn("OLLAMA_WARMUP_ON_STARTUP", str(context.exception))
 
     def test_env_var_overrides_external_llm_think_to_true(self):
         with patch.dict(environ, {"EXTERNAL_LLM_THINK": "true"}):

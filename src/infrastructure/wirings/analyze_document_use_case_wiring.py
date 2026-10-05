@@ -74,6 +74,9 @@ from src.infrastructure.adapters.grammar.language_tool_adapter import LanguageTo
 from src.infrastructure.adapters.llm_generator.audited_llm_generator_adapter import (
     AuditedLlmGeneratorAdapter,
 )
+from src.infrastructure.adapters.llm_generator.ollama_backend_error_mapper import (
+    OllamaBackendErrorMapper,
+)
 from src.infrastructure.adapters.llm_generator.ollama_generator_adapter import (
     OllamaGeneratorAdapter,
 )
@@ -354,6 +357,8 @@ class AnalyzeDocumentUseCaseWiring:
                 model_name=env_config.ollama_model_name,
                 base_url=env_config.ollama_base_url,
                 think=env_config.ollama_think,
+                keep_alive=env_config.ollama_model_keep_alive,
+                error_mapper=OllamaBackendErrorMapper(),
             )
         return self._ollama_generator_instance
 

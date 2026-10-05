@@ -160,6 +160,8 @@ The application version attribute (`silvina_version`) MUST be resolved dynamical
 | `OLLAMA_MODEL_NAME` | `str` | `"gemma4-26b-adapted"` | `ollama_model_name` |
 | `OLLAMA_BASE_URL` | `str` | `"http://localhost:11434"` | `ollama_base_url` |
 | `OLLAMA_THINK` | `bool` | `false` | `ollama_think` |
+| `OLLAMA_MODEL_KEEP_ALIVE` | `str` | `"15m"` | `ollama_model_keep_alive` |
+| `OLLAMA_WARMUP_ON_STARTUP` | `bool` | `true` | `ollama_warmup_on_startup` |
 | `APP_MODE` | `AppMode` | `"PROD"` | `app_mode` |
 | `METRICS_DATABASE_PATH` | `str` | `— (required)` | `metrics_database_path` |
 | `LOG_FILE_PATH` | `str` | `— (required)` | `log_file_path` |

@@ -1,11 +1,13 @@
 from os import getenv
 from pathlib import Path
+from re import fullmatch
 
 from src.domain.dtos.recommendation_settings_dto import RecommendationSettingsDTO
 from src.domain.enums.ai_provider import AiProvider
 from src.domain.enums.app_mode import AppMode
 
 _VERSION_FILE_PATH = Path(__file__).resolve().parents[2] / "version.txt"
+_DURATION_PATTERN = r"-?(\d+(\.\d+)?(ms|s|m|h))+"
 
 
 class EnvConfig:
@@ -66,6 +68,10 @@ class EnvConfig:
         self.ollama_model_name: str = getenv("OLLAMA_MODEL_NAME", "gemma4-26b-adapted")
         self.ollama_base_url: str = getenv("OLLAMA_BASE_URL", "http://localhost:11434")
         self.ollama_think: bool = self._parse_boolean("OLLAMA_THINK", "false")
+        self.ollama_model_keep_alive: str = self._parse_ollama_keep_alive()
+        self.ollama_warmup_on_startup: bool = self._parse_boolean(
+            "OLLAMA_WARMUP_ON_STARTUP", "true"
+        )
         self.external_llm_think: bool = self._parse_boolean("EXTERNAL_LLM_THINK", "false")
         self.app_mode: AppMode = AppMode(getenv("APP_MODE", "PROD").strip().upper())
         self.use_external_llm: bool = self._parse_boolean("USE_EXTERNAL_LLM", "false")
@@ -146,6 +152,15 @@ class EnvConfig:
         if getenv("TESTING", "").lower() in ("true", "1"):
             return getenv("SILVINA_VERSION", "0.9")
         return _VERSION_FILE_PATH.read_text().strip()
+
+    def _parse_ollama_keep_alive(self) -> str:
+        raw_value = getenv("OLLAMA_MODEL_KEEP_ALIVE", "15m").strip()
+        if not fullmatch(_DURATION_PATTERN, raw_value):
+            raise ValueError(
+                f"Invalid value for environment variable OLLAMA_MODEL_KEEP_ALIVE: '{raw_value}' "
+                f"(expected a duration with a unit such as '15m', '1h' or '90s')"
+            )
+        return raw_value
 
     def _parse_boolean(self, variable_name: str, default: str) -> bool:
         """Parse an environment variable strictly as a boolean."""

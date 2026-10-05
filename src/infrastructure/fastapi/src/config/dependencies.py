@@ -7,6 +7,7 @@ from fastapi.templating import Jinja2Templates
 
 from src.application.analyze_document_use_case import AnalyzeDocumentUseCase
 from src.application.export_report_use_case import ExportReportUseCase
+from src.application.warm_up_language_model_use_case import WarmUpLanguageModelUseCase
 from src.domain.enums.quality_dimension import QualityDimension
 from src.domain.metrics.analysis_cancellation_port import AnalysisCancellationPort
 from src.infrastructure.env_config import EnvConfig
@@ -24,6 +25,9 @@ from src.infrastructure.wirings.analyze_document_use_case_wiring import (
 )
 from src.infrastructure.wirings.export_report_wiring import ExportReportWiring
 from src.infrastructure.wirings.json_report_wiring import JsonReportWiring
+from src.infrastructure.wirings.warm_up_language_model_use_case_wiring import (
+    WarmUpLanguageModelUseCaseWiring,
+)
 
 STATIC_DIR = Path(__file__).resolve().parents[2] / "static"
 TEMPLATES_DIR = Path(__file__).resolve().parents[2] / "templates"
@@ -48,6 +52,9 @@ _export_use_case: ExportReportUseCase = ExportReportWiring().create_use_case()
 _json_export_use_case: ExportReportUseCase = JsonReportWiring().create_use_case()
 _analysis_cancellation_port: AnalysisCancellationPort = (
     AnalysisCancellationWiring().get_analysis_cancellation_port()
+)
+_warm_up_language_model_use_case: WarmUpLanguageModelUseCase = (
+    WarmUpLanguageModelUseCaseWiring().get_warm_up_language_model_use_case()
 )
 
 
@@ -89,6 +96,11 @@ def get_analysis_cancellation_port() -> AnalysisCancellationPort:
     return _analysis_cancellation_port
 
 
+def get_warm_up_language_model_use_case() -> WarmUpLanguageModelUseCase:
+    """Return the singleton instance of WarmUpLanguageModelUseCase."""
+    return _warm_up_language_model_use_case
+
+
 def reset_dependencies() -> None:
     """Reset and re-instantiate dependency singletons, primarily for testing."""
     global \
@@ -97,13 +109,17 @@ def reset_dependencies() -> None:
         _json_export_use_case, \
         _env_config, \
         _templates, \
-        _analysis_cancellation_port
+        _analysis_cancellation_port, \
+        _warm_up_language_model_use_case
     _analyze_use_case = AnalyzeDocumentUseCaseWiring().create_use_case()
     _export_use_case = ExportReportWiring().create_use_case()
     _json_export_use_case = JsonReportWiring().create_use_case()
     _env_config = EnvConfig()
     _templates = _create_templates(_env_config)
     _analysis_cancellation_port = AnalysisCancellationWiring().get_analysis_cancellation_port()
+    _warm_up_language_model_use_case = (
+        WarmUpLanguageModelUseCaseWiring().get_warm_up_language_model_use_case()
+    )
 
 
 AnalyzeUseCaseDep = Annotated[AnalyzeDocumentUseCase, Depends(get_analyze_document_use_case)]
