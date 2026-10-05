@@ -127,7 +127,7 @@ class TestRequestTimingMiddleware(TestCase):
                 pass
 
     def test_create_app_registers_request_timing_middleware(self) -> None:
-        application = create_app(auto_open_browser=False)
+        application = create_app(auto_open_browser=False, warm_up_language_model=False)
 
         has_middleware = any(
             middleware.cls is RequestTimingMiddleware for middleware in application.user_middleware

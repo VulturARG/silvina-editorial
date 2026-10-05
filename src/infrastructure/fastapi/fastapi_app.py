@@ -11,6 +11,7 @@ from pathlib import Path
 from fastapi import FastAPI, Request, Response
 from fastapi.staticfiles import StaticFiles
 
+from src.application.warm_up_language_model_use_case import WarmUpLanguageModelUseCase
 from src.domain.exceptions.base_src_error import (
     BaseSrcError,
     SrcBaseNotAuthorized,
@@ -18,7 +19,10 @@ from src.domain.exceptions.base_src_error import (
     SrcBaseWarning,
 )
 from src.domain.exceptions.document_errors import DocumentNotFound
-from src.infrastructure.fastapi.src.config.dependencies import get_templates
+from src.infrastructure.fastapi.src.config.dependencies import (
+    get_templates,
+    get_warm_up_language_model_use_case,
+)
 from src.infrastructure.fastapi.src.middleware import RequestTimingMiddleware
 from src.infrastructure.fastapi.src.routes import (
     analyze_router,
@@ -49,11 +53,33 @@ def _open_browser(url: str = "http://127.0.0.1:7861") -> None:
             logger.warning("Could not open browser automatically: %s", inner_exc)
 
 
+def _warm_up_language_model(warm_up_use_case: WarmUpLanguageModelUseCase) -> None:
+    """Run language model warmup in a background thread."""
+    try:
+        warm_up_use_case.execute()
+    except BaseSrcError as exception:
+        logger.warning(
+            "Language model warmup failed: %s",
+            exception.dict().get("error", str(exception)),
+        )
+    except Exception as exception:
+        logger.warning(
+            "Language model warmup failed unexpectedly: %s",
+            str(exception),
+        )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Lifespan context manager that starts the browser on startup if enabled."""
+    """Lifespan context manager that starts the browser and model warmup on startup if enabled."""
     if getattr(app.state, "auto_open_browser", True) and not os.getenv("TESTING"):
         threading.Thread(target=_open_browser, daemon=True).start()
+    if getattr(app.state, "warm_up_language_model", True) and not os.getenv("TESTING"):
+        threading.Thread(
+            target=_warm_up_language_model,
+            args=(get_warm_up_language_model_use_case(),),
+            daemon=True,
+        ).start()
     yield
 
 
@@ -112,10 +138,14 @@ def register_exception_handlers(app: FastAPI) -> None:
         )
 
 
-def create_app(auto_open_browser: bool = True) -> FastAPI:
-    """Create and configure the FastAPI application instance."""
+def create_app(
+    auto_open_browser: bool = True,
+    warm_up_language_model: bool = True,
+) -> FastAPI:
+    """Create and configure the FastAPI application instance with optional browser and model warmup."""
     app = FastAPI(title="Silvina - Asistente Editorial EUMIC", lifespan=lifespan)
     app.state.auto_open_browser = auto_open_browser
+    app.state.warm_up_language_model = warm_up_language_model
 
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
     register_exception_handlers(app)
