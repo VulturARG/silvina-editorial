@@ -216,6 +216,15 @@ ollama create gemma4-26b-adapted -f src/infrastructure/resources/ollama/gemma4-2
 
 The base GGUF tag is published by a third party and can change upstream, so a model rebuilt later may use different weights bytes than an earlier build.
 
+### Configuration files
+
+Silvina reads its configuration from two places:
+
+- `settings.toml` (project root, versioned): the tuning parameters, grouped by section (`[grammar]`, `[article_size]`, `[quality_text_sample]`, `[recommendation]`, `[report]`, `[upload]`, and others). Edit it to adjust thresholds, sampling limits and size bands.
+- `.env` (not versioned, see `.env.example`): the values that depend on the machine or the deployment, such as `APP_MODE`, `METRICS_DATABASE_PATH`, `LOG_FILE_PATH` and the Ollama connection.
+
+An environment variable with the same name as a setting (for example `GRAMMAR_MAX_PARAGRAPHS`) overrides the value in `settings.toml`, so a line left in your local `.env` wins over the file on that machine. If a setting is missing from both, or has the wrong type, the application stops at startup with a message naming the section and key.
+
 ### Ollama warm-up and keep_alive
 
 When the web server starts (`launch_silvina.bat` or `python web_main.py`) and Ollama is the language model in use, Silvina loads the model in the background so the first analysis does not pay the load time (about a minute for the 26B model). The server answers while the model loads, and a failed warm-up only writes a warning to the log. Every request also asks Ollama to keep the model loaded for a while after its last use, instead of the 5 minutes of the Ollama default.

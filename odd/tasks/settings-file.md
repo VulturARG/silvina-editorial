@@ -52,6 +52,10 @@ The `.env` file mixes deployment values (paths, URLs, mode) with tuning paramete
 - [x] **TASK-05: Group `report` and `upload`**
   - **Scope**: `settings.toml` sections `[report]` (6 values) and `[upload]` (1 value), `src/infrastructure/env_config.py`, tests.
   - **Note**: `UPLOAD_MAX_SIZE_BYTES` is not in the local `.env`, so `settings.toml` carries the code default (26214400, 25 MiB).
-  - **Outcome**: 7 values read from `[report]` and `[upload]`. Verified by gentle-ai-verify: `src` 1607 OK, `tests` 51 OK, ruff clean. Parity check by the parent: `EnvConfig` built from `settings.toml` alone equals the one built from the local `.env` for all 47 migrated attributes (no differences). What remains with `getenv` in `EnvConfig` is deployment or mode configuration and the Ollama/LLM tuning values, still open for the user.
+  - **Outcome**: 7 values read from `[report]` and `[upload]`. Verified by gentle-ai-verify: `src` 1607 OK, `tests` 51 OK, ruff clean. Parity check by the parent: `EnvConfig` built from `settings.toml` alone equals the one built from the local `.env` for all 47 migrated attributes (no differences). What remains with `getenv` in `EnvConfig` is deployment or mode configuration and the Ollama/LLM tuning values, still open for the user. Native review (1 lens, medium risk) approved and acknowledged.
+  - **Commit**: `9f39e5c` `feat(config): read report and upload settings from settings.toml`.
+- [x] **TASK-06: Documentation and final verification** (full `src` and `tests` suites, ruff, pyright)
+  - **Scope**: `README.md` (new "Configuration files" section), `openspec/specs/analyze-document/spec.md` (EnvConfig requirement, regenerated variable table with a `Source` column and `UPLOAD_MAX_SIZE_BYTES`, 4 new scenarios). `openspec/changes/archive/` is history and was not touched.
+  - **Outcome**: final verification of the branch by gentle-ai-verify: `src` 1607 OK, `tests` 51 OK, ruff clean, no `#` comments, no local imports, no `raise ValueError` in the new production code. Pyright was not run: it is not installed in `.venv` (the agent did not install it). Native review not run on this docs-only candidate.
+  - **Open for the user**: the Ollama and external LLM tuning values still in `.env` (`OLLAMA_MODEL_NAME`, `OLLAMA_THINK`, `OLLAMA_MODEL_KEEP_ALIVE`, `OLLAMA_NUM_CTX`, `OLLAMA_WARMUP_ON_STARTUP`, `EXTERNAL_LLM_THINK`).
   - **Commit**: pending the user's approval.
-- [ ] **TASK-06: Documentation and final verification** (full `src` and `tests` suites, ruff, pyright)
