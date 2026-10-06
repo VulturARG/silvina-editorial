@@ -213,8 +213,9 @@ class TestEnvConfigSettingsFile(TestCase):
         self._write_project_settings_with("max_paragraphs = 20\n", "")
 
         with patch.dict(environ, self._complete_environment(), clear=True):
-            with self.assertRaisesRegex(SettingValueMissing, "max_paragraphs"):
+            with self.assertRaises(SettingValueMissing) as context:
                 EnvConfig(settings_file_path=self._settings_file_path)
+            self.assertRegex(context.exception.dict()["error"], "max_paragraphs")
 
     def test_raises_settings_file_not_found_when_the_settings_file_does_not_exist(self):
         with patch.dict(environ, self._complete_environment(), clear=True):

@@ -37,23 +37,27 @@ class TestSettingsValueResolver(TestCase):
         self,
     ):
         with patch.dict(environ, {"GRAMMAR_MAX_ERRORS": "many"}, clear=True):
-            with self.assertRaisesRegex(SettingValueInvalid, "GRAMMAR_MAX_ERRORS"):
+            with self.assertRaises(SettingValueInvalid) as context:
                 self._resolver.read_integer("GRAMMAR_MAX_ERRORS", "grammar", "max_errors")
+            self.assertRegex(context.exception.dict()["error"], "GRAMMAR_MAX_ERRORS")
 
     def test_raises_setting_value_invalid_when_integer_setting_is_not_an_integer(self):
         with patch.dict(environ, {}, clear=True):
-            with self.assertRaisesRegex(SettingValueInvalid, r"'threshold'.*\[grammar\]"):
+            with self.assertRaises(SettingValueInvalid) as context:
                 self._resolver.read_integer("GRAMMAR_THRESHOLD", "grammar", "threshold")
+            self.assertRegex(context.exception.dict()["error"], r"'threshold'.*\[grammar\]")
 
     def test_raises_setting_value_invalid_when_integer_setting_is_a_boolean(self):
         with patch.dict(environ, {}, clear=True):
-            with self.assertRaisesRegex(SettingValueInvalid, r"'flag'.*\[grammar\]"):
+            with self.assertRaises(SettingValueInvalid) as context:
                 self._resolver.read_integer("GRAMMAR_FLAG", "grammar", "flag")
+            self.assertRegex(context.exception.dict()["error"], r"'flag'.*\[grammar\]")
 
     def test_raises_setting_value_invalid_when_integer_setting_is_text(self):
         with patch.dict(environ, {}, clear=True):
-            with self.assertRaisesRegex(SettingValueInvalid, r"'text_as_number'.*\[grammar\]"):
+            with self.assertRaises(SettingValueInvalid) as context:
                 self._resolver.read_integer("GRAMMAR_TEXT_AS_NUMBER", "grammar", "text_as_number")
+            self.assertRegex(context.exception.dict()["error"], r"'text_as_number'.*\[grammar\]")
 
     def test_reads_float_from_settings_when_environment_variable_is_absent(self):
         with patch.dict(environ, {}, clear=True):
@@ -80,13 +84,15 @@ class TestSettingsValueResolver(TestCase):
         self,
     ):
         with patch.dict(environ, {"GRAMMAR_THRESHOLD": "high"}, clear=True):
-            with self.assertRaisesRegex(SettingValueInvalid, "GRAMMAR_THRESHOLD"):
+            with self.assertRaises(SettingValueInvalid) as context:
                 self._resolver.read_float("GRAMMAR_THRESHOLD", "grammar", "threshold")
+            self.assertRegex(context.exception.dict()["error"], "GRAMMAR_THRESHOLD")
 
     def test_raises_setting_value_invalid_when_float_setting_is_a_boolean(self):
         with patch.dict(environ, {}, clear=True):
-            with self.assertRaisesRegex(SettingValueInvalid, r"'flag'.*\[grammar\]"):
+            with self.assertRaises(SettingValueInvalid) as context:
                 self._resolver.read_float("GRAMMAR_FLAG", "grammar", "flag")
+            self.assertRegex(context.exception.dict()["error"], r"'flag'.*\[grammar\]")
 
     def test_reads_string_from_settings_when_environment_variable_is_absent(self):
         with patch.dict(environ, {}, clear=True):
@@ -102,8 +108,9 @@ class TestSettingsValueResolver(TestCase):
 
     def test_raises_setting_value_invalid_when_string_setting_is_not_text(self):
         with patch.dict(environ, {}, clear=True):
-            with self.assertRaisesRegex(SettingValueInvalid, r"'max_errors'.*\[grammar\]"):
+            with self.assertRaises(SettingValueInvalid) as context:
                 self._resolver.read_string("GRAMMAR_MAX_ERRORS", "grammar", "max_errors")
+            self.assertRegex(context.exception.dict()["error"], r"'max_errors'.*\[grammar\]")
 
     def test_raises_setting_value_invalid_naming_section_key_and_variable_when_setting_is_missing(
         self,
@@ -119,7 +126,8 @@ class TestSettingsValueResolver(TestCase):
 
     def test_raises_setting_value_missing_when_section_is_missing(self):
         with patch.dict(environ, {}, clear=True):
-            with self.assertRaisesRegex(SettingValueMissing, r"\[structure\]"):
+            with self.assertRaises(SettingValueMissing) as context:
                 self._resolver.read_integer(
                     "STRUCTURE_MAX_HEADER_LENGTH", "structure", "max_header_length"
                 )
+            self.assertRegex(context.exception.dict()["error"], r"\[structure\]")

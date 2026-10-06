@@ -20,3 +20,6 @@ class TestSettingsFileNotFound(TestCase):
             SettingsFileNotFound("detail").dict(),
             {"error": "The settings file could not be found. detail"},
         )
+
+    def test_exposes_the_detail(self):
+        self.assertEqual(SettingsFileNotFound("detail").detail, "detail")

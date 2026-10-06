@@ -19,3 +19,6 @@ class TestSettingValueMissing(TestCase):
         self.assertEqual(
             SettingValueMissing("detail").dict(), {"error": "A required setting is missing. detail"}
         )
+
+    def test_exposes_the_detail(self):
+        self.assertEqual(SettingValueMissing("detail").detail, "detail")
