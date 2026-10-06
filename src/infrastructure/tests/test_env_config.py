@@ -13,20 +13,74 @@ from src.domain.dtos.quality_text_sampling_settings_dto import (
 from src.domain.dtos.recommendation_settings_dto import RecommendationSettingsDTO
 from src.domain.enums.ai_provider import AiProvider
 from src.domain.enums.app_mode import AppMode
+from src.domain.exceptions.settings_errors import SettingValueMissing
 from src.infrastructure.adapters.grammar.language_tool_settings import (
     LanguageToolSettings,
 )
 from src.infrastructure.env_config import EnvConfig
+from src.infrastructure.tests.test_doubles.complete_test_environment import (
+    CompleteTestEnvironment,
+)
 
 
 class TestEnvConfig(TestCase):
-    REQUIRED_ENVIRONMENT = {
-        "METRICS_DATABASE_PATH": "/custom/path/metrics.db",
-        "LOG_FILE_PATH": "/custom/path/silvina.log",
-    }
+    @staticmethod
+    def _complete_environment(overrides: dict[str, str] | None = None) -> dict[str, str]:
+        environment = {
+            **CompleteTestEnvironment.application_variables(),
+            "METRICS_DATABASE_PATH": "/custom/path/metrics.db",
+            "LOG_FILE_PATH": "/custom/path/silvina.log",
+        }
+        if overrides:
+            environment.update(overrides)
+        return environment
+
+    def test_missing_required_environment_variable_raises_setting_value_missing(self):
+        variables_losing_default = [
+            "APP_MODE",
+            "LOG_LEVEL",
+            "LOG_RETENTION_DAYS",
+            "OLLAMA_MODEL_NAME",
+            "OLLAMA_BASE_URL",
+            "OLLAMA_THINK",
+            "OLLAMA_MODEL_KEEP_ALIVE",
+            "OLLAMA_WARMUP_ON_STARTUP",
+            "USE_EXTERNAL_LLM",
+            "EXTERNAL_LLM_THINK",
+        ]
+        for variable_name in variables_losing_default:
+            with self.subTest(variable_name=variable_name):
+                environment = self._complete_environment()
+                del environment[variable_name]
+                with patch.dict(environ, environment, clear=True):
+                    with self.assertRaises(SettingValueMissing) as context:
+                        EnvConfig()
+                    self.assertIn(variable_name, context.exception.dict()["error"])
+
+    def test_blank_required_environment_variable_raises_setting_value_missing(self):
+        variables_losing_default = [
+            "APP_MODE",
+            "LOG_LEVEL",
+            "LOG_RETENTION_DAYS",
+            "OLLAMA_MODEL_NAME",
+            "OLLAMA_BASE_URL",
+            "OLLAMA_THINK",
+            "OLLAMA_MODEL_KEEP_ALIVE",
+            "OLLAMA_WARMUP_ON_STARTUP",
+            "USE_EXTERNAL_LLM",
+            "EXTERNAL_LLM_THINK",
+        ]
+        for variable_name in variables_losing_default:
+            for blank_value in ["", "   "]:
+                with self.subTest(variable_name=variable_name, blank_value=blank_value):
+                    environment = self._complete_environment({variable_name: blank_value})
+                    with patch.dict(environ, environment, clear=True):
+                        with self.assertRaises(SettingValueMissing) as context:
+                            EnvConfig()
+                        self.assertIn(variable_name, context.exception.dict()["error"])
 
     def test_defaults_are_loaded_when_env_is_empty(self):
-        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+        with patch.dict(environ, self._complete_environment(), clear=True):
             config = EnvConfig()
 
         self.assertEqual(config.citation_max_author_name_length, 100)
@@ -97,14 +151,14 @@ class TestEnvConfig(TestCase):
         with TemporaryDirectory() as directory:
             version_file = Path(directory) / "version.txt"
             version_file.write_text("1.2.3\n", encoding="utf-8")
-            with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+            with patch.dict(environ, self._complete_environment(), clear=True):
                 with patch("src.infrastructure.env_config._VERSION_FILE_PATH", version_file):
                     config = EnvConfig()
 
         self.assertEqual(config.silvina_version, "1.2.3")
 
     def test_raises_file_not_found_when_version_file_missing_outside_testing(self):
-        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+        with patch.dict(environ, self._complete_environment(), clear=True):
             with patch("pathlib.Path.read_text", side_effect=FileNotFoundError):
                 with self.assertRaises(FileNotFoundError):
                     EnvConfig()
@@ -116,7 +170,7 @@ class TestEnvConfig(TestCase):
         self.assertEqual(config.silvina_version, "0.99")
 
     def test_testing_mode_uses_default_version_when_silvina_version_unset(self):
-        environment = {**self.REQUIRED_ENVIRONMENT, "TESTING": "True"}
+        environment = self._complete_environment({"TESTING": "True"})
         with patch.dict(environ, environment, clear=True):
             with patch("pathlib.Path.read_text", side_effect=FileNotFoundError):
                 config = EnvConfig()
@@ -212,7 +266,7 @@ class TestEnvConfig(TestCase):
         self.assertFalse(config_spaced_false.ollama_think)
 
     def test_invalid_ollama_think_value_raises_value_error(self):
-        invalid_values = ["yes", "1", ""]
+        invalid_values = ["yes", "1"]
         for invalid_value in invalid_values:
             with self.subTest(invalid_value=invalid_value):
                 with patch.dict(environ, {"OLLAMA_THINK": invalid_value}):
@@ -234,7 +288,7 @@ class TestEnvConfig(TestCase):
         self.assertEqual(config.ollama_model_keep_alive, "30m")
 
     def test_invalid_ollama_model_keep_alive_raises_value_error(self):
-        rejected_values = ["", "  ", "15", "-1", "15min", "abc"]
+        rejected_values = ["15", "-1", "15min", "abc"]
         for rejected_value in rejected_values:
             with self.subTest(rejected_value=rejected_value):
                 with patch.dict(environ, {"OLLAMA_MODEL_KEEP_ALIVE": rejected_value}):
@@ -243,8 +297,9 @@ class TestEnvConfig(TestCase):
                     self.assertIn("OLLAMA_MODEL_KEEP_ALIVE", str(context.exception))
 
     def test_default_ollama_num_ctx_when_env_var_absent(self):
-        env_without = {k: v for k, v in environ.items() if k != "OLLAMA_NUM_CTX"}
-        with patch.dict(environ, env_without, clear=True):
+        environment = self._complete_environment()
+        environment.pop("OLLAMA_NUM_CTX", None)
+        with patch.dict(environ, environment, clear=True):
             config = EnvConfig()
         self.assertIsNone(config.ollama_num_ctx)
 
@@ -302,7 +357,7 @@ class TestEnvConfig(TestCase):
         self.assertFalse(config_spaced_false.ollama_warmup_on_startup)
 
     def test_invalid_ollama_warmup_on_startup_raises_value_error(self):
-        invalid_values = ["yes", "1", ""]
+        invalid_values = ["yes", "1"]
         for invalid_value in invalid_values:
             with self.subTest(invalid_value=invalid_value):
                 with patch.dict(environ, {"OLLAMA_WARMUP_ON_STARTUP": invalid_value}):
@@ -329,7 +384,7 @@ class TestEnvConfig(TestCase):
         self.assertFalse(config_spaced_false.external_llm_think)
 
     def test_invalid_external_llm_think_value_raises_value_error(self):
-        invalid_values = ["yes", "1", ""]
+        invalid_values = ["yes", "1"]
         for invalid_value in invalid_values:
             with self.subTest(invalid_value=invalid_value):
                 with patch.dict(environ, {"EXTERNAL_LLM_THINK": invalid_value}):
@@ -338,12 +393,13 @@ class TestEnvConfig(TestCase):
                     self.assertIn("EXTERNAL_LLM_THINK", str(context.exception))
 
     def test_external_llm_think_is_parsed_even_when_external_llm_is_inactive(self):
-        environment = {
-            **self.REQUIRED_ENVIRONMENT,
-            "APP_MODE": "PROD",
-            "USE_EXTERNAL_LLM": "false",
-            "EXTERNAL_LLM_THINK": "true",
-        }
+        environment = self._complete_environment(
+            {
+                "APP_MODE": "PROD",
+                "USE_EXTERNAL_LLM": "false",
+                "EXTERNAL_LLM_THINK": "true",
+            }
+        )
         with patch.dict(environ, environment, clear=True):
             config = EnvConfig()
         self.assertTrue(config.external_llm_think)
@@ -383,6 +439,12 @@ class TestEnvConfig(TestCase):
             config = EnvConfig()
         self.assertAlmostEqual(config.quality_threshold, 6.5)
 
+    def test_silvina_app_name_defaults_when_env_var_is_absent(self):
+        environment = {name: value for name, value in environ.items() if name != "SILVINA_APP_NAME"}
+        with patch.dict(environ, environment, clear=True):
+            config = EnvConfig()
+        self.assertEqual(config.silvina_app_name, "Silvina Editorial Assistant")
+
     def test_env_var_overrides_silvina_app_name(self):
         with patch.dict(environ, {"SILVINA_APP_NAME": "Custom App"}):
             config = EnvConfig()
@@ -416,7 +478,7 @@ class TestEnvConfig(TestCase):
         self.assertAlmostEqual(config.dimension_threshold, 5.0)
 
     def test_get_recommendation_settings_returns_dto_with_defaults(self):
-        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+        with patch.dict(environ, self._complete_environment(), clear=True):
             config = EnvConfig()
             settings = config.get_recommendation_settings()
 
@@ -444,7 +506,7 @@ class TestEnvConfig(TestCase):
         self.assertEqual(settings.citation_count_threshold, 20)
 
     def test_get_quality_text_sampling_settings_returns_dto_with_defaults(self):
-        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+        with patch.dict(environ, self._complete_environment(), clear=True):
             config = EnvConfig()
             settings = config.get_quality_text_sampling_settings()
 
@@ -482,7 +544,7 @@ class TestEnvConfig(TestCase):
         self.assertEqual(settings.conclusion_header_marker, "cierre")
 
     def test_get_classification_text_sampling_settings_returns_dto_with_defaults(self):
-        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+        with patch.dict(environ, self._complete_environment(), clear=True):
             settings = EnvConfig().get_classification_text_sampling_settings()
 
         self.assertIsInstance(settings, ClassificationTextSamplingSettingsDTO)
@@ -507,7 +569,7 @@ class TestEnvConfig(TestCase):
         self.assertEqual(settings.bibliography_header_max_length, 40)
 
     def test_get_language_tool_settings_returns_settings_with_defaults(self):
-        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+        with patch.dict(environ, self._complete_environment(), clear=True):
             settings = EnvConfig().get_language_tool_settings()
 
         self.assertIsInstance(settings, LanguageToolSettings)
@@ -531,11 +593,6 @@ class TestEnvConfig(TestCase):
         self.assertEqual(settings.max_chars, 8000)
         self.assertEqual(settings.max_errors, 15)
 
-    def test_app_mode_defaults_to_prod_when_env_is_empty(self):
-        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
-            config = EnvConfig()
-        self.assertEqual(config.app_mode, AppMode.PROD)
-
     def test_env_var_overrides_app_mode_to_debug(self):
         with patch.dict(environ, {"APP_MODE": "DEBUG"}):
             config = EnvConfig()
@@ -555,76 +612,57 @@ class TestEnvConfig(TestCase):
             with self.assertRaises(ValueError):
                 EnvConfig()
 
-    def test_empty_app_mode_raises_value_error(self):
-        with patch.dict(environ, {"APP_MODE": ""}):
-            with self.assertRaises(ValueError):
-                EnvConfig()
-
-    def test_logging_defaults_are_loaded_when_env_is_empty(self):
-        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
-            config = EnvConfig()
-        self.assertEqual(config.log_level, "INFO")
-        self.assertEqual(config.log_retention_days, 14)
-
-    def test_missing_metrics_database_path_raises_value_error(self):
-        environment = {"LOG_FILE_PATH": "/custom/path/silvina.log"}
+    def test_missing_metrics_database_path_raises_setting_value_missing(self):
+        environment = self._complete_environment()
+        del environment["METRICS_DATABASE_PATH"]
         with patch.dict(environ, environment, clear=True):
-            with self.assertRaises(ValueError) as context:
+            with self.assertRaises(SettingValueMissing) as context:
                 EnvConfig()
-        self.assertIn("METRICS_DATABASE_PATH", str(context.exception))
+        self.assertIn("METRICS_DATABASE_PATH", context.exception.dict()["error"])
 
-    def test_missing_log_file_path_raises_value_error(self):
-        environment = {"METRICS_DATABASE_PATH": "/custom/path/metrics.db"}
+    def test_missing_log_file_path_raises_setting_value_missing(self):
+        environment = self._complete_environment()
+        del environment["LOG_FILE_PATH"]
         with patch.dict(environ, environment, clear=True):
-            with self.assertRaises(ValueError) as context:
+            with self.assertRaises(SettingValueMissing) as context:
                 EnvConfig()
-        self.assertIn("LOG_FILE_PATH", str(context.exception))
+        self.assertIn("LOG_FILE_PATH", context.exception.dict()["error"])
 
-    def test_empty_metrics_database_path_raises_value_error(self):
-        environment = {
-            "METRICS_DATABASE_PATH": "",
-            "LOG_FILE_PATH": "/custom/path/silvina.log",
-        }
+    def test_empty_metrics_database_path_raises_setting_value_missing(self):
+        environment = self._complete_environment({"METRICS_DATABASE_PATH": ""})
         with patch.dict(environ, environment, clear=True):
-            with self.assertRaises(ValueError) as context:
+            with self.assertRaises(SettingValueMissing) as context:
                 EnvConfig()
-        self.assertIn("METRICS_DATABASE_PATH", str(context.exception))
+        self.assertIn("METRICS_DATABASE_PATH", context.exception.dict()["error"])
 
-    def test_whitespace_metrics_database_path_raises_value_error(self):
-        environment = {
-            "METRICS_DATABASE_PATH": "   ",
-            "LOG_FILE_PATH": "/custom/path/silvina.log",
-        }
+    def test_whitespace_metrics_database_path_raises_setting_value_missing(self):
+        environment = self._complete_environment({"METRICS_DATABASE_PATH": "   "})
         with patch.dict(environ, environment, clear=True):
-            with self.assertRaises(ValueError) as context:
+            with self.assertRaises(SettingValueMissing) as context:
                 EnvConfig()
-        self.assertIn("METRICS_DATABASE_PATH", str(context.exception))
+        self.assertIn("METRICS_DATABASE_PATH", context.exception.dict()["error"])
 
-    def test_empty_log_file_path_raises_value_error(self):
-        environment = {
-            "METRICS_DATABASE_PATH": "/custom/path/metrics.db",
-            "LOG_FILE_PATH": "",
-        }
+    def test_empty_log_file_path_raises_setting_value_missing(self):
+        environment = self._complete_environment({"LOG_FILE_PATH": ""})
         with patch.dict(environ, environment, clear=True):
-            with self.assertRaises(ValueError) as context:
+            with self.assertRaises(SettingValueMissing) as context:
                 EnvConfig()
-        self.assertIn("LOG_FILE_PATH", str(context.exception))
+        self.assertIn("LOG_FILE_PATH", context.exception.dict()["error"])
 
-    def test_whitespace_log_file_path_raises_value_error(self):
-        environment = {
-            "METRICS_DATABASE_PATH": "/custom/path/metrics.db",
-            "LOG_FILE_PATH": "   ",
-        }
+    def test_whitespace_log_file_path_raises_setting_value_missing(self):
+        environment = self._complete_environment({"LOG_FILE_PATH": "   "})
         with patch.dict(environ, environment, clear=True):
-            with self.assertRaises(ValueError) as context:
+            with self.assertRaises(SettingValueMissing) as context:
                 EnvConfig()
-        self.assertIn("LOG_FILE_PATH", str(context.exception))
+        self.assertIn("LOG_FILE_PATH", context.exception.dict()["error"])
 
     def test_configured_required_paths_are_stripped_and_returned(self):
-        environment = {
-            "METRICS_DATABASE_PATH": "  /custom/path/metrics.db  ",
-            "LOG_FILE_PATH": "  /custom/path/silvina.log  ",
-        }
+        environment = self._complete_environment(
+            {
+                "METRICS_DATABASE_PATH": "  /custom/path/metrics.db  ",
+                "LOG_FILE_PATH": "  /custom/path/silvina.log  ",
+            }
+        )
         with patch.dict(environ, environment, clear=True):
             config = EnvConfig()
         self.assertEqual(config.metrics_database_path, "/custom/path/metrics.db")
@@ -660,21 +698,22 @@ class TestEnvConfig(TestCase):
             with self.assertRaises(ValueError):
                 EnvConfig()
 
-    def test_llm_provider_defaults_to_ollama_when_environment_is_empty(self):
-        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+    def test_llm_provider_defaults_to_ollama_when_use_external_llm_is_false(self):
+        with patch.dict(environ, self._complete_environment(), clear=True):
             config = EnvConfig()
         self.assertFalse(config.use_external_llm)
         self.assertEqual(config.llm_provider, AiProvider.OLLAMA)
         self.assertIsNone(config.external_llm_model_name)
 
     def test_use_external_llm_flag_true_in_debug_mode_with_claude_sets_attributes(self):
-        environment = {
-            **self.REQUIRED_ENVIRONMENT,
-            "APP_MODE": "DEBUG",
-            "USE_EXTERNAL_LLM": "true",
-            "LLM_PROVIDER": "claude",
-            "EXTERNAL_LLM_MODEL_NAME": "claude-3-5-sonnet",
-        }
+        environment = self._complete_environment(
+            {
+                "APP_MODE": "DEBUG",
+                "USE_EXTERNAL_LLM": "true",
+                "LLM_PROVIDER": "claude",
+                "EXTERNAL_LLM_MODEL_NAME": "claude-3-5-sonnet",
+            }
+        )
         with patch.dict(environ, environment, clear=True):
             config = EnvConfig()
         self.assertTrue(config.use_external_llm)
@@ -682,38 +721,41 @@ class TestEnvConfig(TestCase):
         self.assertEqual(config.external_llm_model_name, "claude-3-5-sonnet")
 
     def test_debug_mode_with_external_llm_enabled_without_provider_raises_value_error(self):
-        environment = {
-            **self.REQUIRED_ENVIRONMENT,
-            "APP_MODE": "DEBUG",
-            "USE_EXTERNAL_LLM": "true",
-            "EXTERNAL_LLM_MODEL_NAME": "claude-3-5-sonnet",
-        }
+        environment = self._complete_environment(
+            {
+                "APP_MODE": "DEBUG",
+                "USE_EXTERNAL_LLM": "true",
+                "EXTERNAL_LLM_MODEL_NAME": "claude-3-5-sonnet",
+            }
+        )
         with patch.dict(environ, environment, clear=True):
             with self.assertRaises(ValueError) as context:
                 EnvConfig()
         self.assertIn("LLM_PROVIDER", str(context.exception))
 
     def test_debug_mode_with_external_llm_enabled_and_blank_provider_raises_value_error(self):
-        environment = {
-            **self.REQUIRED_ENVIRONMENT,
-            "APP_MODE": "DEBUG",
-            "USE_EXTERNAL_LLM": "true",
-            "LLM_PROVIDER": "   ",
-            "EXTERNAL_LLM_MODEL_NAME": "claude-3-5-sonnet",
-        }
+        environment = self._complete_environment(
+            {
+                "APP_MODE": "DEBUG",
+                "USE_EXTERNAL_LLM": "true",
+                "LLM_PROVIDER": "   ",
+                "EXTERNAL_LLM_MODEL_NAME": "claude-3-5-sonnet",
+            }
+        )
         with patch.dict(environ, environment, clear=True):
             with self.assertRaises(ValueError) as context:
                 EnvConfig()
         self.assertIn("LLM_PROVIDER", str(context.exception))
 
     def test_debug_mode_with_external_llm_enabled_and_ollama_provider_raises_value_error(self):
-        environment = {
-            **self.REQUIRED_ENVIRONMENT,
-            "APP_MODE": "DEBUG",
-            "USE_EXTERNAL_LLM": "true",
-            "LLM_PROVIDER": "ollama",
-            "EXTERNAL_LLM_MODEL_NAME": "claude-3-5-sonnet",
-        }
+        environment = self._complete_environment(
+            {
+                "APP_MODE": "DEBUG",
+                "USE_EXTERNAL_LLM": "true",
+                "LLM_PROVIDER": "ollama",
+                "EXTERNAL_LLM_MODEL_NAME": "claude-3-5-sonnet",
+            }
+        )
         with patch.dict(environ, environment, clear=True):
             with self.assertRaises(ValueError) as context:
                 EnvConfig()
@@ -721,38 +763,41 @@ class TestEnvConfig(TestCase):
         self.assertIn("claude", str(context.exception).lower())
 
     def test_debug_mode_with_external_llm_enabled_without_model_raises_value_error(self):
-        environment = {
-            **self.REQUIRED_ENVIRONMENT,
-            "APP_MODE": "DEBUG",
-            "USE_EXTERNAL_LLM": "true",
-            "LLM_PROVIDER": "claude",
-        }
+        environment = self._complete_environment(
+            {
+                "APP_MODE": "DEBUG",
+                "USE_EXTERNAL_LLM": "true",
+                "LLM_PROVIDER": "claude",
+            }
+        )
         with patch.dict(environ, environment, clear=True):
             with self.assertRaises(ValueError) as context:
                 EnvConfig()
         self.assertIn("EXTERNAL_LLM_MODEL_NAME", str(context.exception))
 
     def test_debug_mode_with_external_llm_enabled_and_blank_model_raises_value_error(self):
-        environment = {
-            **self.REQUIRED_ENVIRONMENT,
-            "APP_MODE": "DEBUG",
-            "USE_EXTERNAL_LLM": "true",
-            "LLM_PROVIDER": "claude",
-            "EXTERNAL_LLM_MODEL_NAME": "   ",
-        }
+        environment = self._complete_environment(
+            {
+                "APP_MODE": "DEBUG",
+                "USE_EXTERNAL_LLM": "true",
+                "LLM_PROVIDER": "claude",
+                "EXTERNAL_LLM_MODEL_NAME": "   ",
+            }
+        )
         with patch.dict(environ, environment, clear=True):
             with self.assertRaises(ValueError) as context:
                 EnvConfig()
         self.assertIn("EXTERNAL_LLM_MODEL_NAME", str(context.exception))
 
     def test_prod_mode_with_external_llm_flag_true_uses_ollama_and_ignores_provider_and_model(self):
-        environment = {
-            **self.REQUIRED_ENVIRONMENT,
-            "APP_MODE": "PROD",
-            "USE_EXTERNAL_LLM": "true",
-            "LLM_PROVIDER": "invalid_provider",
-            "EXTERNAL_LLM_MODEL_NAME": "   ",
-        }
+        environment = self._complete_environment(
+            {
+                "APP_MODE": "PROD",
+                "USE_EXTERNAL_LLM": "true",
+                "LLM_PROVIDER": "invalid_provider",
+                "EXTERNAL_LLM_MODEL_NAME": "   ",
+            }
+        )
         with patch.dict(environ, environment, clear=True):
             config = EnvConfig()
         self.assertTrue(config.use_external_llm)
@@ -760,12 +805,13 @@ class TestEnvConfig(TestCase):
         self.assertIsNone(config.external_llm_model_name)
 
     def test_debug_mode_with_external_llm_flag_false_ignores_invalid_provider_without_raising(self):
-        environment = {
-            **self.REQUIRED_ENVIRONMENT,
-            "APP_MODE": "DEBUG",
-            "USE_EXTERNAL_LLM": "false",
-            "LLM_PROVIDER": "invalid_provider",
-        }
+        environment = self._complete_environment(
+            {
+                "APP_MODE": "DEBUG",
+                "USE_EXTERNAL_LLM": "false",
+                "LLM_PROVIDER": "invalid_provider",
+            }
+        )
         with patch.dict(environ, environment, clear=True):
             config = EnvConfig()
         self.assertFalse(config.use_external_llm)
@@ -775,13 +821,14 @@ class TestEnvConfig(TestCase):
     def test_debug_mode_with_external_llm_flag_false_and_claude_set_uses_ollama_and_none_model(
         self,
     ):
-        environment = {
-            **self.REQUIRED_ENVIRONMENT,
-            "APP_MODE": "DEBUG",
-            "USE_EXTERNAL_LLM": "false",
-            "LLM_PROVIDER": "claude",
-            "EXTERNAL_LLM_MODEL_NAME": "claude-3-5-sonnet",
-        }
+        environment = self._complete_environment(
+            {
+                "APP_MODE": "DEBUG",
+                "USE_EXTERNAL_LLM": "false",
+                "LLM_PROVIDER": "claude",
+                "EXTERNAL_LLM_MODEL_NAME": "claude-3-5-sonnet",
+            }
+        )
         with patch.dict(environ, environment, clear=True):
             config = EnvConfig()
         self.assertFalse(config.use_external_llm)
@@ -789,38 +836,41 @@ class TestEnvConfig(TestCase):
         self.assertIsNone(config.external_llm_model_name)
 
     def test_invalid_use_external_llm_value_raises_value_error(self):
-        invalid_values = ["yes", "1", "disabled", ""]
+        invalid_values = ["yes", "1", "disabled"]
         for invalid_value in invalid_values:
             with self.subTest(invalid_value=invalid_value):
-                environment = {
-                    **self.REQUIRED_ENVIRONMENT,
-                    "USE_EXTERNAL_LLM": invalid_value,
-                }
+                environment = self._complete_environment(
+                    {
+                        "USE_EXTERNAL_LLM": invalid_value,
+                    }
+                )
                 with patch.dict(environ, environment, clear=True):
                     with self.assertRaises(ValueError) as context:
                         EnvConfig()
                     self.assertIn("USE_EXTERNAL_LLM", str(context.exception))
 
     def test_external_llm_provider_accepts_case_and_whitespace_variations(self):
-        environment = {
-            **self.REQUIRED_ENVIRONMENT,
-            "APP_MODE": "DEBUG",
-            "USE_EXTERNAL_LLM": "true",
-            "LLM_PROVIDER": "  CLAUDE  ",
-            "EXTERNAL_LLM_MODEL_NAME": "claude-3-5-sonnet",
-        }
+        environment = self._complete_environment(
+            {
+                "APP_MODE": "DEBUG",
+                "USE_EXTERNAL_LLM": "true",
+                "LLM_PROVIDER": "  CLAUDE  ",
+                "EXTERNAL_LLM_MODEL_NAME": "claude-3-5-sonnet",
+            }
+        )
         with patch.dict(environ, environment, clear=True):
             config = EnvConfig()
         self.assertEqual(config.llm_provider, AiProvider.CLAUDE)
 
     def test_invalid_external_llm_provider_raises_value_error_listing_accepted_providers(self):
-        environment = {
-            **self.REQUIRED_ENVIRONMENT,
-            "APP_MODE": "DEBUG",
-            "USE_EXTERNAL_LLM": "true",
-            "LLM_PROVIDER": "invalid_provider",
-            "EXTERNAL_LLM_MODEL_NAME": "claude-3-5-sonnet",
-        }
+        environment = self._complete_environment(
+            {
+                "APP_MODE": "DEBUG",
+                "USE_EXTERNAL_LLM": "true",
+                "LLM_PROVIDER": "invalid_provider",
+                "EXTERNAL_LLM_MODEL_NAME": "claude-3-5-sonnet",
+            }
+        )
         with patch.dict(environ, environment, clear=True):
             with self.assertRaises(ValueError) as context:
                 EnvConfig()
@@ -828,23 +878,25 @@ class TestEnvConfig(TestCase):
         self.assertIn("claude", str(context.exception).lower())
 
     def test_external_llm_model_name_is_stripped_when_provided(self):
-        environment = {
-            **self.REQUIRED_ENVIRONMENT,
-            "APP_MODE": "DEBUG",
-            "USE_EXTERNAL_LLM": "true",
-            "LLM_PROVIDER": "claude",
-            "EXTERNAL_LLM_MODEL_NAME": "  claude-3-5-sonnet  ",
-        }
+        environment = self._complete_environment(
+            {
+                "APP_MODE": "DEBUG",
+                "USE_EXTERNAL_LLM": "true",
+                "LLM_PROVIDER": "claude",
+                "EXTERNAL_LLM_MODEL_NAME": "  claude-3-5-sonnet  ",
+            }
+        )
         with patch.dict(environ, environment, clear=True):
             config = EnvConfig()
         self.assertEqual(config.external_llm_model_name, "claude-3-5-sonnet")
 
     def test_blank_external_llm_model_name_evaluates_to_none_when_external_llm_inactive(self):
-        environment = {
-            **self.REQUIRED_ENVIRONMENT,
-            "USE_EXTERNAL_LLM": "false",
-            "EXTERNAL_LLM_MODEL_NAME": "   ",
-        }
+        environment = self._complete_environment(
+            {
+                "USE_EXTERNAL_LLM": "false",
+                "EXTERNAL_LLM_MODEL_NAME": "   ",
+            }
+        )
         with patch.dict(environ, environment, clear=True):
             config = EnvConfig()
         self.assertIsNone(config.external_llm_model_name)

@@ -11,6 +11,7 @@ from src.domain.dtos.quality_text_sampling_settings_dto import (
 from src.domain.dtos.recommendation_settings_dto import RecommendationSettingsDTO
 from src.domain.enums.ai_provider import AiProvider
 from src.domain.enums.app_mode import AppMode
+from src.domain.exceptions.settings_errors import SettingValueMissing
 from src.infrastructure.adapters.grammar.language_tool_settings import (
     LanguageToolSettings,
 )
@@ -153,17 +154,15 @@ class EnvConfig:
             "conclusion_header_marker",
         )
 
-        self.ollama_model_name: str = getenv("OLLAMA_MODEL_NAME", "gemma4-26b-adapted")
-        self.ollama_base_url: str = getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-        self.ollama_think: bool = self._parse_boolean("OLLAMA_THINK", "false")
+        self.ollama_model_name: str = self._get_required_env("OLLAMA_MODEL_NAME")
+        self.ollama_base_url: str = self._get_required_env("OLLAMA_BASE_URL")
+        self.ollama_think: bool = self._parse_boolean("OLLAMA_THINK")
         self.ollama_model_keep_alive: str = self._parse_ollama_keep_alive()
         self.ollama_num_ctx: int | None = self._parse_ollama_num_ctx()
-        self.ollama_warmup_on_startup: bool = self._parse_boolean(
-            "OLLAMA_WARMUP_ON_STARTUP", "true"
-        )
-        self.external_llm_think: bool = self._parse_boolean("EXTERNAL_LLM_THINK", "false")
-        self.app_mode: AppMode = AppMode(getenv("APP_MODE", "PROD").strip().upper())
-        self.use_external_llm: bool = self._parse_boolean("USE_EXTERNAL_LLM", "false")
+        self.ollama_warmup_on_startup: bool = self._parse_boolean("OLLAMA_WARMUP_ON_STARTUP")
+        self.external_llm_think: bool = self._parse_boolean("EXTERNAL_LLM_THINK")
+        self.app_mode: AppMode = AppMode(self._get_required_env("APP_MODE").upper())
+        self.use_external_llm: bool = self._parse_boolean("USE_EXTERNAL_LLM")
         self.llm_provider: AiProvider = self._parse_llm_provider(
             self.app_mode, self.use_external_llm
         )
@@ -172,8 +171,8 @@ class EnvConfig:
         )
         self.metrics_database_path: str = self._get_required_env("METRICS_DATABASE_PATH")
         self.log_file_path: str = self._get_required_env("LOG_FILE_PATH")
-        self.log_level: str = getenv("LOG_LEVEL", "INFO").strip().upper()
-        self.log_retention_days: int = int(getenv("LOG_RETENTION_DAYS", "14"))
+        self.log_level: str = self._get_required_env("LOG_LEVEL").upper()
+        self.log_retention_days: int = int(self._get_required_env("LOG_RETENTION_DAYS"))
 
         self.publish_threshold: float = settings.read_float(
             "PUBLISH_THRESHOLD", "recommendation", "publish_threshold"
@@ -285,7 +284,9 @@ class EnvConfig:
     def _get_required_env(self, name: str) -> str:
         value = getenv(name, "").strip()
         if not value:
-            raise ValueError(f"Required environment variable {name} is not set")
+            raise SettingValueMissing(
+                f"environment variable {name} is not set or is blank (define it in the .env file)"
+            )
         return value
 
     def _resolve_version(self) -> str:
@@ -302,7 +303,7 @@ class EnvConfig:
         return _VERSION_FILE_PATH.read_text().strip()
 
     def _parse_ollama_keep_alive(self) -> str:
-        raw_value = getenv("OLLAMA_MODEL_KEEP_ALIVE", "15m").strip()
+        raw_value = self._get_required_env("OLLAMA_MODEL_KEEP_ALIVE")
         if not fullmatch(_DURATION_PATTERN, raw_value):
             raise ValueError(
                 f"Invalid value for environment variable OLLAMA_MODEL_KEEP_ALIVE: '{raw_value}' "
@@ -328,9 +329,9 @@ class EnvConfig:
                 f"(expected a positive integer)"
             ) from None
 
-    def _parse_boolean(self, variable_name: str, default: str) -> bool:
+    def _parse_boolean(self, variable_name: str) -> bool:
         """Parse an environment variable strictly as a boolean."""
-        raw_value = getenv(variable_name, default).strip().lower()
+        raw_value = self._get_required_env(variable_name).lower()
         if raw_value == "true":
             return True
         if raw_value == "false":

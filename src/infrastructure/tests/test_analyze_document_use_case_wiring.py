@@ -18,6 +18,7 @@ from src.domain.enums.ai_provider import AiProvider
 from src.domain.enums.ai_purpose import AiPurpose
 from src.domain.enums.app_mode import AppMode
 from src.domain.enums.execution_status import ExecutionStatus
+from src.domain.exceptions.settings_errors import SettingValueMissing
 from src.domain.metrics.analysis_tracker import AnalysisTracker
 from src.domain.metrics.audit_payload_policy import AuditPayloadPolicy
 from src.domain.ports.llm_generator_port import LlmGeneratorPort
@@ -40,9 +41,6 @@ from src.infrastructure.adapters.grammar.language_tool_settings import (
 from src.infrastructure.adapters.llm_generator.audited_llm_generator_adapter import (
     AuditedLlmGeneratorAdapter,
 )
-from src.infrastructure.adapters.llm_generator.ollama_backend_error_mapper import (
-    OllamaBackendErrorMapper,
-)
 from src.infrastructure.adapters.llm_generator.ollama_generator_adapter import (
     OllamaGeneratorAdapter,
 )
@@ -51,6 +49,9 @@ from src.infrastructure.adapters.metrics.fail_safe_analysis_metrics_adapter impo
 )
 from src.infrastructure.adapters.metrics.sqlite_analysis_metrics_adapter import (
     SqliteAnalysisMetricsAdapter,
+)
+from src.infrastructure.tests.test_doubles.complete_test_environment import (
+    CompleteTestEnvironment,
 )
 from src.infrastructure.wirings.analyze_document_use_case_wiring import (
     AnalyzeDocumentUseCaseWiring,
@@ -186,11 +187,7 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
             policy = wiring._get_audit_payload_policy()
             self.assertEqual(policy._app_mode, AppMode.DEBUG)
 
-        environment_without_app_mode = {
-            key: value for key, value in environ.items() if key != "APP_MODE"
-        }
-        environment_without_app_mode.update(self.REQUIRED_ENVIRONMENT)
-        with patch.dict(environ, environment_without_app_mode, clear=True):
+        with patch.dict(environ, {"APP_MODE": "PROD"}):
             wiring = AnalyzeDocumentUseCaseWiring()
             policy = wiring._get_audit_payload_policy()
             self.assertEqual(policy._app_mode, AppMode.PROD)
@@ -294,10 +291,16 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         self.assertEqual(input_payload, prompt)
         self.assertEqual(output_payload, response_content)
 
-    REQUIRED_ENVIRONMENT = {
-        "METRICS_DATABASE_PATH": "/custom/path/metrics.db",
-        "LOG_FILE_PATH": "/custom/path/silvina.log",
-    }
+    @staticmethod
+    def _complete_environment(overrides: dict[str, str] | None = None) -> dict[str, str]:
+        environment = {
+            **CompleteTestEnvironment.application_variables(),
+            "METRICS_DATABASE_PATH": "/custom/path/metrics.db",
+            "LOG_FILE_PATH": "/custom/path/silvina.log",
+        }
+        if overrides:
+            environment.update(overrides)
+        return environment
 
     RECOMMENDATION_ENV_VARS = {
         "PUBLISH_THRESHOLD",
@@ -330,7 +333,7 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
 
     def test_default_thresholds_when_env_vars_absent(self):
         env_without = {k: v for k, v in environ.items() if k not in self.RECOMMENDATION_ENV_VARS}
-        env_without.update(self.REQUIRED_ENVIRONMENT)
+        env_without.update(self._complete_environment())
         with patch.dict(environ, env_without, clear=True):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
         settings: RecommendationSettingsDTO = (
@@ -370,7 +373,7 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
 
     def test_default_structure_max_header_length_when_env_var_absent(self):
         env_without = {k: v for k, v in environ.items() if k != "STRUCTURE_MAX_HEADER_LENGTH"}
-        env_without.update(self.REQUIRED_ENVIRONMENT)
+        env_without.update(self._complete_environment())
         with patch.dict(environ, env_without, clear=True):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
         self.assertEqual(result._structure_validator._max_header_length, 100)
@@ -385,7 +388,7 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
 
     def test_default_citation_max_author_name_length_when_env_var_absent(self):
         env_without = {k: v for k, v in environ.items() if k != "CITATION_MAX_AUTHOR_NAME_LENGTH"}
-        env_without.update(self.REQUIRED_ENVIRONMENT)
+        env_without.update(self._complete_environment())
         with patch.dict(environ, env_without, clear=True):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
         port = result._citation_extractor._citation_extraction_port
@@ -403,7 +406,7 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
 
     def test_default_grammar_max_replacements_when_env_var_absent(self):
         env_without = {k: v for k, v in environ.items() if k != "GRAMMAR_MAX_REPLACEMENTS"}
-        env_without.update(self.REQUIRED_ENVIRONMENT)
+        env_without.update(self._complete_environment())
         with patch.dict(environ, env_without, clear=True):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
         port = result._grammar_checker._grammar_check_port
@@ -413,7 +416,7 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
 
     def test_default_grammar_adapter_parameters_when_env_vars_absent(self):
         env_without = {k: v for k, v in environ.items() if not k.startswith("GRAMMAR_MAX_")}
-        env_without.update(self.REQUIRED_ENVIRONMENT)
+        env_without.update(self._complete_environment())
         with patch.dict(environ, env_without, clear=True):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
         port = result._grammar_checker._grammar_check_port
@@ -449,7 +452,7 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
             for k, v in environ.items()
             if not k.startswith("QUALITY_TEXT_SAMPLE_") and k != "QUALITY_MIN_SAMPLE_WORD_COUNT"
         }
-        env_without.update(self.REQUIRED_ENVIRONMENT)
+        env_without.update(self._complete_environment())
         with patch.dict(environ, env_without, clear=True):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
         sampler = result._quality_analyzer._text_sampler
@@ -500,7 +503,7 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
             if not k.startswith("ARTICLE_CLASSIFICATION_SAMPLE_")
             and k != "ARTICLE_CLASSIFICATION_BIBLIOGRAPHY_HEADER_MAX_LENGTH"
         }
-        env_without.update(self.REQUIRED_ENVIRONMENT)
+        env_without.update(self._complete_environment())
         with patch.dict(environ, env_without, clear=True):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
         sampler = result._article_classifier._text_sampler
@@ -546,16 +549,11 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
             sampler._classification_text_sampling_settings.bibliography_header_max_length, 40
         )
 
-    def test_default_ollama_think_when_env_var_absent(self):
+    def test_missing_ollama_think_raises_setting_value_missing(self):
         env_without = {k: v for k, v in environ.items() if k != "OLLAMA_THINK"}
         with patch.dict(environ, env_without, clear=True):
-            result = AnalyzeDocumentUseCaseWiring().create_use_case()
-        audited_generator = result._article_classifier._llm_generator
-        assert isinstance(audited_generator, AuditedLlmGeneratorAdapter)
-        generator = audited_generator._generator
-        self.assertIsInstance(generator, OllamaGeneratorAdapter)
-        assert isinstance(generator, OllamaGeneratorAdapter)
-        self.assertFalse(generator._think)
+            with self.assertRaises(SettingValueMissing):
+                AnalyzeDocumentUseCaseWiring().create_use_case()
 
     def test_env_var_overrides_ollama_think(self):
         with patch.dict(environ, {"OLLAMA_THINK": "true"}):
@@ -567,17 +565,11 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         assert isinstance(generator, OllamaGeneratorAdapter)
         self.assertTrue(generator._think)
 
-    def test_default_ollama_keep_alive_when_env_var_absent(self):
+    def test_missing_ollama_model_keep_alive_raises_setting_value_missing(self):
         env_without = {k: v for k, v in environ.items() if k != "OLLAMA_MODEL_KEEP_ALIVE"}
         with patch.dict(environ, env_without, clear=True):
-            result = AnalyzeDocumentUseCaseWiring().create_use_case()
-        audited_generator = result._article_classifier._llm_generator
-        assert isinstance(audited_generator, AuditedLlmGeneratorAdapter)
-        generator = audited_generator._generator
-        self.assertIsInstance(generator, OllamaGeneratorAdapter)
-        assert isinstance(generator, OllamaGeneratorAdapter)
-        self.assertEqual(generator._keep_alive, "15m")
-        self.assertIsInstance(generator._error_mapper, OllamaBackendErrorMapper)
+            with self.assertRaises(SettingValueMissing):
+                AnalyzeDocumentUseCaseWiring().create_use_case()
 
     def test_env_var_overrides_ollama_keep_alive(self):
         with patch.dict(environ, {"OLLAMA_MODEL_KEEP_ALIVE": "30m"}):

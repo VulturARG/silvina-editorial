@@ -170,17 +170,19 @@ The application version attribute (`silvina_version`) MUST be resolved dynamical
 | `QUALITY_TEXT_SAMPLE_CONCLUSION_PARAGRAPH_LIMIT` | `int` | `settings.toml` `[quality_text_sample]` `conclusion_paragraph_limit` | `3` | `quality_text_sample_conclusion_paragraph_limit` |
 | `QUALITY_TEXT_SAMPLE_FALLBACK_TAIL_PARAGRAPH_COUNT` | `int` | `settings.toml` `[quality_text_sample]` `fallback_tail_paragraph_count` | `2` | `quality_text_sample_fallback_tail_paragraph_count` |
 | `QUALITY_TEXT_SAMPLE_CONCLUSION_HEADER_MARKER` | `str` | `settings.toml` `[quality_text_sample]` `conclusion_header_marker` | `"conclusi"` | `quality_text_sample_conclusion_header_marker` |
-| `OLLAMA_MODEL_NAME` | `str` | `.env` | `"gemma4-26b-adapted"` | `ollama_model_name` |
-| `OLLAMA_BASE_URL` | `str` | `.env` | `"http://localhost:11434"` | `ollama_base_url` |
-| `OLLAMA_THINK` | `bool` | `.env` | `false` | `ollama_think` |
-| `OLLAMA_MODEL_KEEP_ALIVE` | `str` | `.env` | `"15m"` | `ollama_model_keep_alive` |
+| `OLLAMA_MODEL_NAME` | `str` | `.env` | `— (required)` | `ollama_model_name` |
+| `OLLAMA_BASE_URL` | `str` | `.env` | `— (required)` | `ollama_base_url` |
+| `OLLAMA_THINK` | `bool` | `.env` | `— (required)` | `ollama_think` |
+| `OLLAMA_MODEL_KEEP_ALIVE` | `str` | `.env` | `— (required)` | `ollama_model_keep_alive` |
 | `OLLAMA_NUM_CTX` | `int \| None` | `.env` | `None` | `ollama_num_ctx` |
-| `OLLAMA_WARMUP_ON_STARTUP` | `bool` | `.env` | `true` | `ollama_warmup_on_startup` |
-| `APP_MODE` | `AppMode` | `.env` | `"PROD"` | `app_mode` |
+| `OLLAMA_WARMUP_ON_STARTUP` | `bool` | `.env` | `— (required)` | `ollama_warmup_on_startup` |
+| `USE_EXTERNAL_LLM` | `bool` | `.env` | `— (required)` | `use_external_llm` |
+| `EXTERNAL_LLM_THINK` | `bool` | `.env` | `— (required)` | `external_llm_think` |
+| `APP_MODE` | `AppMode` | `.env` | `— (required)` | `app_mode` |
 | `METRICS_DATABASE_PATH` | `str` | `.env` | `— (required)` | `metrics_database_path` |
 | `LOG_FILE_PATH` | `str` | `.env` | `— (required)` | `log_file_path` |
-| `LOG_LEVEL` | `str` | `.env` | `"INFO"` | `log_level` |
-| `LOG_RETENTION_DAYS` | `int` | `.env` | `14` | `log_retention_days` |
+| `LOG_LEVEL` | `str` | `.env` | `— (required)` | `log_level` |
+| `LOG_RETENTION_DAYS` | `int` | `.env` | `— (required)` | `log_retention_days` |
 | `PUBLISH_THRESHOLD` | `float` | `settings.toml` `[recommendation]` `publish_threshold` | `7.0` | `publish_threshold` |
 | `QUALITY_THRESHOLD` | `float` | `settings.toml` `[recommendation]` `quality_threshold` | `7.0` | `quality_threshold` |
 | `GRAMMAR_THRESHOLD` | `float` | `settings.toml` `[recommendation]` `grammar_threshold` | `7.0` | `grammar_threshold` |
@@ -202,11 +204,13 @@ The application version attribute (`silvina_version`) MUST be resolved dynamical
 
 > **Naming note**: the `PUBLISH_THRESHOLD` … `CRITICAL_GRAMMAR_THRESHOLD` variables (recommendation thresholds) carry no `RECOMMENDATION_` prefix. In `settings.toml` they are grouped under the `[recommendation]` section, and in `.env.example` under a section comment (e.g. `# Recommendation thresholds`), instead of relying on a name prefix for grouping.
 
+**Required parameters**: every parameter whose Source is `.env` and whose Default is `— (required)` has no default value in code. If it is not set, or is blank, `EnvConfig` fails fast with `SettingValueMissing` naming the variable, so a missing parameter never falls back silently. The exceptions are `OLLAMA_NUM_CTX` (optional, absent means `None`), `LLM_PROVIDER` and `EXTERNAL_LLM_MODEL_NAME` (required only when the external LLM is active in `DEBUG`), `SILVINA_APP_NAME` (keeps its default `"Silvina Editorial Assistant"`, by user decision) and the testing-mode fallback `SILVINA_VERSION`.
+
 **Source note**: `settings.toml` is versioned and carries the values in use. A variable that is also present in the local `.env` overrides the file on that machine. `.env` and `.env.example` are not edited by the migration to `settings.toml`.
 
 #### Scenario: EnvConfig values are loaded from settings.toml when env is empty and version.txt exists
 
-- GIVEN an empty environment except for a valid `version.txt` file with content `"1.2.3"`
+- GIVEN an environment where every required `.env` parameter is set and a valid `version.txt` file with content `"1.2.3"`
 - WHEN `EnvConfig` is instantiated
 - THEN attributes match the values in the table above
 - AND `env_config.silvina_version` is `"1.2.3"`
@@ -244,6 +248,13 @@ The application version attribute (`silvina_version`) MUST be resolved dynamical
 - GIVEN the given `settings_file_path` does not exist
 - WHEN `EnvConfig` is instantiated
 - THEN `SettingsFileNotFound` is raised naming the path
+
+#### Scenario: EnvConfig fails fast when a required .env parameter is missing
+
+- GIVEN every required `.env` parameter is set except `OLLAMA_BASE_URL`
+- WHEN `EnvConfig` is instantiated
+- THEN `SettingValueMissing` is raised and its message names `OLLAMA_BASE_URL`
+- AND no default value is used
 
 #### Scenario: EnvConfig fails fast when version.txt is missing
 

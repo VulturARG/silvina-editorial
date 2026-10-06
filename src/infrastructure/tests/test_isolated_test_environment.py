@@ -10,6 +10,9 @@ from unittest.mock import patch
 from src.infrastructure.tests.isolated_test_environment import (
     IsolatedTestEnvironment,
 )
+from src.infrastructure.tests.test_doubles.complete_test_environment import (
+    CompleteTestEnvironment,
+)
 
 
 class TestIsolatedTestEnvironment(TestCase):
@@ -54,6 +57,13 @@ class TestIsolatedTestEnvironment(TestCase):
         IsolatedTestEnvironment.apply()
 
         self.assertEqual(environ["TESTING"], "True")
+
+    @patch.dict(environ, clear=True)
+    def test_apply_sets_complete_application_environment_variables(self) -> None:
+        IsolatedTestEnvironment.apply()
+
+        for key, value in CompleteTestEnvironment.application_variables().items():
+            self.assertEqual(environ.get(key), value)
 
     @patch.dict(environ)
     def test_apply_is_idempotent_reusing_same_directory(self) -> None:

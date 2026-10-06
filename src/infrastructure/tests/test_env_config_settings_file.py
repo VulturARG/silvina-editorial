@@ -6,15 +6,24 @@ from unittest.mock import patch
 
 from src.domain.exceptions.settings_errors import SettingsFileNotFound, SettingValueMissing
 from src.infrastructure.env_config import EnvConfig
+from src.infrastructure.tests.test_doubles.complete_test_environment import (
+    CompleteTestEnvironment,
+)
 
 PROJECT_SETTINGS_FILE_PATH = Path(__file__).resolve().parents[3] / "settings.toml"
 
 
 class TestEnvConfigSettingsFile(TestCase):
-    REQUIRED_ENVIRONMENT = {
-        "METRICS_DATABASE_PATH": "/custom/path/metrics.db",
-        "LOG_FILE_PATH": "/custom/path/silvina.log",
-    }
+    @staticmethod
+    def _complete_environment(overrides: dict[str, str] | None = None) -> dict[str, str]:
+        environment = {
+            **CompleteTestEnvironment.application_variables(),
+            "METRICS_DATABASE_PATH": "/custom/path/metrics.db",
+            "LOG_FILE_PATH": "/custom/path/silvina.log",
+        }
+        if overrides:
+            environment.update(overrides)
+        return environment
 
     def setUp(self):
         self._temporary_directory = TemporaryDirectory()
@@ -29,7 +38,7 @@ class TestEnvConfigSettingsFile(TestCase):
         )
 
     def test_project_settings_file_provides_the_grammar_structure_and_citation_values(self):
-        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+        with patch.dict(environ, self._complete_environment(), clear=True):
             config = EnvConfig()
 
         self.assertEqual(config.grammar_max_replacements, 3)
@@ -40,7 +49,7 @@ class TestEnvConfigSettingsFile(TestCase):
         self.assertEqual(config.citation_max_author_name_length, 100)
 
     def test_project_settings_file_provides_the_article_classification_and_size_values(self):
-        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+        with patch.dict(environ, self._complete_environment(), clear=True):
             config = EnvConfig()
 
         self.assertAlmostEqual(config.article_classifier_temperature, 0.1)
@@ -59,14 +68,14 @@ class TestEnvConfigSettingsFile(TestCase):
     def test_float_value_comes_from_the_given_settings_file(self):
         self._write_project_settings_with("temperature = 0.1", "temperature = 0.4")
 
-        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+        with patch.dict(environ, self._complete_environment(), clear=True):
             config = EnvConfig(settings_file_path=self._settings_file_path)
 
         self.assertAlmostEqual(config.article_classifier_temperature, 0.4)
 
     def test_environment_variable_overrides_the_article_size_setting(self):
         self._write_project_settings_with("long_max_chars = 40000", "long_max_chars = 50000")
-        environment = {**self.REQUIRED_ENVIRONMENT, "ARTICLE_SIZE_LONG_MAX_CHARS": "45000"}
+        environment = self._complete_environment({"ARTICLE_SIZE_LONG_MAX_CHARS": "45000"})
 
         with patch.dict(environ, environment, clear=True):
             config = EnvConfig(settings_file_path=self._settings_file_path)
@@ -74,7 +83,7 @@ class TestEnvConfigSettingsFile(TestCase):
         self.assertEqual(config.article_size_long_max_chars, 45000)
 
     def test_project_settings_file_provides_the_quality_values(self):
-        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+        with patch.dict(environ, self._complete_environment(), clear=True):
             config = EnvConfig()
 
         self.assertAlmostEqual(config.quality_level_excellent_threshold, 9.0)
@@ -95,14 +104,14 @@ class TestEnvConfigSettingsFile(TestCase):
             'conclusion_header_marker = "conclusi"', 'conclusion_header_marker = "cierre"'
         )
 
-        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+        with patch.dict(environ, self._complete_environment(), clear=True):
             config = EnvConfig(settings_file_path=self._settings_file_path)
 
         self.assertEqual(config.quality_text_sample_conclusion_header_marker, "cierre")
 
     def test_environment_variable_overrides_the_quality_level_threshold(self):
         self._write_project_settings_with("good_threshold = 7.0", "good_threshold = 6.5")
-        environment = {**self.REQUIRED_ENVIRONMENT, "QUALITY_LEVEL_GOOD_THRESHOLD": "8.0"}
+        environment = self._complete_environment({"QUALITY_LEVEL_GOOD_THRESHOLD": "8.0"})
 
         with patch.dict(environ, environment, clear=True):
             config = EnvConfig(settings_file_path=self._settings_file_path)
@@ -110,7 +119,7 @@ class TestEnvConfigSettingsFile(TestCase):
         self.assertAlmostEqual(config.quality_level_good_threshold, 8.0)
 
     def test_project_settings_file_provides_the_recommendation_values(self):
-        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+        with patch.dict(environ, self._complete_environment(), clear=True):
             config = EnvConfig()
 
         self.assertAlmostEqual(config.publish_threshold, 7.0)
@@ -129,7 +138,7 @@ class TestEnvConfigSettingsFile(TestCase):
             "critical_grammar_threshold = 5.0", "critical_grammar_threshold = 4.5"
         )
 
-        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+        with patch.dict(environ, self._complete_environment(), clear=True):
             config = EnvConfig(settings_file_path=self._settings_file_path)
 
         self.assertAlmostEqual(config.critical_grammar_threshold, 4.5)
@@ -139,13 +148,13 @@ class TestEnvConfigSettingsFile(TestCase):
             "citation_count_threshold = 10", "citation_count_threshold = 12"
         )
 
-        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+        with patch.dict(environ, self._complete_environment(), clear=True):
             config = EnvConfig(settings_file_path=self._settings_file_path)
 
         self.assertEqual(config.citation_count_threshold, 12)
 
     def test_project_settings_file_provides_the_report_and_upload_values(self):
-        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+        with patch.dict(environ, self._complete_environment(), clear=True):
             config = EnvConfig()
 
         self.assertAlmostEqual(config.report_score_high_threshold, 8.0)
@@ -159,7 +168,7 @@ class TestEnvConfigSettingsFile(TestCase):
     def test_upload_limit_comes_from_the_given_settings_file(self):
         self._write_project_settings_with("max_size_bytes = 26214400", "max_size_bytes = 1048576")
 
-        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+        with patch.dict(environ, self._complete_environment(), clear=True):
             config = EnvConfig(settings_file_path=self._settings_file_path)
 
         self.assertEqual(config.upload_max_size_bytes, 1048576)
@@ -169,14 +178,14 @@ class TestEnvConfigSettingsFile(TestCase):
             "score_high_threshold = 8.0", "score_high_threshold = 8.5"
         )
 
-        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+        with patch.dict(environ, self._complete_environment(), clear=True):
             config = EnvConfig(settings_file_path=self._settings_file_path)
 
         self.assertAlmostEqual(config.report_score_high_threshold, 8.5)
 
     def test_environment_variable_overrides_the_report_words_per_page(self):
         self._write_project_settings_with("words_per_page = 250", "words_per_page = 300")
-        environment = {**self.REQUIRED_ENVIRONMENT, "REPORT_WORDS_PER_PAGE": "275"}
+        environment = self._complete_environment({"REPORT_WORDS_PER_PAGE": "275"})
 
         with patch.dict(environ, environment, clear=True):
             config = EnvConfig(settings_file_path=self._settings_file_path)
@@ -186,14 +195,14 @@ class TestEnvConfigSettingsFile(TestCase):
     def test_value_comes_from_the_given_settings_file(self):
         self._write_project_settings_with("max_paragraphs = 20", "max_paragraphs = 7")
 
-        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+        with patch.dict(environ, self._complete_environment(), clear=True):
             config = EnvConfig(settings_file_path=self._settings_file_path)
 
         self.assertEqual(config.grammar_max_paragraphs, 7)
 
     def test_environment_variable_overrides_the_settings_file(self):
         self._write_project_settings_with("max_paragraphs = 20", "max_paragraphs = 7")
-        environment = {**self.REQUIRED_ENVIRONMENT, "GRAMMAR_MAX_PARAGRAPHS": "42"}
+        environment = self._complete_environment({"GRAMMAR_MAX_PARAGRAPHS": "42"})
 
         with patch.dict(environ, environment, clear=True):
             config = EnvConfig(settings_file_path=self._settings_file_path)
@@ -203,11 +212,11 @@ class TestEnvConfigSettingsFile(TestCase):
     def test_raises_setting_value_missing_naming_the_missing_key(self):
         self._write_project_settings_with("max_paragraphs = 20\n", "")
 
-        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+        with patch.dict(environ, self._complete_environment(), clear=True):
             with self.assertRaisesRegex(SettingValueMissing, "max_paragraphs"):
                 EnvConfig(settings_file_path=self._settings_file_path)
 
     def test_raises_settings_file_not_found_when_the_settings_file_does_not_exist(self):
-        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+        with patch.dict(environ, self._complete_environment(), clear=True):
             with self.assertRaises(SettingsFileNotFound):
                 EnvConfig(settings_file_path=self._settings_file_path)
