@@ -1,10 +1,13 @@
 from unittest import TestCase
 
-from src.domain.exceptions.analysis_errors import AnalysisCancelled
+from src.domain.exceptions.analysis_errors import AnalysisCancelled, AnalysisError
 from src.domain.exceptions.base_src_error import BaseSrcError, SrcBaseWarning
 
 
 class TestAnalysisCancelled(TestCase):
+    def test_is_subclass_of_analysis_error(self) -> None:
+        self.assertTrue(issubclass(AnalysisCancelled, AnalysisError))
+
     def test_is_subclass_of_src_base_warning(self) -> None:
         self.assertTrue(issubclass(AnalysisCancelled, SrcBaseWarning))
 
