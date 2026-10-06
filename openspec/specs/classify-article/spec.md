@@ -95,8 +95,10 @@ single method's signature from `generate(self, prompt: str) -> str` to
 parameter MUST default to `None` so that existing `analyze-quality` call sites
 calling `generate(prompt)` positionally remain valid with no source changes.
 `OllamaGeneratorAdapter.generate()` MUST forward `options` to
-`ollama.generate(options=options)` unmodified, with no adapter-side
-interpretation, defaulting, or translation of the dict's contents.
+`ollama.generate(options=options)`. When `num_ctx` is configured on the adapter
+(not `None`), the adapter merges `num_ctx` into `options` (`{**(options or {}), "num_ctx": num_ctx}`)
+without mutating the caller's dictionary. When `num_ctx` is `None`, `options` is forwarded
+unmodified (including `None`).
 
 #### Scenario: Existing analyze-quality call site is unaffected
 
@@ -106,17 +108,25 @@ interpretation, defaulting, or translation of the dict's contents.
 - THEN those call sites continue to compile and behave identically — no
   changes to `quality_analyzer.py` or its tests are required
 
-#### Scenario: Options dict forwards to ollama.generate verbatim
+#### Scenario: Options dict forwards to ollama.generate verbatim when num_ctx is None
 
 - GIVEN a call to `OllamaGeneratorAdapter.generate(prompt, options={"temperature": 0.1, "num_predict": 300})`
+  on an adapter with `num_ctx=None`
 - WHEN the adapter executes
 - THEN the underlying `ollama.generate()` call receives
   `options={"temperature": 0.1, "num_predict": 300}` unchanged
 
-#### Scenario: Omitting options preserves prior adapter behavior
+#### Scenario: Configured num_ctx merges into options
+
+- GIVEN an `OllamaGeneratorAdapter` configured with `num_ctx=16384`
+- WHEN `generate` is called with `options={"temperature": 0.1}`
+- THEN the underlying `ollama.generate()` call receives
+  `options={"temperature": 0.1, "num_predict": 300, "num_ctx": 16384}` and the caller's dict is unmutated
+
+#### Scenario: Omitting options preserves prior adapter behavior when num_ctx is None
 
 - GIVEN a call to `OllamaGeneratorAdapter.generate(prompt)` with no `options`
-  argument
+  argument on an adapter with `num_ctx=None`
 - WHEN the adapter executes
 - THEN the underlying `ollama.generate()` call is made exactly as it was
   before this slice (no `options` kwarg forced upon it with a non-`None`

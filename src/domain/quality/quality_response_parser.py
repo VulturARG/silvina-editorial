@@ -1,108 +1,75 @@
-import re
+from re import IGNORECASE, compile
 
 from src.domain.dtos.dimension_score_dto import DimensionScoreDTO
+from src.domain.dtos.feedback_block_dto import FeedbackBlockDTO
 from src.domain.dtos.parsed_response_dto import ParsedResponseDTO
 from src.domain.enums.quality_dimension import QualityDimension
+from src.domain.quality.dimension_feedback_extractor import DimensionFeedbackExtractor
+from src.domain.quality.dimension_score_extractor import DimensionScoreExtractor
+from src.domain.quality.quality_dimension_matcher import QualityDimensionMatcher
 
-_DIMENSION_HEADER_PATTERN = re.compile(
-    r"(?=\*\*(?:\d+\.\s*)?(?:Claridad|Coherencia|Argumentaci[oó]n|Conclusiones))",
-    re.IGNORECASE,
-)
-_EXPLICIT_SCORE_PATTERN = re.compile(
-    r"\[Puntuaci[oó]n:\s*(\d+(?:\.\d+)?)(?:/10)?\]|(\d+(?:\.\d+)?)\s*/\s*10",
-    re.IGNORECASE,
-)
-_RECOMMENDATION_TAIL_PATTERN = re.compile(r"\*\*RECOMENDACIÓN.*", re.DOTALL | re.IGNORECASE)
-_LIST_MARKER_PATTERN = re.compile(r"^[*+-]\s+")
-_NARRATIVE_SCORE_KEYWORDS = (
-    (("excelente", "sobresaliente", "muy bueno"), 8.5),
-    (("bueno", "adecuado", "correcto"), 7.5),
-    (("aceptable", "suficiente", "regular"), 6.0),
-    (("deficiente", "débil", "pobre", "insuficiente"), 4.0),
-)
-_DIMENSION_KEYWORDS: tuple[tuple[QualityDimension, tuple[str, ...]], ...] = (
-    (QualityDimension.ARGUMENTATION, ("argumentaci",)),
-    (QualityDimension.CONCLUSIONS, ("conclusi",)),
-    (QualityDimension.COHERENCE, ("coherencia",)),
-    (QualityDimension.CLARITY, ("claridad", "argumento")),
+_DIMENSION_HEADER_PATTERN = compile(
+    r"(?m)(?=^[ \t]*(?:#{1,6}[ \t]+)?\*\*(?:\d+\.\s*)?(?:Claridad|Coherencia|Argumentaci[oó]n|Conclusiones))",
+    IGNORECASE,
 )
 
 
 class QualityResponseParser:
-    """Parses one LLM response into per-dimension scores and feedback."""
+    """Parses LLM response text into structured per-dimension scores and feedback."""
 
     def __init__(
         self,
-        unscored_dimension_score: float = 7.0,
-        unscored_dimension_feedback: str = "No disponible",
+        dimension_matcher: QualityDimensionMatcher,
+        score_extractor: DimensionScoreExtractor,
+        feedback_extractor: DimensionFeedbackExtractor,
+        unscored_dimension: DimensionScoreDTO,
     ) -> None:
-        self._unscored_dimension_score = unscored_dimension_score
-        self._unscored_dimension_feedback = unscored_dimension_feedback
+        self._dimension_matcher = dimension_matcher
+        self._score_extractor = score_extractor
+        self._feedback_extractor = feedback_extractor
+        self._unscored_dimension = unscored_dimension
 
     def parse(self, text: str) -> ParsedResponseDTO:
         """Parse an LLM response into a ParsedResponseDTO of per-dimension scores."""
-        scores = {
-            dimension: DimensionScoreDTO(
-                self._unscored_dimension_score, self._unscored_dimension_feedback
-            )
-            for dimension in QualityDimension
-        }
-        matched_dimensions: set[QualityDimension] = set()
+        matched_scores: dict[QualityDimension, DimensionScoreDTO] = {}
 
         blocks = _DIMENSION_HEADER_PATTERN.split(text.strip())
         for block in blocks:
             if not block.strip():
                 continue
 
-            score = self._extract_score(block)
-            feedback = self._extract_feedback(block)
-            dimension = self._map_block_to_dimension(block)
+            dimension = self._dimension_matcher.match(block)
             if dimension is None:
                 continue
 
-            scores[dimension] = DimensionScoreDTO(score, feedback)
-            matched_dimensions.add(dimension)
+            feedback_result = self._feedback_extractor.extract(block)
+            existing_score = matched_scores.get(dimension)
+            if self._should_ignore_candidate(existing_score, feedback_result.blocks):
+                continue
 
-        return ParsedResponseDTO(scores=scores, matched_dimensions=frozenset(matched_dimensions))
+            score = self._score_extractor.extract(block)
+            matched_scores[dimension] = DimensionScoreDTO(
+                score=score,
+                feedback=feedback_result.feedback,
+                feedback_blocks=feedback_result.blocks,
+            )
 
-    def _extract_feedback(self, block: str) -> str:
-        lines = block.strip().split("\n")
-        feedback_lines = [
-            _LIST_MARKER_PATTERN.sub("", line.strip()) for line in lines[1:] if line.strip()
-        ]
-        feedback = " ".join(feedback_lines)
-        feedback = _RECOMMENDATION_TAIL_PATTERN.sub("", feedback).strip()
-        feedback = " ".join(feedback.split())
+        scores = {
+            dimension: matched_scores.get(dimension, self._unscored_dimension)
+            for dimension in QualityDimension
+        }
+        return ParsedResponseDTO(
+            scores=scores,
+            matched_dimensions=frozenset(matched_scores.keys()),
+        )
 
-        if len(feedback) < 10:
-            return self._unscored_dimension_feedback
-
-        sentences = [s.strip() for s in feedback.split(".") if s.strip()]
-        if len(sentences) > 3:
-            return ". ".join(sentences[:3]) + "."
-        return feedback
-
-    def _extract_score(self, block: str) -> float:
-        match = _EXPLICIT_SCORE_PATTERN.search(block)
-        if match is None:
-            return self._infer_score_from_narrative(block)
-
-        score_text = match.group(1) or match.group(2)
-        try:
-            return max(0.0, min(10.0, float(score_text)))
-        except ValueError:
-            return self._unscored_dimension_score
-
-    def _infer_score_from_narrative(self, block: str) -> float:
-        block_lower = block.lower()
-        for keywords, score in _NARRATIVE_SCORE_KEYWORDS:
-            if any(keyword in block_lower for keyword in keywords):
-                return score
-        return self._unscored_dimension_score
-
-    def _map_block_to_dimension(self, block: str) -> QualityDimension | None:
-        block_lower = block[:200].lower()
-        for dimension, keywords in _DIMENSION_KEYWORDS:
-            if any(keyword in block_lower for keyword in keywords):
-                return dimension
-        return None
+    def _should_ignore_candidate(
+        self,
+        existing_score: DimensionScoreDTO | None,
+        candidate_blocks: tuple[FeedbackBlockDTO, ...],
+    ) -> bool:
+        return (
+            existing_score is not None
+            and bool(existing_score.feedback_blocks)
+            and not candidate_blocks
+        )

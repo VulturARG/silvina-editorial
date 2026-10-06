@@ -1,0 +1,74 @@
+# Tuning parameters of Silvina Editorial Assistant.
+# Versioned with the code. Machine-specific values and secrets belong in .env.
+# An environment variable of the same name as before overrides any value here.
+
+[grammar]
+max_replacements = 3
+max_paragraphs = 20
+max_chars = 5000
+max_errors = 10
+
+[structure]
+max_header_length = 100
+
+[citation]
+max_author_name_length = 100
+
+[article_classifier]
+temperature = 0.1
+num_predict = 300
+
+[article_classification]
+sample_introduction_character_limit = 32000
+sample_conclusion_character_limit = 2500
+sample_fallback_character_limit = 6000
+bibliography_header_max_length = 30
+
+[article_size]
+short_min_chars = 16000
+short_max_chars = 24000
+undefined_min_chars = 24001
+undefined_max_chars = 35999
+long_min_chars = 36000
+long_max_chars = 40000
+
+[quality]
+min_sample_word_count = 10000
+
+[quality_text_sample]
+character_limit = 32000
+reference_line_prefix_length = 80
+introduction_paragraph_count = 3
+middle_paragraph_count = 2
+conclusion_paragraph_limit = 3
+fallback_tail_paragraph_count = 2
+conclusion_header_marker = "conclusi"
+
+[quality_level]
+excellent_threshold = 9.0
+good_threshold = 7.0
+acceptable_threshold = 5.0
+needs_improvement_threshold = 3.0
+
+[recommendation]
+publish_threshold = 7.0
+quality_threshold = 7.0
+grammar_threshold = 7.0
+dimension_threshold = 6.0
+citation_match_threshold = 90.0
+critical_citation_match_threshold = 50.0
+citation_count_threshold = 10
+classification_confidence_threshold = 0.7
+critical_quality_threshold = 5.0
+critical_grammar_threshold = 5.0
+
+[report]
+score_high_threshold = 8.0
+score_medium_threshold = 6.0
+words_per_page = 250
+max_errors_displayed = 5
+context_truncation_limit = 150
+max_replacements = 3
+
+[upload]
+max_size_bytes = 26214400

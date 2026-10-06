@@ -38,9 +38,9 @@ mccabe.max-complexity = 10
 exclude = [
     ".venv",
     "**/*.txt",
-    "tests/",
+    "tests",
+    "tests/**",
     "main.py",
-    "gradio_app.py",
     "process_feedback.py",
     "conftest.py",
 ]

@@ -24,6 +24,6 @@ class ExportReportWiring:
         )
         adapter = DocxReportAdapter(
             logo_path=join(ASSETS_DIR, "logo.jpg"),
-            settings=settings,
+            docx_report_settings=settings,
         )
         return ExportReportUseCase(report_export_port=adapter)

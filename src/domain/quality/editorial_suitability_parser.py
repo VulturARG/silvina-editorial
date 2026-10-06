@@ -1,84 +1,62 @@
-from re import IGNORECASE, Pattern, compile as re_compile
-
-_VERDICT_PATTERN = re_compile(r"VEREDICTO:\s*(.+)", IGNORECASE)
-_CONTRIBUTION_PATTERN = re_compile(r"CONTRIBUCI[OÓ]N:\s*(.+)", IGNORECASE)
-_LINES_PATTERN = re_compile(r"L[IÍ]NEAS:\s*(.+)", IGNORECASE)
-_JUSTIFICATION_PATTERN = re_compile(r"JUSTIFICACI[OÓ]N:\s*(.+)", IGNORECASE)
-_SENTENCE_END_PATTERN = re_compile(r"[.!?]")
-
-_CONTRIBUTION_VERDICTS = ("NO SUSTENTADA", "PARCIAL", "SUSTENTADA")
-_ALIGNMENT_VERDICTS = ("NO ALINEADO", "PARCIALMENTE ALINEADO", "ALINEADO")
-
-_PHRASE_MAX_LENGTH = 120
-_OBSERVATION_MAX_LENGTH = 120
-_JUSTIFICATION_MAX_LENGTH = 120
-_LINES_MAX_LENGTH = 80
-
-_NOT_SUSTAINED_OBSERVATION = "Sin contribución observada o declarada."
-_PARTIAL_OBSERVATION = "Contribución declarada pero no suficientemente sustentada."
-_SUSTAINED_OBSERVATION_FALLBACK = "Contribución sustentada."
+from src.domain.dtos.alignment_assessment_dto import AlignmentAssessmentDTO
+from src.domain.dtos.contribution_assessment_dto import ContributionAssessmentDTO
+from src.domain.enums.alignment_verdict import AlignmentVerdict
+from src.domain.enums.contribution_verdict import ContributionVerdict
+from src.domain.quality.alignment_lines_extractor import AlignmentLinesExtractor
+from src.domain.quality.contribution_observation_builder import ContributionObservationBuilder
+from src.domain.quality.suitability_field_extractor import SuitabilityFieldExtractor
+from src.domain.quality.suitability_field_truncator import SuitabilityFieldTruncator
+from src.domain.quality.suitability_verdict_matcher import SuitabilityVerdictMatcher
 
 
 class EditorialSuitabilityParser:
-    """Stateless parser that extracts verdicts and justifications from raw LLM text."""
+    """Orchestrates parsing of editorial suitability contribution and alignment assessments."""
 
-    def parse_contribution(self, text: str) -> tuple[str, str, str]:
-        """Return (contribution_verdict, contribution_phrase, contribution_observation)."""
-        verdict = self._extract_verdict(text, _CONTRIBUTION_VERDICTS)
-        phrase = self._truncate_field(
-            self._extract_field(text, _CONTRIBUTION_PATTERN), _PHRASE_MAX_LENGTH
+    def __init__(
+        self,
+        field_extractor: SuitabilityFieldExtractor,
+        verdict_matcher: SuitabilityVerdictMatcher,
+        lines_extractor: AlignmentLinesExtractor,
+        field_truncator: SuitabilityFieldTruncator,
+        observation_builder: ContributionObservationBuilder,
+        phrase_max_length: int,
+        justification_max_length: int,
+        lines_max_length: int,
+    ) -> None:
+        self._field_extractor = field_extractor
+        self._verdict_matcher = verdict_matcher
+        self._lines_extractor = lines_extractor
+        self._field_truncator = field_truncator
+        self._observation_builder = observation_builder
+        self._phrase_max_length = phrase_max_length
+        self._justification_max_length = justification_max_length
+        self._lines_max_length = lines_max_length
+
+    def parse_contribution(self, text: str) -> ContributionAssessmentDTO:
+        """Parse text and return a structured contribution assessment."""
+        raw_verdict_text = self._field_extractor.extract_verdict_text(text)
+        verdict = self._verdict_matcher.match(raw_verdict_text, ContributionVerdict)
+        raw_phrase = self._field_extractor.extract_contribution_phrase(text)
+        phrase = self._field_truncator.truncate(raw_phrase, self._phrase_max_length)
+        observation = self._observation_builder.build_observation(verdict, phrase)
+        return ContributionAssessmentDTO(
+            verdict=verdict,
+            phrase=phrase,
+            observation=observation,
         )
-        observation = self._build_contribution_observation(verdict, phrase)
-        return verdict, phrase, observation
 
-    def parse_alignment(self, text: str) -> tuple[str, str, str]:
-        """Return (alignment_verdict, alignment_lines, alignment_justification)."""
-        verdict = self._extract_verdict(text, _ALIGNMENT_VERDICTS)
-        lines = self._truncate_field(self._extract_field(text, _LINES_PATTERN), _LINES_MAX_LENGTH)
-        justification = self._truncate_field(
-            self._extract_field(text, _JUSTIFICATION_PATTERN), _JUSTIFICATION_MAX_LENGTH
+    def parse_alignment(self, text: str) -> AlignmentAssessmentDTO:
+        """Parse text and return a structured alignment assessment."""
+        raw_verdict_text = self._field_extractor.extract_verdict_text(text)
+        verdict = self._verdict_matcher.match(raw_verdict_text, AlignmentVerdict)
+        raw_lines = self._lines_extractor.extract(text)
+        lines = self._field_truncator.truncate(raw_lines, self._lines_max_length)
+        raw_justification = self._field_extractor.extract_justification(text)
+        justification = self._field_truncator.truncate(
+            raw_justification, self._justification_max_length
         )
-        return verdict, lines, justification
-
-    def _build_contribution_observation(self, verdict: str, phrase: str) -> str:
-        if verdict == "NO SUSTENTADA":
-            return _NOT_SUSTAINED_OBSERVATION
-        if verdict == "PARCIAL":
-            return _PARTIAL_OBSERVATION
-        if not phrase:
-            return _SUSTAINED_OBSERVATION_FALLBACK
-        return self._truncate_field(f"Contribución sustentada — {phrase}", _OBSERVATION_MAX_LENGTH)
-
-    def _extract_verdict(self, text: str, candidates: tuple[str, ...]) -> str:
-        match = _VERDICT_PATTERN.search(text)
-        raw = match.group(1).upper() if match else ""
-        for candidate in candidates:
-            if candidate in raw:
-                return candidate
-        return candidates[0]
-
-    def _extract_field(self, text: str, pattern: Pattern) -> str:
-        match = pattern.search(text)
-        return match.group(1).strip() if match else ""
-
-    def _truncate_field(self, raw: str, max_length: int) -> str:
-        if not raw:
-            return raw
-        sentence = self._extract_first_sentence(raw)
-        if len(sentence) < max_length:
-            return sentence
-        return self._truncate_to_word_boundary(sentence, max_length)
-
-    def _extract_first_sentence(self, text: str) -> str:
-        match = _SENTENCE_END_PATTERN.search(text)
-        if match:
-            return text[: match.start() + 1].strip()
-        return text.strip()
-
-    def _truncate_to_word_boundary(self, text: str, max_length: int) -> str:
-        limit = max_length - 2
-        truncated = text[:limit]
-        last_space = truncated.rfind(" ")
-        if last_space > 0:
-            truncated = truncated[:last_space]
-        return f"{truncated.rstrip(' .,;:')}…"
+        return AlignmentAssessmentDTO(
+            verdict=verdict,
+            lines=lines,
+            justification=justification,
+        )

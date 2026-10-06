@@ -1,0 +1,195 @@
+{# Document Header #}
+<div class="card" style="background: var(--bg-light); border-left: 4px solid var(--primary-color);">
+    <h3 style="color: var(--primary-color); margin-bottom: 8px;">
+        📄 {{ report.document_content.title or "Sin título" }}
+    </h3>
+    <p style="color: var(--text-muted); font-size: 0.95rem; margin: 0;">
+        <strong>Autor:</strong> {{ report.document_content.authors or "No especificado" }} &nbsp;|&nbsp;
+        <strong>Palabras:</strong> {{ report.document_content.word_count }} &nbsp;|&nbsp;
+        <strong>Tipo:</strong> {{ (report.classification.article_type.value if report.classification.article_type.value is defined else report.classification.article_type) | upper }}
+    </p>
+</div>
+
+{# Publication Verdict Banner #}
+{% set raw_verdict = report.verdict.verdict %}
+{% set verdict_str = (raw_verdict.value if raw_verdict.value is defined else raw_verdict) | string | lower %}
+{% if verdict_str in ['aprobado', 'approved'] %}
+    {% set verdict_title = "APTO PARA PUBLICACIÓN" %}
+    {% set verdict_icon = "✅" %}
+    {% set verdict_color = "#27AE60" %}
+    {% set verdict_class = "approved" %}
+{% elif verdict_str in ['advertencia', 'warning'] %}
+    {% set verdict_title = "REQUIERE REVISIÓN" %}
+    {% set verdict_icon = "⚠️" %}
+    {% set verdict_color = "#F39C12" %}
+    {% set verdict_class = "warning" %}
+{% else %}
+    {% set verdict_title = "NO APTO" %}
+    {% set verdict_icon = "❌" %}
+    {% set verdict_color = "#E74C3C" %}
+    {% set verdict_class = "critical" %}
+{% endif %}
+
+<div class="status-banner {{ verdict_class }}" style="background-color: {{ verdict_color }};">
+    <h2>{{ verdict_icon }} {{ verdict_title }}</h2>
+    <p>{{ report.verdict.message }}</p>
+</div>
+
+{# Quality Scores #}
+<div class="grid-2">
+    <div class="score-card">
+        <div class="score-title">Gramática y Ortografía</div>
+        <div class="score-number">
+            {{ "%.1f" | format(report.grammar.score) }}<span class="score-denominator">/10</span>
+        </div>
+        <div class="score-feedback">{{ report.grammar.feedback }}</div>
+    </div>
+    <div class="score-card">
+        <div class="score-title">Calidad Semántica</div>
+        <div class="score-number">
+            {{ "%.1f" | format(report.quality.overall_score) }}<span class="score-denominator">/10</span>
+        </div>
+        <div class="score-feedback">
+            {{ report.quality.quality_level.value if report.quality.quality_level.value is defined else report.quality.quality_level }}
+        </div>
+    </div>
+</div>
+
+{# Error Summary #}
+<div class="grid-4">
+    <div class="metric-box">
+        <div class="metric-value">{{ report.grammar.errors | length }}</div>
+        <div class="metric-label">Errores gramaticales</div>
+    </div>
+    <div class="metric-box">
+        <div class="metric-value">{{ report.apa_validation.violation_count }}</div>
+        <div class="metric-label">Errores APA 7</div>
+    </div>
+    <div class="metric-box">
+        <div class="metric-value">{{ report.citations.unmatched_count }}</div>
+        <div class="metric-label">Citas sin referencia</div>
+    </div>
+    <div class="metric-box">
+        <div class="metric-value">{{ report.structure.missing_sections | length }}</div>
+        <div class="metric-label">Secciones faltantes</div>
+    </div>
+</div>
+
+{# Semantic Dimensions #}
+<div class="card">
+    <h3 class="card-title">Dimensiones Semánticas</h3>
+    {% if report.quality.dimension_scores %}
+        {% for dim, data in report.quality.dimension_scores.items() %}
+            {% set score = data.score if data.score is defined else (data['score'] if data is mapping and 'score' in data else 0) %}
+            {% set feedback = data.feedback if data.feedback is defined else (data['feedback'] if data is mapping and 'feedback' in data else '') %}
+            {% set feedback_blocks = data.feedback_blocks if data.feedback_blocks is defined else (data['feedback_blocks'] if data is mapping and 'feedback_blocks' in data else []) %}
+            <div class="progress-container">
+                <div class="progress-header">
+                    <span class="progress-name">{{ dim | dimension_label }}</span>
+                    <span class="progress-value">{{ "%.1f" | format(score) }}/10</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill" style="width: {{ [score * 10, 100] | min }}%;"></div>
+                </div>
+                {% if feedback_blocks %}
+                    <div class="progress-feedback">
+                        {% for block in feedback_blocks %}
+                            {% set b_kind = block.kind.value if block.kind is defined and block.kind.value is defined else (block.kind if block.kind is defined else (block['kind'] if block is mapping and 'kind' in block else 'text')) %}
+                            {% set b_text = block.text if block.text is defined else (block['text'] if block is mapping and 'text' in block else '') %}
+                            {% set b_level = block.level if block.level is defined else (block['level'] if block is mapping and 'level' in block else 0) %}
+                            {% set b_marker = block.marker if block.marker is defined else (block['marker'] if block is mapping and 'marker' in block else '') %}
+                            {% if b_kind == 'title' %}
+                                <div class="feedback-block-title">{{ b_text | inline_bold }}</div>
+                            {% elif b_kind == 'item' %}
+                                <div class="feedback-block-item{% if b_level == 1 %} level-1{% elif b_level >= 2 %} level-2{% endif %}">
+                                    {% if b_marker %}<span class="feedback-block-marker">{{ b_marker }}</span> {% endif %}{{ b_text | inline_bold }}
+                                </div>
+                            {% else %}
+                                <div class="feedback-block-text{% if b_level == 1 %} level-1{% elif b_level >= 2 %} level-2{% endif %}">{{ b_text | inline_bold }}</div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% elif feedback %}
+                    <div class="progress-feedback">{{ feedback | inline_bold }}</div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% else %}
+        <p style="color: var(--text-muted); font-size: 0.9rem;">No hay dimensiones adicionales registradas.</p>
+    {% endif %}
+</div>
+
+{# Editorial Suitability #}
+{% if report.quality.editorial_suitability and report.quality.editorial_suitability.contribution_verdict is string %}
+<div class="card">
+    <h3 class="card-title">Pertinencia Editorial</h3>
+    <div class="grid-2">
+        <div>
+            <div style="font-weight: 600; margin-bottom: 6px;">Contribución</div>
+            <span class="badge" style="display: inline-block; padding: 4px 10px; border-radius: 4px; background: {% if report.quality.editorial_suitability.contribution_verdict == 'SUSTENTADA' %}var(--success-color){% elif 'PARCIAL' in report.quality.editorial_suitability.contribution_verdict %}var(--warning-color){% else %}var(--danger-color){% endif %}; color: white; font-weight: bold; font-size: 0.85rem;">
+                {{ report.quality.editorial_suitability.contribution_verdict }}
+            </span>
+            <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 8px;">
+                {{ report.quality.editorial_suitability.contribution_observation | inline_bold }}
+            </div>
+        </div>
+        <div>
+            <div style="font-weight: 600; margin-bottom: 6px;">Alineación con líneas de investigación</div>
+            <span class="badge" style="display: inline-block; padding: 4px 10px; border-radius: 4px; background: {% if report.quality.editorial_suitability.alignment_verdict == 'ALINEADO' %}var(--success-color){% elif 'PARCIAL' in report.quality.editorial_suitability.alignment_verdict %}var(--warning-color){% else %}var(--danger-color){% endif %}; color: white; font-weight: bold; font-size: 0.85rem;">
+                {{ report.quality.editorial_suitability.alignment_verdict }}
+            </span>
+            <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 8px;">
+                {{ report.quality.editorial_suitability.alignment_justification | inline_bold }}
+            </div>
+            <div style="font-size: 0.82rem; color: #888; margin-top: 6px;">
+                Líneas: {{ report.quality.editorial_suitability.alignment_lines }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{# Critical Issues #}
+{% set critical_recs = [] %}
+{% if report.recommendations %}
+    {% for rec in report.recommendations %}
+        {% set p = (rec.priority.value if rec.priority.value is defined else rec.priority) | string | lower %}
+        {% if p in ['alta', 'high', 'recommendationpriority.high'] %}
+            {% set _ = critical_recs.append(rec) %}
+        {% endif %}
+    {% endfor %}
+{% endif %}
+{% if critical_recs %}
+<div class="critical-issues-box">
+    <h4>⚠️ Problemas Críticos Detectados</h4>
+    <ul>
+        {% for rec in critical_recs %}
+            <li>{{ rec.message | inline_bold }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+{# Download Links #}
+<div class="download-actions">
+    {% if word_filename %}
+        <a href="/reports/{{ word_filename }}" class="btn btn-primary" download>
+            📥 Descargar Informe Word (.docx)
+        </a>
+    {% endif %}
+    {% if json_filename %}
+        <a href="/reports/{{ json_filename }}" class="btn btn-secondary" download>
+            📊 Descargar Datos Técnicos (.json)
+        </a>
+    {% endif %}
+</div>
+
+{# Instructions / Next steps #}
+<div class="alert alert-info">
+    <p style="margin: 0; line-height: 1.6;">
+        <strong>Próximos pasos:</strong><br>
+        1. Descargue el <strong>informe detallado en Word</strong> para revisar observaciones específicas.<br>
+        2. Proporcione su <strong>evaluación experta</strong> si es requerida.<br>
+        3. Sus comentarios ayudarán a <strong>mejorar futuros análisis</strong>.
+    </p>
+</div>

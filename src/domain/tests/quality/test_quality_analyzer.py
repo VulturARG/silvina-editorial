@@ -2,12 +2,19 @@ from unittest import TestCase
 
 from src.domain.dtos.document_content_dto import DocumentContentDTO
 from src.domain.dtos.editorial_suitability_dto import EditorialSuitabilityDTO
+from src.domain.dtos.quality_text_sampling_settings_dto import (
+    QualityTextSamplingSettingsDTO,
+)
 from src.domain.enums.quality_level import QualityLevel
 from src.domain.exceptions.quality_errors import QualityAnalysisFailed
 from src.domain.quality.editorial_suitability_analyzer import EditorialSuitabilityAnalyzer
-from src.domain.quality.editorial_suitability_parser import EditorialSuitabilityParser
 from src.domain.quality.quality_analyzer import QualityAnalyzer
-from src.domain.quality.quality_response_parser import QualityResponseParser
+from src.domain.tests.quality.editorial_suitability_parser_builder_for_test import (
+    EditorialSuitabilityParserBuilderForTest,
+)
+from src.domain.tests.quality.quality_response_parser_builder_for_test import (
+    QualityResponseParserBuilderForTest,
+)
 from src.domain.quality.quality_text_sampler import QualityTextSampler
 from src.domain.tests.quality.fake_llm_generator_adapter import FakeLlmGeneratorAdapter
 
@@ -56,21 +63,37 @@ SUITABILITY_ALIGNMENT_RESPONSE = (
 )
 
 
+def build_quality_text_sampler() -> QualityTextSampler:
+    quality_text_sampling_settings = QualityTextSamplingSettingsDTO(
+        min_sample_word_count=400,
+        text_sample_character_limit=8000,
+        reference_line_prefix_length=80,
+        introduction_paragraph_count=3,
+        middle_paragraph_count=2,
+        conclusion_paragraph_limit=3,
+        fallback_tail_paragraph_count=2,
+        conclusion_header_marker="conclusi",
+    )
+    return QualityTextSampler(quality_text_sampling_settings=quality_text_sampling_settings)
+
+
 def build_analyzer(fake_adapter: FakeLlmGeneratorAdapter) -> QualityAnalyzer:
     suitability_adapter = FakeLlmGeneratorAdapter(
         [SUITABILITY_CONTRIBUTION_RESPONSE, SUITABILITY_ALIGNMENT_RESPONSE]
     )
     editorial_suitability_analyzer = EditorialSuitabilityAnalyzer(
         llm_generator=suitability_adapter,
-        parser=EditorialSuitabilityParser(),
+        parser=EditorialSuitabilityParserBuilderForTest().build(),
         contribution_prompt_template=SUITABILITY_CONTRIBUTION_PROMPT_TEMPLATE,
         alignment_prompt_template=SUITABILITY_ALIGNMENT_PROMPT_TEMPLATE,
         research_lines=SUITABILITY_RESEARCH_LINES,
+        temperature=0.1,
+        num_predict=300,
     )
     return QualityAnalyzer(
         llm_generator=fake_adapter,
-        text_sampler=QualityTextSampler(),
-        response_parser=QualityResponseParser(),
+        text_sampler=build_quality_text_sampler(),
+        response_parser=QualityResponseParserBuilderForTest().build(),
         clarity_coherence_prompt_template=CLARITY_COHERENCE_PROMPT_TEMPLATE,
         argumentation_conclusions_prompt_template=ARGUMENTATION_CONCLUSIONS_PROMPT_TEMPLATE,
         editorial_suitability_analyzer=editorial_suitability_analyzer,
@@ -182,6 +205,20 @@ Este bloque de claridad nunca deberia usarse porque viene de la llamada dos.
         self.assertEqual(result.dimension_scores["argumentacion"]["score"], 8.0)
         self.assertEqual(result.dimension_scores["conclusiones"]["score"], 8.0)
 
+    def test_dimension_scores_contain_feedback_blocks_as_list_of_dicts(self):
+        fake_adapter = FakeLlmGeneratorAdapter([VALID_RESPONSE_ONE, VALID_RESPONSE_TWO])
+        analyzer = build_analyzer(fake_adapter)
+
+        result = analyzer.analyze(self.document_content)
+
+        clarity_blocks = result.dimension_scores["claridad"]["feedback_blocks"]
+        self.assertIsInstance(clarity_blocks, list)
+        self.assertGreater(len(clarity_blocks), 0)
+        self.assertIn("kind", clarity_blocks[0])
+        self.assertIn("text", clarity_blocks[0])
+        self.assertIn("level", clarity_blocks[0])
+        self.assertIn("marker", clarity_blocks[0])
+
     def test_both_dimensions_failing_to_parse_in_one_call_raises_quality_analysis_failed(self):
         response_one_without_headers = (
             "Este texto no contiene ningun encabezado de dimension reconocible."
@@ -198,7 +235,7 @@ Este bloque de claridad nunca deberia usarse porque viene de la llamada dos.
 
         analyzer.analyze(self.document_content)
 
-        text_sample = QualityTextSampler().build_sample(self.document_content)
+        text_sample = build_quality_text_sampler().build_sample(self.document_content)
         self.assertIn(
             "Eres un revisor editorial académico experto.", fake_adapter.received_prompts[0]
         )
@@ -211,6 +248,7 @@ Este bloque de claridad nunca deberia usarse porque viene de la llamada dos.
         result = analyzer.analyze(self.document_content)
 
         self.assertIsInstance(result.editorial_suitability, EditorialSuitabilityDTO)
+        assert result.editorial_suitability is not None
         self.assertEqual(result.editorial_suitability.contribution_verdict, "SUSTENTADA")
         self.assertEqual(result.editorial_suitability.alignment_verdict, "ALINEADO")
 
