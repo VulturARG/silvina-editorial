@@ -25,7 +25,7 @@ The `.env` file mixes deployment values (paths, URLs, mode) with tuning paramete
 - Value policy (user decision): `settings.toml` always takes the values currently in the local `.env` (the user authorized reading it), never the code defaults, without asking again. Known differences: `QUALITY_MIN_SAMPLE_WORD_COUNT=10000`, `QUALITY_TEXT_SAMPLE_CHARACTER_LIMIT=32000`, `ARTICLE_CLASSIFICATION_SAMPLE_INTRODUCTION_CHARACTER_LIMIT=32000`.
 - Gotcha: a line left in the local `.env` overrides `settings.toml`. The user decided `.env` keeps its parameters; the agent never edits `.env`.
 - Stays in `.env` for now (deployment or mode, not tuning): `APP_MODE`, `METRICS_DATABASE_PATH`, `LOG_FILE_PATH`, `LOG_LEVEL`, `LOG_RETENTION_DAYS`, `OLLAMA_BASE_URL`, `USE_EXTERNAL_LLM`, `LLM_PROVIDER`, `EXTERNAL_LLM_MODEL_NAME`, `SILVINA_APP_NAME`.
-- Open: the Ollama tuning values (`OLLAMA_MODEL_NAME`, `OLLAMA_THINK`, `OLLAMA_MODEL_KEEP_ALIVE`, `OLLAMA_NUM_CTX`, `OLLAMA_WARMUP_ON_STARTUP`, `EXTERNAL_LLM_THINK`) are decided with the user after the main groups.
+- Stays in `.env` (user decision 2026-10-06, final): `APP_MODE`, `METRICS_DATABASE_PATH`, `LOG_FILE_PATH`, `LOG_LEVEL`, `LOG_RETENTION_DAYS`, `OLLAMA_MODEL_NAME`, `OLLAMA_BASE_URL`, `OLLAMA_THINK`, `OLLAMA_MODEL_KEEP_ALIVE`, `OLLAMA_WARMUP_ON_STARTUP`, `OLLAMA_NUM_CTX`, `USE_EXTERNAL_LLM`, `LLM_PROVIDER`, `EXTERNAL_LLM_MODEL_NAME` and `EXTERNAL_LLM_THINK`. A first TASK-07 that migrated four of them was cancelled (see below).
 
 ## 3. Tasks
 
@@ -57,5 +57,7 @@ The `.env` file mixes deployment values (paths, URLs, mode) with tuning paramete
 - [x] **TASK-06: Documentation and final verification** (full `src` and `tests` suites, ruff, pyright)
   - **Scope**: `README.md` (new "Configuration files" section), `openspec/specs/analyze-document/spec.md` (EnvConfig requirement, regenerated variable table with a `Source` column and `UPLOAD_MAX_SIZE_BYTES`, 4 new scenarios). `openspec/changes/archive/` is history and was not touched.
   - **Outcome**: final verification of the branch by gentle-ai-verify: `src` 1607 OK, `tests` 51 OK, ruff clean, no `#` comments, no local imports, no `raise ValueError` in the new production code. Pyright was not run: it is not installed in `.venv` (the agent did not install it). Native review not run on this docs-only candidate.
-  - **Open for the user**: the Ollama and external LLM tuning values still in `.env` (`OLLAMA_MODEL_NAME`, `OLLAMA_THINK`, `OLLAMA_MODEL_KEEP_ALIVE`, `OLLAMA_NUM_CTX`, `OLLAMA_WARMUP_ON_STARTUP`, `EXTERNAL_LLM_THINK`).
-  - **Commit**: pending the user's approval.
+  - **Open for the user** (resolved 2026-10-06): the Ollama and external LLM values stay in `.env`; see the decision in section 2.
+  - **Commit**: `42d444b` `docs(config): document settings.toml in the README and the analyze-document spec`.
+- [-] **TASK-07: Group `ollama` and `external_llm` tuning (4 values)** (cancelled by the user on 2026-10-06; never committed)
+  - **Outcome**: implemented, verified (`src` 1618 OK, `tests` 51 OK) and approved by the native review, then discarded before the commit because the user changed their mind: `OLLAMA_THINK`, `OLLAMA_MODEL_KEEP_ALIVE`, `OLLAMA_WARMUP_ON_STARTUP` and `EXTERNAL_LLM_THINK` stay in `.env`. The working tree went back to the state of commit `42d444b` (no `read_boolean`, no `[ollama]` or `[external_llm]` section).
