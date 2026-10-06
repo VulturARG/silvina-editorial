@@ -13,20 +13,29 @@ from src.infrastructure.adapters.llm_generator.ollama_backend_error_mapper impor
 from src.infrastructure.adapters.llm_generator.ollama_language_model_warmup_adapter import (
     OllamaLanguageModelWarmupAdapter,
 )
+from src.infrastructure.tests.test_doubles.complete_test_environment import (
+    CompleteTestEnvironment,
+)
 from src.infrastructure.wirings.warm_up_language_model_use_case_wiring import (
     WarmUpLanguageModelUseCaseWiring,
 )
 
 
 class TestWarmUpLanguageModelUseCaseWiring(TestCase):
-    REQUIRED_ENVIRONMENT = {
-        "METRICS_DATABASE_PATH": "/custom/path/metrics.db",
-        "LOG_FILE_PATH": "/custom/path/silvina.log",
-        "OLLAMA_MODEL_NAME": "test-model",
-    }
+    @staticmethod
+    def _complete_environment(overrides: dict[str, str] | None = None) -> dict[str, str]:
+        environment = {
+            **CompleteTestEnvironment.application_variables(),
+            "METRICS_DATABASE_PATH": "/custom/path/metrics.db",
+            "LOG_FILE_PATH": "/custom/path/silvina.log",
+            "OLLAMA_MODEL_NAME": "test-model",
+        }
+        if overrides:
+            environment.update(overrides)
+        return environment
 
     def test_default_environment_wires_ollama_warmup_adapter(self):
-        with patch.dict(environ, self.REQUIRED_ENVIRONMENT, clear=True):
+        with patch.dict(environ, self._complete_environment(), clear=True):
             use_case = WarmUpLanguageModelUseCaseWiring().get_warm_up_language_model_use_case()
 
         self.assertIsInstance(use_case, WarmUpLanguageModelUseCase)
@@ -41,10 +50,7 @@ class TestWarmUpLanguageModelUseCaseWiring(TestCase):
         self.assertIsInstance(adapter._error_mapper, OllamaBackendErrorMapper)
 
     def test_warmup_disabled_via_environment_wires_noop_adapter(self):
-        environment = {
-            **self.REQUIRED_ENVIRONMENT,
-            "OLLAMA_WARMUP_ON_STARTUP": "false",
-        }
+        environment = self._complete_environment({"OLLAMA_WARMUP_ON_STARTUP": "false"})
         with patch.dict(environ, environment, clear=True):
             use_case = WarmUpLanguageModelUseCaseWiring().get_warm_up_language_model_use_case()
 
@@ -52,13 +58,14 @@ class TestWarmUpLanguageModelUseCaseWiring(TestCase):
         self.assertIsInstance(adapter, NoOpLanguageModelWarmupAdapter)
 
     def test_debug_mode_with_external_claude_provider_wires_noop_adapter(self):
-        environment = {
-            **self.REQUIRED_ENVIRONMENT,
-            "APP_MODE": "DEBUG",
-            "USE_EXTERNAL_LLM": "true",
-            "LLM_PROVIDER": "claude",
-            "EXTERNAL_LLM_MODEL_NAME": "claude-3-7-sonnet",
-        }
+        environment = self._complete_environment(
+            {
+                "APP_MODE": "DEBUG",
+                "USE_EXTERNAL_LLM": "true",
+                "LLM_PROVIDER": "claude",
+                "EXTERNAL_LLM_MODEL_NAME": "claude-3-7-sonnet",
+            }
+        )
         with patch.dict(environ, environment, clear=True):
             use_case = WarmUpLanguageModelUseCaseWiring().get_warm_up_language_model_use_case()
 
@@ -66,12 +73,13 @@ class TestWarmUpLanguageModelUseCaseWiring(TestCase):
         self.assertIsInstance(adapter, NoOpLanguageModelWarmupAdapter)
 
     def test_production_mode_with_use_external_llm_true_preserves_ollama_adapter(self):
-        environment = {
-            **self.REQUIRED_ENVIRONMENT,
-            "APP_MODE": "PROD",
-            "USE_EXTERNAL_LLM": "true",
-            "LLM_PROVIDER": "claude",
-        }
+        environment = self._complete_environment(
+            {
+                "APP_MODE": "PROD",
+                "USE_EXTERNAL_LLM": "true",
+                "LLM_PROVIDER": "claude",
+            }
+        )
         with patch.dict(environ, environment, clear=True):
             use_case = WarmUpLanguageModelUseCaseWiring().get_warm_up_language_model_use_case()
 
@@ -81,10 +89,7 @@ class TestWarmUpLanguageModelUseCaseWiring(TestCase):
         self.assertEqual(adapter._model_name, "test-model")
 
     def test_env_var_overrides_ollama_num_ctx(self):
-        environment = {
-            **self.REQUIRED_ENVIRONMENT,
-            "OLLAMA_NUM_CTX": "16384",
-        }
+        environment = self._complete_environment({"OLLAMA_NUM_CTX": "16384"})
         with patch.dict(environ, environment, clear=True):
             use_case = WarmUpLanguageModelUseCaseWiring().get_warm_up_language_model_use_case()
 

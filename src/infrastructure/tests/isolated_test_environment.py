@@ -5,6 +5,10 @@ from os.path import join, normcase, realpath
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+from src.infrastructure.tests.test_doubles.complete_test_environment import (
+    CompleteTestEnvironment,
+)
+
 
 class IsolatedTestEnvironment:
     """Provides isolated filesystem paths and environment variables for test execution."""
@@ -21,6 +25,7 @@ class IsolatedTestEnvironment:
             )
             register(cls.release)
         temporary_directory_path = cls._temporary_directory.name
+        environ.update(CompleteTestEnvironment.application_variables())
         environ["TESTING"] = "True"
         environ["METRICS_DATABASE_PATH"] = join(temporary_directory_path, "metrics.db")
         environ["LOG_FILE_PATH"] = join(temporary_directory_path, "silvina.log")

@@ -113,7 +113,7 @@ The `RecommendationPriority` enum MUST live in `src/domain/enums/recommendation_
 
 ### Requirement: RecommendationSettingsDTO DTO (no defaults)
 
-`RecommendationSettingsDTO` MUST be a frozen DTO inheriting from `BaseDTO` in `src/domain/dtos/recommendation_settings_dto.py`. All fields are **required** (no default values). Default values are the responsibility of the infrastructure config layer (`EnvConfig`):
+`RecommendationSettingsDTO` MUST be a frozen DTO inheriting from `BaseDTO` in `src/domain/dtos/recommendation_settings_dto.py`. All fields are **required** (no default values). Default values are the responsibility of the infrastructure config layer (`EnvConfig`, backed by `settings.toml`):
 
 - `publish_threshold: float`
 - `quality_threshold: float`
@@ -126,86 +126,93 @@ The `RecommendationPriority` enum MUST live in `src/domain/enums/recommendation_
 - `critical_quality_threshold: float`
 - `critical_grammar_threshold: float`
 
-> **Rationale**: Defaults in domain DTOs introduce hidden dependencies on infrastructure decisions. Defaults belong in `EnvConfig` (infrastructure config layer) and are resolved at wiring time.
+> **Rationale**: Defaults in domain DTOs introduce hidden dependencies on infrastructure decisions. Defaults belong in `EnvConfig` (infrastructure config layer, backed by `settings.toml`) and are resolved at wiring time.
 
 ---
 
 ### Requirement: EnvConfig Infrastructure Config Class
 
-`EnvConfig` MUST reside in `src/infrastructure/env_config.py`. It MUST parse environment variables at instantiation, cast them, and cache them as typed instance attributes. Values for `APP_MODE` are `DEBUG` or `PROD` (case-insensitive); any other value fails fast. `METRICS_DATABASE_PATH` and `LOG_FILE_PATH` have no default and MUST be set; a missing or empty value fails fast naming the variable. `OLLAMA_THINK` accepts only `true` or `false` (case-insensitive) and any other value fails fast. `OLLAMA_MODEL_KEEP_ALIVE` accepts duration strings (e.g., `15m`, `1h`) and any invalid format fails fast. `OLLAMA_NUM_CTX` is optional (absent or blank evaluates to `None`); when provided, it MUST parse as a positive integer or fail fast. It MUST expose a method `get_recommendation_settings() -> RecommendationSettingsDTO` to build recommendation settings.
+`EnvConfig` MUST reside in `src/infrastructure/env_config.py`. It MUST read the tuning parameters from the versioned `settings.toml` file in the project root (parsed with `tomllib` by `SettingsFileLoader`) and the deployment and mode parameters from environment variables, cast them, and cache them as typed instance attributes at instantiation. For a value defined in `settings.toml`, an environment variable of the same name MUST override it, and a key missing from both fails fast with `SettingValueMissing`. A value of the wrong type in the file, or a non-numeric environment variable for a numeric setting, fails fast with `SettingValueInvalid`; a missing or malformed file fails fast with `SettingsFileNotFound` or `SettingsFileInvalid`. These exceptions live in `src/domain/exceptions/settings_errors.py` and extend `BaseSrcError`. The constructor accepts an optional `settings_file_path`, used by tests. Values for `APP_MODE` are `DEBUG` or `PROD` (case-insensitive); any other value fails fast. `METRICS_DATABASE_PATH` and `LOG_FILE_PATH` have no default and MUST be set; a missing or empty value fails fast naming the variable. `OLLAMA_THINK` accepts only `true` or `false` (case-insensitive) and any other value fails fast. `OLLAMA_MODEL_KEEP_ALIVE` accepts duration strings (e.g., `15m`, `1h`) and any invalid format fails fast. `OLLAMA_NUM_CTX` is optional (absent or blank evaluates to `None`); when provided, it MUST parse as a positive integer or fail fast. It MUST expose a method `get_recommendation_settings() -> RecommendationSettingsDTO` to build recommendation settings.
 
 The application version attribute (`silvina_version`) MUST be resolved dynamically:
 - In production/standard mode: `EnvConfig` MUST load the version string from the file `version.txt` located in the project root directory (resolved relative to `EnvConfig` file location: `Path(__file__).resolve().parents[2] / "version.txt"`). The version string MUST be stripped of surrounding whitespace. If the file is missing or unreadable, `EnvConfig` MUST raise `FileNotFoundError` (or standard OS/permission errors).
 - In testing mode (when the environment variable `TESTING` is `"True"`, `"true"`, or `"1"`): `EnvConfig` MUST fall back to loading the version from the environment variable `SILVINA_VERSION` (defaulting to `"0.9"` if the variable is not set), without requiring the `version.txt` file to exist.
 
-| Env var | Type | Default | Attribute |
-|---|---|---|---|
-| `CITATION_MAX_AUTHOR_NAME_LENGTH` | `int` | `100` | `citation_max_author_name_length` |
-| `GRAMMAR_MAX_REPLACEMENTS` | `int` | `3` | `grammar_max_replacements` |
-| `GRAMMAR_MAX_PARAGRAPHS` | `int` | `20` | `grammar_max_paragraphs` |
-| `GRAMMAR_MAX_CHARS` | `int` | `5000` | `grammar_max_chars` |
-| `GRAMMAR_MAX_ERRORS` | `int` | `10` | `grammar_max_errors` |
-| `STRUCTURE_MAX_HEADER_LENGTH` | `int` | `100` | `structure_max_header_length` |
-| `ARTICLE_CLASSIFIER_TEMPERATURE` | `float` | `0.1` | `article_classifier_temperature` |
-| `ARTICLE_CLASSIFIER_NUM_PREDICT` | `int` | `300` | `article_classifier_num_predict` |
-| `ARTICLE_CLASSIFICATION_SAMPLE_INTRODUCTION_CHARACTER_LIMIT` | `int` | `3500` | `article_classification_sample_introduction_character_limit` |
-| `ARTICLE_CLASSIFICATION_SAMPLE_CONCLUSION_CHARACTER_LIMIT` | `int` | `2500` | `article_classification_sample_conclusion_character_limit` |
-| `ARTICLE_CLASSIFICATION_SAMPLE_FALLBACK_CHARACTER_LIMIT` | `int` | `6000` | `article_classification_sample_fallback_character_limit` |
-| `ARTICLE_CLASSIFICATION_BIBLIOGRAPHY_HEADER_MAX_LENGTH` | `int` | `30` | `article_classification_bibliography_header_max_length` |
-| `ARTICLE_SIZE_SHORT_MIN_CHARS` | `int` | `16000` | `article_size_short_min_chars` |
-| `ARTICLE_SIZE_SHORT_MAX_CHARS` | `int` | `24000` | `article_size_short_max_chars` |
-| `ARTICLE_SIZE_UNDEFINED_MIN_CHARS` | `int` | `24001` | `article_size_undefined_min_chars` |
-| `ARTICLE_SIZE_UNDEFINED_MAX_CHARS` | `int` | `35999` | `article_size_undefined_max_chars` |
-| `ARTICLE_SIZE_LONG_MIN_CHARS` | `int` | `36000` | `article_size_long_min_chars` |
-| `ARTICLE_SIZE_LONG_MAX_CHARS` | `int` | `40000` | `article_size_long_max_chars` |
-| `QUALITY_LEVEL_EXCELLENT_THRESHOLD` | `float` | `9.0` | `quality_level_excellent_threshold` |
-| `QUALITY_LEVEL_GOOD_THRESHOLD` | `float` | `7.0` | `quality_level_good_threshold` |
-| `QUALITY_LEVEL_ACCEPTABLE_THRESHOLD` | `float` | `5.0` | `quality_level_acceptable_threshold` |
-| `QUALITY_LEVEL_NEEDS_IMPROVEMENT_THRESHOLD` | `float` | `3.0` | `quality_level_needs_improvement_threshold` |
-| `QUALITY_MIN_SAMPLE_WORD_COUNT` | `int` | `400` | `quality_min_sample_word_count` |
-| `QUALITY_TEXT_SAMPLE_CHARACTER_LIMIT` | `int` | `8000` | `quality_text_sample_character_limit` |
-| `QUALITY_TEXT_SAMPLE_REFERENCE_LINE_PREFIX_LENGTH` | `int` | `80` | `quality_text_sample_reference_line_prefix_length` |
-| `QUALITY_TEXT_SAMPLE_INTRODUCTION_PARAGRAPH_COUNT` | `int` | `3` | `quality_text_sample_introduction_paragraph_count` |
-| `QUALITY_TEXT_SAMPLE_MIDDLE_PARAGRAPH_COUNT` | `int` | `2` | `quality_text_sample_middle_paragraph_count` |
-| `QUALITY_TEXT_SAMPLE_CONCLUSION_PARAGRAPH_LIMIT` | `int` | `3` | `quality_text_sample_conclusion_paragraph_limit` |
-| `QUALITY_TEXT_SAMPLE_FALLBACK_TAIL_PARAGRAPH_COUNT` | `int` | `2` | `quality_text_sample_fallback_tail_paragraph_count` |
-| `QUALITY_TEXT_SAMPLE_CONCLUSION_HEADER_MARKER` | `str` | `"conclusi"` | `quality_text_sample_conclusion_header_marker` |
-| `OLLAMA_MODEL_NAME` | `str` | `"gemma4-26b-adapted"` | `ollama_model_name` |
-| `OLLAMA_BASE_URL` | `str` | `"http://localhost:11434"` | `ollama_base_url` |
-| `OLLAMA_THINK` | `bool` | `false` | `ollama_think` |
-| `OLLAMA_MODEL_KEEP_ALIVE` | `str` | `"15m"` | `ollama_model_keep_alive` |
-| `OLLAMA_NUM_CTX` | `int \| None` | `None` | `ollama_num_ctx` |
-| `OLLAMA_WARMUP_ON_STARTUP` | `bool` | `true` | `ollama_warmup_on_startup` |
-| `APP_MODE` | `AppMode` | `"PROD"` | `app_mode` |
-| `METRICS_DATABASE_PATH` | `str` | `— (required)` | `metrics_database_path` |
-| `LOG_FILE_PATH` | `str` | `— (required)` | `log_file_path` |
-| `LOG_LEVEL` | `str` | `"INFO"` | `log_level` |
-| `LOG_RETENTION_DAYS` | `int` | `14` | `log_retention_days` |
-| `PUBLISH_THRESHOLD` | `float` | `7.0` | `publish_threshold` |
-| `QUALITY_THRESHOLD` | `float` | `7.0` | `quality_threshold` |
-| `GRAMMAR_THRESHOLD` | `float` | `7.0` | `grammar_threshold` |
-| `DIMENSION_THRESHOLD` | `float` | `6.0` | `dimension_threshold` |
-| `CITATION_MATCH_THRESHOLD` | `float` | `90.0` | `citation_match_threshold` |
-| `CRITICAL_CITATION_MATCH_THRESHOLD` | `float` | `50.0` | `critical_citation_match_threshold` |
-| `CITATION_COUNT_THRESHOLD` | `int` | `10` | `citation_count_threshold` |
-| `CLASSIFICATION_CONFIDENCE_THRESHOLD` | `float` | `0.7` | `classification_confidence_threshold` |
-| `CRITICAL_QUALITY_THRESHOLD` | `float` | `5.0` | `critical_quality_threshold` |
-| `CRITICAL_GRAMMAR_THRESHOLD` | `float` | `5.0` | `critical_grammar_threshold` |
-| `SILVINA_APP_NAME` | `str` | `"Silvina Editorial Assistant"` | `silvina_app_name` |
-| `REPORT_SCORE_HIGH_THRESHOLD` | `float` | `8.0` | `report_score_high_threshold` |
-| `REPORT_SCORE_MEDIUM_THRESHOLD` | `float` | `6.0` | `report_score_medium_threshold` |
-| `REPORT_WORDS_PER_PAGE` | `int` | `250` | `report_words_per_page` |
-| `REPORT_MAX_ERRORS_DISPLAYED` | `int` | `5` | `report_max_errors_displayed` |
-| `REPORT_CONTEXT_TRUNCATION_LIMIT` | `int` | `150` | `report_context_truncation_limit` |
-| `REPORT_MAX_REPLACEMENTS` | `int` | `3` | `report_max_replacements` |
+| Env var (override) | Type | Source | Default | Attribute |
+|---|---|---|---|---|
+| `CITATION_MAX_AUTHOR_NAME_LENGTH` | `int` | `settings.toml` `[citation]` `max_author_name_length` | `100` | `citation_max_author_name_length` |
+| `GRAMMAR_MAX_REPLACEMENTS` | `int` | `settings.toml` `[grammar]` `max_replacements` | `3` | `grammar_max_replacements` |
+| `GRAMMAR_MAX_PARAGRAPHS` | `int` | `settings.toml` `[grammar]` `max_paragraphs` | `20` | `grammar_max_paragraphs` |
+| `GRAMMAR_MAX_CHARS` | `int` | `settings.toml` `[grammar]` `max_chars` | `5000` | `grammar_max_chars` |
+| `GRAMMAR_MAX_ERRORS` | `int` | `settings.toml` `[grammar]` `max_errors` | `10` | `grammar_max_errors` |
+| `STRUCTURE_MAX_HEADER_LENGTH` | `int` | `settings.toml` `[structure]` `max_header_length` | `100` | `structure_max_header_length` |
+| `ARTICLE_CLASSIFIER_TEMPERATURE` | `float` | `settings.toml` `[article_classifier]` `temperature` | `0.1` | `article_classifier_temperature` |
+| `ARTICLE_CLASSIFIER_NUM_PREDICT` | `int` | `settings.toml` `[article_classifier]` `num_predict` | `300` | `article_classifier_num_predict` |
+| `ARTICLE_CLASSIFICATION_SAMPLE_INTRODUCTION_CHARACTER_LIMIT` | `int` | `settings.toml` `[article_classification]` `sample_introduction_character_limit` | `32000` | `article_classification_sample_introduction_character_limit` |
+| `ARTICLE_CLASSIFICATION_SAMPLE_CONCLUSION_CHARACTER_LIMIT` | `int` | `settings.toml` `[article_classification]` `sample_conclusion_character_limit` | `2500` | `article_classification_sample_conclusion_character_limit` |
+| `ARTICLE_CLASSIFICATION_SAMPLE_FALLBACK_CHARACTER_LIMIT` | `int` | `settings.toml` `[article_classification]` `sample_fallback_character_limit` | `6000` | `article_classification_sample_fallback_character_limit` |
+| `ARTICLE_CLASSIFICATION_BIBLIOGRAPHY_HEADER_MAX_LENGTH` | `int` | `settings.toml` `[article_classification]` `bibliography_header_max_length` | `30` | `article_classification_bibliography_header_max_length` |
+| `ARTICLE_SIZE_SHORT_MIN_CHARS` | `int` | `settings.toml` `[article_size]` `short_min_chars` | `16000` | `article_size_short_min_chars` |
+| `ARTICLE_SIZE_SHORT_MAX_CHARS` | `int` | `settings.toml` `[article_size]` `short_max_chars` | `24000` | `article_size_short_max_chars` |
+| `ARTICLE_SIZE_UNDEFINED_MIN_CHARS` | `int` | `settings.toml` `[article_size]` `undefined_min_chars` | `24001` | `article_size_undefined_min_chars` |
+| `ARTICLE_SIZE_UNDEFINED_MAX_CHARS` | `int` | `settings.toml` `[article_size]` `undefined_max_chars` | `35999` | `article_size_undefined_max_chars` |
+| `ARTICLE_SIZE_LONG_MIN_CHARS` | `int` | `settings.toml` `[article_size]` `long_min_chars` | `36000` | `article_size_long_min_chars` |
+| `ARTICLE_SIZE_LONG_MAX_CHARS` | `int` | `settings.toml` `[article_size]` `long_max_chars` | `40000` | `article_size_long_max_chars` |
+| `QUALITY_LEVEL_EXCELLENT_THRESHOLD` | `float` | `settings.toml` `[quality_level]` `excellent_threshold` | `9.0` | `quality_level_excellent_threshold` |
+| `QUALITY_LEVEL_GOOD_THRESHOLD` | `float` | `settings.toml` `[quality_level]` `good_threshold` | `7.0` | `quality_level_good_threshold` |
+| `QUALITY_LEVEL_ACCEPTABLE_THRESHOLD` | `float` | `settings.toml` `[quality_level]` `acceptable_threshold` | `5.0` | `quality_level_acceptable_threshold` |
+| `QUALITY_LEVEL_NEEDS_IMPROVEMENT_THRESHOLD` | `float` | `settings.toml` `[quality_level]` `needs_improvement_threshold` | `3.0` | `quality_level_needs_improvement_threshold` |
+| `QUALITY_MIN_SAMPLE_WORD_COUNT` | `int` | `settings.toml` `[quality]` `min_sample_word_count` | `10000` | `quality_min_sample_word_count` |
+| `QUALITY_TEXT_SAMPLE_CHARACTER_LIMIT` | `int` | `settings.toml` `[quality_text_sample]` `character_limit` | `32000` | `quality_text_sample_character_limit` |
+| `QUALITY_TEXT_SAMPLE_REFERENCE_LINE_PREFIX_LENGTH` | `int` | `settings.toml` `[quality_text_sample]` `reference_line_prefix_length` | `80` | `quality_text_sample_reference_line_prefix_length` |
+| `QUALITY_TEXT_SAMPLE_INTRODUCTION_PARAGRAPH_COUNT` | `int` | `settings.toml` `[quality_text_sample]` `introduction_paragraph_count` | `3` | `quality_text_sample_introduction_paragraph_count` |
+| `QUALITY_TEXT_SAMPLE_MIDDLE_PARAGRAPH_COUNT` | `int` | `settings.toml` `[quality_text_sample]` `middle_paragraph_count` | `2` | `quality_text_sample_middle_paragraph_count` |
+| `QUALITY_TEXT_SAMPLE_CONCLUSION_PARAGRAPH_LIMIT` | `int` | `settings.toml` `[quality_text_sample]` `conclusion_paragraph_limit` | `3` | `quality_text_sample_conclusion_paragraph_limit` |
+| `QUALITY_TEXT_SAMPLE_FALLBACK_TAIL_PARAGRAPH_COUNT` | `int` | `settings.toml` `[quality_text_sample]` `fallback_tail_paragraph_count` | `2` | `quality_text_sample_fallback_tail_paragraph_count` |
+| `QUALITY_TEXT_SAMPLE_CONCLUSION_HEADER_MARKER` | `str` | `settings.toml` `[quality_text_sample]` `conclusion_header_marker` | `"conclusi"` | `quality_text_sample_conclusion_header_marker` |
+| `OLLAMA_MODEL_NAME` | `str` | `.env` | `— (required)` | `ollama_model_name` |
+| `OLLAMA_BASE_URL` | `str` | `.env` | `— (required)` | `ollama_base_url` |
+| `OLLAMA_THINK` | `bool` | `.env` | `— (required)` | `ollama_think` |
+| `OLLAMA_MODEL_KEEP_ALIVE` | `str` | `.env` | `— (required)` | `ollama_model_keep_alive` |
+| `OLLAMA_NUM_CTX` | `int \| None` | `.env` | `None` | `ollama_num_ctx` |
+| `OLLAMA_WARMUP_ON_STARTUP` | `bool` | `.env` | `— (required)` | `ollama_warmup_on_startup` |
+| `USE_EXTERNAL_LLM` | `bool` | `.env` | `— (required)` | `use_external_llm` |
+| `EXTERNAL_LLM_THINK` | `bool` | `.env` | `— (required)` | `external_llm_think` |
+| `APP_MODE` | `AppMode` | `.env` | `— (required)` | `app_mode` |
+| `METRICS_DATABASE_PATH` | `str` | `.env` | `— (required)` | `metrics_database_path` |
+| `LOG_FILE_PATH` | `str` | `.env` | `— (required)` | `log_file_path` |
+| `LOG_LEVEL` | `str` | `.env` | `— (required)` | `log_level` |
+| `LOG_RETENTION_DAYS` | `int` | `.env` | `— (required)` | `log_retention_days` |
+| `PUBLISH_THRESHOLD` | `float` | `settings.toml` `[recommendation]` `publish_threshold` | `7.0` | `publish_threshold` |
+| `QUALITY_THRESHOLD` | `float` | `settings.toml` `[recommendation]` `quality_threshold` | `7.0` | `quality_threshold` |
+| `GRAMMAR_THRESHOLD` | `float` | `settings.toml` `[recommendation]` `grammar_threshold` | `7.0` | `grammar_threshold` |
+| `DIMENSION_THRESHOLD` | `float` | `settings.toml` `[recommendation]` `dimension_threshold` | `6.0` | `dimension_threshold` |
+| `CITATION_MATCH_THRESHOLD` | `float` | `settings.toml` `[recommendation]` `citation_match_threshold` | `90.0` | `citation_match_threshold` |
+| `CRITICAL_CITATION_MATCH_THRESHOLD` | `float` | `settings.toml` `[recommendation]` `critical_citation_match_threshold` | `50.0` | `critical_citation_match_threshold` |
+| `CITATION_COUNT_THRESHOLD` | `int` | `settings.toml` `[recommendation]` `citation_count_threshold` | `10` | `citation_count_threshold` |
+| `CLASSIFICATION_CONFIDENCE_THRESHOLD` | `float` | `settings.toml` `[recommendation]` `classification_confidence_threshold` | `0.7` | `classification_confidence_threshold` |
+| `CRITICAL_QUALITY_THRESHOLD` | `float` | `settings.toml` `[recommendation]` `critical_quality_threshold` | `5.0` | `critical_quality_threshold` |
+| `CRITICAL_GRAMMAR_THRESHOLD` | `float` | `settings.toml` `[recommendation]` `critical_grammar_threshold` | `5.0` | `critical_grammar_threshold` |
+| `SILVINA_APP_NAME` | `str` | `.env` | `"Silvina Editorial Assistant"` | `silvina_app_name` |
+| `REPORT_SCORE_HIGH_THRESHOLD` | `float` | `settings.toml` `[report]` `score_high_threshold` | `8.0` | `report_score_high_threshold` |
+| `REPORT_SCORE_MEDIUM_THRESHOLD` | `float` | `settings.toml` `[report]` `score_medium_threshold` | `6.0` | `report_score_medium_threshold` |
+| `REPORT_WORDS_PER_PAGE` | `int` | `settings.toml` `[report]` `words_per_page` | `250` | `report_words_per_page` |
+| `REPORT_MAX_ERRORS_DISPLAYED` | `int` | `settings.toml` `[report]` `max_errors_displayed` | `5` | `report_max_errors_displayed` |
+| `REPORT_CONTEXT_TRUNCATION_LIMIT` | `int` | `settings.toml` `[report]` `context_truncation_limit` | `150` | `report_context_truncation_limit` |
+| `REPORT_MAX_REPLACEMENTS` | `int` | `settings.toml` `[report]` `max_replacements` | `3` | `report_max_replacements` |
+| `UPLOAD_MAX_SIZE_BYTES` | `int` | `settings.toml` `[upload]` `max_size_bytes` | `26214400` | `upload_max_size_bytes` |
 
-> **Naming note**: the `PUBLISH_THRESHOLD` … `CRITICAL_GRAMMAR_THRESHOLD` variables (recommendation thresholds) carry no `RECOMMENDATION_` prefix. In `.env`/`.env.example` they MUST be grouped under a section comment (e.g. `# Recommendation thresholds`) instead of relying on a name prefix for grouping.
+> **Naming note**: the `PUBLISH_THRESHOLD` … `CRITICAL_GRAMMAR_THRESHOLD` variables (recommendation thresholds) carry no `RECOMMENDATION_` prefix. In `settings.toml` they are grouped under the `[recommendation]` section, and in `.env.example` under a section comment (e.g. `# Recommendation thresholds`), instead of relying on a name prefix for grouping.
 
-#### Scenario: EnvConfig defaults are loaded when env is empty and version.txt exists
+**Required parameters**: every parameter whose Source is `.env` and whose Default is `— (required)` has no default value in code. If it is not set, or is blank, `EnvConfig` fails fast with `SettingValueMissing` naming the variable, so a missing parameter never falls back silently. The exceptions are `OLLAMA_NUM_CTX` (optional, absent means `None`), `LLM_PROVIDER` and `EXTERNAL_LLM_MODEL_NAME` (required only when the external LLM is active in `DEBUG`), `SILVINA_APP_NAME` (keeps its default `"Silvina Editorial Assistant"`, by user decision) and the testing-mode fallback `SILVINA_VERSION`.
 
-- GIVEN an empty environment except for a valid `version.txt` file with content `"1.2.3"`
+**Source note**: `settings.toml` is versioned and carries the values in use. A variable that is also present in the local `.env` overrides the file on that machine. `.env` and `.env.example` are not edited by the migration to `settings.toml`.
+
+#### Scenario: EnvConfig values are loaded from settings.toml when env is empty and version.txt exists
+
+- GIVEN an environment where every required `.env` parameter is set and a valid `version.txt` file with content `"1.2.3"`
 - WHEN `EnvConfig` is instantiated
-- THEN attributes match the defaults in the table above
+- THEN attributes match the values in the table above
 - AND `env_config.silvina_version` is `"1.2.3"`
 
 #### Scenario: EnvConfig parses and casts environment variables
@@ -214,6 +221,40 @@ The application version attribute (`silvina_version`) MUST be resolved dynamical
 - AND a valid `version.txt` file exists
 - WHEN `EnvConfig` is instantiated
 - THEN `env_config.citation_max_author_name_length == 150`
+
+#### Scenario: Environment variable overrides settings.toml
+
+- GIVEN `settings.toml` sets `[grammar]` `max_paragraphs = 20`
+- AND the environment contains `GRAMMAR_MAX_PARAGRAPHS=42`
+- WHEN `EnvConfig` is instantiated
+- THEN `env_config.grammar_max_paragraphs == 42`
+
+#### Scenario: EnvConfig reads a value from a custom settings file
+
+- GIVEN a settings file that sets `[grammar]` `max_paragraphs = 7`
+- AND the environment does not contain `GRAMMAR_MAX_PARAGRAPHS`
+- WHEN `EnvConfig` is instantiated with that `settings_file_path`
+- THEN `env_config.grammar_max_paragraphs == 7`
+
+#### Scenario: EnvConfig fails fast when a setting is missing
+
+- GIVEN a settings file without the key `max_paragraphs` in `[grammar]`
+- AND the environment does not contain `GRAMMAR_MAX_PARAGRAPHS`
+- WHEN `EnvConfig` is instantiated
+- THEN `SettingValueMissing` is raised naming the key, the section and the environment variable
+
+#### Scenario: EnvConfig fails fast when the settings file does not exist
+
+- GIVEN the given `settings_file_path` does not exist
+- WHEN `EnvConfig` is instantiated
+- THEN `SettingsFileNotFound` is raised naming the path
+
+#### Scenario: EnvConfig fails fast when a required .env parameter is missing
+
+- GIVEN every required `.env` parameter is set except `OLLAMA_BASE_URL`
+- WHEN `EnvConfig` is instantiated
+- THEN `SettingValueMissing` is raised and its message names `OLLAMA_BASE_URL`
+- AND no default value is used
 
 #### Scenario: EnvConfig fails fast when version.txt is missing
 

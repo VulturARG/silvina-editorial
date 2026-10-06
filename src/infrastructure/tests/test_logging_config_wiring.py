@@ -3,19 +3,29 @@ from os import environ
 from unittest import TestCase
 from unittest.mock import patch
 
+from src.domain.exceptions.settings_errors import SettingValueMissing
 from src.domain.metrics.analysis_context_port import AnalysisContextPort
 from src.infrastructure.adapters.metrics.analysis_context_adapter import (
     AnalysisContextAdapter,
 )
 from src.infrastructure.config.logging_config import LoggingConfig
+from src.infrastructure.tests.test_doubles.complete_test_environment import (
+    CompleteTestEnvironment,
+)
 from src.infrastructure.wirings.logging_config_wiring import LoggingConfigWiring
 
 
 class TestLoggingConfigWiring(TestCase):
-    REQUIRED_ENVIRONMENT = {
-        "METRICS_DATABASE_PATH": "/custom/path/metrics.db",
-        "LOG_FILE_PATH": "/custom/path/silvina.log",
-    }
+    @staticmethod
+    def _complete_environment(overrides: dict[str, str] | None = None) -> dict[str, str]:
+        environment = {
+            **CompleteTestEnvironment.application_variables(),
+            "METRICS_DATABASE_PATH": "/custom/path/metrics.db",
+            "LOG_FILE_PATH": "/custom/path/silvina.log",
+        }
+        if overrides:
+            environment.update(overrides)
+        return environment
 
     def setUp(self) -> None:
         self._root_logger = getLogger()
@@ -60,11 +70,12 @@ class TestLoggingConfigWiring(TestCase):
         LoggingConfigWiring().create_logging_config()
         self.assertEqual(self._root_logger.handlers, handlers_before)
 
-    def test_create_logging_config_raises_value_error_when_log_file_path_is_missing(
+    def test_create_logging_config_raises_setting_value_missing_when_log_file_path_is_missing(
         self,
     ) -> None:
-        environment = {"METRICS_DATABASE_PATH": "/custom/path/metrics.db"}
+        environment = self._complete_environment()
+        del environment["LOG_FILE_PATH"]
         with patch.dict(environ, environment, clear=True):
-            with self.assertRaises(ValueError) as context:
+            with self.assertRaises(SettingValueMissing) as context:
                 LoggingConfigWiring().create_logging_config()
-        self.assertIn("LOG_FILE_PATH", str(context.exception))
+        self.assertIn("LOG_FILE_PATH", context.exception.dict()["error"])

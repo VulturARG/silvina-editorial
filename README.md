@@ -216,11 +216,20 @@ ollama create gemma4-26b-adapted -f src/infrastructure/resources/ollama/gemma4-2
 
 The base GGUF tag is published by a third party and can change upstream, so a model rebuilt later may use different weights bytes than an earlier build.
 
+### Configuration files
+
+Silvina reads its configuration from two places:
+
+- `settings.toml` (project root, versioned): the tuning parameters, grouped by section (`[grammar]`, `[article_size]`, `[quality_text_sample]`, `[recommendation]`, `[report]`, `[upload]`, and others). Edit it to adjust thresholds, sampling limits and size bands.
+- `.env` (not versioned, see `.env.example`): the values that depend on the machine or the deployment, such as `APP_MODE`, `METRICS_DATABASE_PATH`, `LOG_FILE_PATH` and the Ollama connection.
+
+An environment variable with the same name as a setting (for example `GRAMMAR_MAX_PARAGRAPHS`) overrides the value in `settings.toml`, so a line left in your local `.env` wins over the file on that machine. If a setting is missing from both, or has the wrong type, the application stops at startup with a message naming the section and key. The parameters that live in `.env` have no default in the code: if one is missing or blank, the application stops at startup naming the variable (`OLLAMA_NUM_CTX` is the only optional one: without it Ollama decides the context size).
+
 ### Ollama warm-up and keep_alive
 
 When the web server starts (`launch_silvina.bat` or `python web_main.py`) and Ollama is the language model in use, Silvina loads the model in the background so the first analysis does not pay the load time (about a minute for the 26B model). The server answers while the model loads, and a failed warm-up only writes a warning to the log. Every request also asks Ollama to keep the model loaded for a while after its last use, instead of the 5 minutes of the Ollama default.
 
-| Variable | Default | Meaning |
+| Variable | Value in `.env.example` | Meaning |
 |----------|---------|---------|
 | `OLLAMA_WARMUP_ON_STARTUP` | `true` | `true` or `false`. Loads the model when the server starts |
 | `OLLAMA_MODEL_KEEP_ALIVE` | `15m` | How long the model stays loaded after each request. A duration with a unit (`15m`, `1h`, `90s`); a negative one such as `-1m` keeps it loaded indefinitely |
@@ -245,7 +254,7 @@ LLM_PROVIDER=claude
 EXTERNAL_LLM_MODEL_NAME=<claude model name>
 ```
 
-`USE_EXTERNAL_LLM` (`true` or `false`, default `false`) enables the external LLM instead of Ollama. `LLM_PROVIDER` names only the external provider (`claude`) and `EXTERNAL_LLM_MODEL_NAME` is its model, independent from `OLLAMA_MODEL_NAME`; both are required when the flag is `true`. `EXTERNAL_LLM_THINK` (`true` or `false`, default `false`) controls the model's reasoning: with `false` the Claude adapter disables it, which cut a classification call from about 16 s and 1600 output tokens to about 4 s and 17 tokens. With the flag `false`, or with `APP_MODE=PROD`, Ollama is used and `LLM_PROVIDER` and `EXTERNAL_LLM_MODEL_NAME` are ignored. The Ollama generation options (`temperature`, `num_predict`) are not applied to external providers.
+`USE_EXTERNAL_LLM` (`true` or `false`, required) enables the external LLM instead of Ollama. `LLM_PROVIDER` names only the external provider (`claude`) and `EXTERNAL_LLM_MODEL_NAME` is its model, independent from `OLLAMA_MODEL_NAME`; both are required when the flag is `true`. `EXTERNAL_LLM_THINK` (`true` or `false`, required) controls the model's reasoning: with `false` the Claude adapter disables it, which cut a classification call from about 16 s and 1600 output tokens to about 4 s and 17 tokens. With the flag `false`, or with `APP_MODE=PROD`, Ollama is used and `LLM_PROVIDER` and `EXTERNAL_LLM_MODEL_NAME` are ignored. The Ollama generation options (`temperature`, `num_predict`) are not applied to external providers.
 
 ---
 
