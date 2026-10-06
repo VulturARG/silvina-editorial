@@ -20,3 +20,6 @@ class TestSettingsFileInvalid(TestCase):
             SettingsFileInvalid("detail").dict(),
             {"error": "The settings file is not valid TOML. detail"},
         )
+
+    def test_exposes_the_detail(self):
+        self.assertEqual(SettingsFileInvalid("detail").detail, "detail")

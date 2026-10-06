@@ -20,3 +20,6 @@ class TestSettingValueInvalid(TestCase):
             SettingValueInvalid("detail").dict(),
             {"error": "A setting has an invalid value. detail"},
         )
+
+    def test_exposes_the_detail(self):
+        self.assertEqual(SettingValueInvalid("detail").detail, "detail")

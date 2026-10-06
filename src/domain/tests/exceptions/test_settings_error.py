@@ -10,17 +10,8 @@ class TestSettingsError(TestCase):
 
     def test_is_catchable_as_base_src_error(self):
         with self.assertRaises(BaseSrcError):
-            raise SettingsError("detail")
+            raise SettingsError()
 
-    def test_exposes_the_detail(self):
-        self.assertEqual(SettingsError("section [grammar]").detail, "section [grammar]")
-
-    def test_dict_appends_the_detail_to_the_message(self):
-        error = SettingsError("section [grammar]")
-
-        self.assertTrue(error.dict()["error"].endswith("section [grammar]"))
-
-    def test_string_representation_matches_the_dict_error(self):
-        error = SettingsError("section [grammar]")
-
-        self.assertEqual(str(error), error.dict()["error"])
+    def test_does_not_define_its_own_behaviour(self):
+        for method_name in ("__init__", "dict"):
+            self.assertNotIn(method_name, vars(SettingsError))
