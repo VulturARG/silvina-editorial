@@ -7,7 +7,7 @@ class BaseSrcError(Exception):
     MESSAGE: str | None = None
 
     def __init__(self) -> None:
-        """Initialise base error with per-instance logging state."""
+        """Initialize base error with per-instance logging state."""
         super().__init__()
         self.was_error_logged: bool = False
 
