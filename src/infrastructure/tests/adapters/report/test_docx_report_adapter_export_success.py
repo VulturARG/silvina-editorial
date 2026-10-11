@@ -1,7 +1,6 @@
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
-from src.infrastructure.adapters.report.docx_report_adapter import DocxReportAdapter
 from src.infrastructure.tests.adapters.report.fixtures import ReportFixtures
 
 
@@ -10,9 +9,7 @@ class TestDocxReportAdapterExportSuccess(TestCase):
     def test_export_returns_true_on_success(self, mock_document_class):
         mock_document_class.return_value = MagicMock()
 
-        adapter = DocxReportAdapter(
-            logo_path=None, docx_report_settings=ReportFixtures.make_settings()
-        )
+        adapter = ReportFixtures.make_adapter()
         result = adapter.export(
             report_input=ReportFixtures.make_report_input_dto(), output_path="output.docx"
         )
@@ -24,9 +21,7 @@ class TestDocxReportAdapterExportSuccess(TestCase):
         mock_doc = MagicMock()
         mock_document_class.return_value = mock_doc
 
-        adapter = DocxReportAdapter(
-            logo_path=None, docx_report_settings=ReportFixtures.make_settings()
-        )
+        adapter = ReportFixtures.make_adapter()
         adapter.export(
             report_input=ReportFixtures.make_report_input_dto(), output_path="output.docx"
         )
@@ -37,9 +32,7 @@ class TestDocxReportAdapterExportSuccess(TestCase):
     def test_export_calls_all_fourteen_add_methods(self, mock_document_class):
         mock_document_class.return_value = MagicMock()
 
-        adapter = DocxReportAdapter(
-            logo_path=None, docx_report_settings=ReportFixtures.make_settings()
-        )
+        adapter = ReportFixtures.make_adapter()
         report_input = ReportFixtures.make_report_input_dto()
 
         with (

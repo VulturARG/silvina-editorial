@@ -1,7 +1,6 @@
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
-from src.infrastructure.adapters.report.docx_report_adapter import DocxReportAdapter
 from src.infrastructure.tests.adapters.report.fixtures import ReportFixtures
 
 
@@ -12,9 +11,7 @@ class TestDocxReportAdapterExportFailure(TestCase):
         mock_doc.save.side_effect = OSError("Disk full")
         mock_document_class.return_value = mock_doc
 
-        adapter = DocxReportAdapter(
-            logo_path=None, docx_report_settings=ReportFixtures.make_settings()
-        )
+        adapter = ReportFixtures.make_adapter()
         with self.assertRaises(OSError):
             adapter.export(
                 report_input=ReportFixtures.make_report_input_dto(), output_path="output.docx"

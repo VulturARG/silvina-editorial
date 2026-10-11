@@ -1,3 +1,4 @@
+from datetime import datetime
 from os import environ
 from unittest import TestCase
 from unittest.mock import patch
@@ -44,6 +45,11 @@ class TestExportReportWiring(TestCase):
         settings = result._report_export_port._docx_report_settings
         self.assertAlmostEqual(settings.score_high_threshold, 9.0)
         self.assertAlmostEqual(settings.score_medium_threshold, 5.0)
+
+    def test_create_use_case_injects_system_clock(self):
+        result = ExportReportWiring().create_use_case()
+        assert isinstance(result._report_export_port, DocxReportAdapter)
+        self.assertEqual(result._report_export_port._clock, datetime.now)
 
     @patch("src.infrastructure.adapters.report.docx_report_adapter.DOCX_AVAILABLE", False)
     def test_create_use_case_raises_report_export_unavailable_when_docx_missing(self):

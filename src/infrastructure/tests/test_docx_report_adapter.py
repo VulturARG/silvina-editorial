@@ -8,7 +8,6 @@ from docx.document import Document as DocxDocument
 from src.domain.dtos.editorial_suitability_dto import EditorialSuitabilityDTO
 from src.domain.dtos.quality_result_dto import QualityResultDTO
 from src.domain.enums.quality_level import QualityLevel
-from src.infrastructure.adapters.report.docx_report_adapter import DocxReportAdapter
 from src.infrastructure.tests.adapters.report.fixtures import ReportFixtures
 
 
@@ -23,9 +22,7 @@ class TestDocxReportAdapterEditorialSuitability(TestCase):
         self._tmp_dir = TemporaryDirectory()
         self.addCleanup(self._tmp_dir.cleanup)
         self.output_path = str(Path(self._tmp_dir.name) / "report.docx")
-        self.adapter = DocxReportAdapter(
-            logo_path=None, docx_report_settings=ReportFixtures.make_settings()
-        )
+        self.adapter = ReportFixtures.make_adapter()
 
     def test_export_renders_editorial_suitability_section_when_present(self):
         suitability = EditorialSuitabilityDTO(

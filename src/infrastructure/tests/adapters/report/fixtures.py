@@ -1,12 +1,62 @@
+from collections.abc import Callable
+from datetime import datetime
 from unittest.mock import MagicMock
 
 from src.domain.dtos.publication_verdict_dto import PublicationVerdictDTO
 from src.domain.dtos.report_input_dto import ReportInputDTO
 from src.domain.enums.publication_verdict import PublicationVerdict
+from src.infrastructure.adapters.report.citation_match_rate_formatter import (
+    CitationMatchRateFormatter,
+)
+from src.infrastructure.adapters.report.docx_feedback_block_writer import (
+    DocxFeedbackBlockWriter,
+)
+from src.infrastructure.adapters.report.docx_labeled_paragraph_writer import (
+    DocxLabeledParagraphWriter,
+)
+from src.infrastructure.adapters.report.docx_markdown_run_writer import (
+    DocxMarkdownRunWriter,
+)
+from src.infrastructure.adapters.report.docx_report_adapter import DocxReportAdapter
 from src.infrastructure.adapters.report.docx_report_settings import DocxReportSettings
+from src.infrastructure.adapters.report.docx_section_heading_writer import (
+    DocxSectionHeadingWriter,
+)
+
+FIXED_CLOCK_TIME = datetime(2026, 1, 15, 10, 30)
 
 
 class ReportFixtures:
+    @staticmethod
+    def make_adapter(
+        logo_path: str | None = None,
+        clock: Callable[[], datetime] | None = None,
+        docx_report_settings: DocxReportSettings | None = None,
+    ) -> DocxReportAdapter:
+        settings = (
+            docx_report_settings
+            if docx_report_settings is not None
+            else ReportFixtures.make_settings()
+        )
+        markdown_run_writer = DocxMarkdownRunWriter()
+        return DocxReportAdapter(
+            docx_report_settings=settings,
+            markdown_run_writer=markdown_run_writer,
+            feedback_block_writer=DocxFeedbackBlockWriter(
+                markdown_run_writer=markdown_run_writer,
+                docx_report_settings=settings,
+            ),
+            section_heading_writer=DocxSectionHeadingWriter(docx_report_settings=settings),
+            labeled_paragraph_writer=DocxLabeledParagraphWriter(),
+            citation_match_rate_formatter=CitationMatchRateFormatter(),
+            clock=clock if clock is not None else ReportFixtures.fixed_clock,
+            logo_path=logo_path,
+        )
+
+    @staticmethod
+    def fixed_clock() -> datetime:
+        return FIXED_CLOCK_TIME
+
     @staticmethod
     def make_settings(**overrides) -> DocxReportSettings:
         defaults = {

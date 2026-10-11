@@ -16,6 +16,10 @@ class TestDocxReportSettings(TestCase):
         self.assertEqual(settings.table_style, "Light Grid Accent 1")
         self.assertEqual(settings.heading_color_rgb, (0, 51, 102))
 
+    def test_feedback_item_indent_inches_default(self):
+        settings = ReportFixtures.make_settings()
+        self.assertEqual(settings.feedback_item_indent_inches, (0.25, 0.5, 0.75))
+
     def test_constructor_arguments_override_deployment_fields(self):
         settings = ReportFixtures.make_settings(words_per_page=300, max_errors_displayed=10)
         self.assertEqual(settings.words_per_page, 300)

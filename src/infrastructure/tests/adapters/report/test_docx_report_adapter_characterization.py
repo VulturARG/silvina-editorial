@@ -3,7 +3,6 @@ from os.path import dirname, join
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
-from src.infrastructure.adapters.report.docx_report_adapter import DocxReportAdapter
 from src.infrastructure.resources.assets import ASSETS_DIR
 from src.infrastructure.tests.adapters.report.characterization_report_input import (
     CharacterizationReportInput,
@@ -23,7 +22,7 @@ class TestDocxReportAdapterCharacterization(TestCase):
         self._golden_file_path = join(dirname(__file__), "fixtures", "docx_report_fingerprint.json")
         self._logo_path = join(ASSETS_DIR, "logo.jpg")
         self._settings = ReportFixtures.make_settings()
-        self._adapter = DocxReportAdapter(
+        self._adapter = ReportFixtures.make_adapter(
             docx_report_settings=self._settings,
             logo_path=self._logo_path,
         )
