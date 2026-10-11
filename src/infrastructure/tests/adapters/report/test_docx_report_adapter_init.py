@@ -1,14 +1,14 @@
-from typing import Any
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from src.domain.exceptions.report_errors import ReportExportUnavailable
 from src.infrastructure.adapters.report.docx_report_adapter import DocxReportAdapter
+from src.infrastructure.adapters.report.docx_report_section import DocxReportSection
 from src.infrastructure.tests.adapters.report.fixtures import ReportFixtures
 
 
 class TestDocxReportAdapterInit(TestCase):
-    def test_init_succeeds_without_logo_path(self):
+    def test_init_succeeds_with_page_decorations_and_sections(self):
         adapter = ReportFixtures.make_adapter()
         self.assertIsInstance(adapter, DocxReportAdapter)
 
@@ -17,7 +17,10 @@ class TestDocxReportAdapterInit(TestCase):
         with self.assertRaises(ReportExportUnavailable):
             ReportFixtures.make_adapter()
 
-    def test_init_requires_settings(self):
-        kwargs: dict[str, Any] = {"logo_path": None}
+    def test_init_requires_page_decorations(self):
+        sections_without_page_decorations = {
+            section_name: MagicMock(spec=DocxReportSection)
+            for section_name in ReportFixtures.make_sections()
+        }
         with self.assertRaises(TypeError):
-            DocxReportAdapter(**kwargs)
+            DocxReportAdapter(**sections_without_page_decorations)

@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from docx import Document
 from docx.document import Document as DocxDocument
+from docx.opc.constants import RELATIONSHIP_TYPE
 from docx.shared import RGBColor
 
 from src.application.export_report_use_case import ExportReportUseCase
@@ -92,6 +93,30 @@ class TestExportReportWiring(TestCase):
         document = self._export_with_environment({})
 
         self.assertIn(datetime.now().strftime("%d/%m/%Y"), self._footer_stamp(document))
+
+    def test_execute_decorates_header_with_logo_and_current_date_from_system_clock(self):
+        document = self._export_with_environment({})
+
+        header = document.sections[0].header
+        header_relationship_types = [
+            relationship.reltype for relationship in header.part.rels.values()
+        ]
+        self.assertEqual(header_relationship_types.count(RELATIONSHIP_TYPE.IMAGE), 1)
+        self.assertTrue(
+            header.tables[0]
+            .rows[0]
+            .cells[0]
+            .text.endswith(datetime.now().strftime("%d de %B de %Y"))
+        )
+
+    def test_execute_decorates_footer_with_page_and_total_pages_fields(self):
+        document = self._export_with_environment({})
+
+        footer_paragraph = document.sections[0].footer.paragraphs[0]
+        field_instructions = footer_paragraph._element.xpath(".//w:instrText")
+        self.assertEqual(
+            [instruction.text for instruction in field_instructions], ["PAGE", "NUMPAGES"]
+        )
 
     def test_execute_renders_every_section_heading_in_report_order(self):
         document = self._export_with_environment({})

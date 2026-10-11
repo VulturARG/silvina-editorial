@@ -11,6 +11,9 @@ from src.infrastructure.adapters.report.citation_match_rate_formatter import (
 from src.infrastructure.adapters.report.docx_apa_validation_section import (
     DocxApaValidationSection,
 )
+from src.infrastructure.adapters.report.docx_base_style_decoration import (
+    DocxBaseStyleDecoration,
+)
 from src.infrastructure.adapters.report.docx_citations_analysis_section import (
     DocxCitationsAnalysisSection,
 )
@@ -33,11 +36,18 @@ from src.infrastructure.adapters.report.docx_footer_section import DocxFooterSec
 from src.infrastructure.adapters.report.docx_grammar_analysis_section import (
     DocxGrammarAnalysisSection,
 )
+from src.infrastructure.adapters.report.docx_header_logo_decoration import (
+    DocxHeaderLogoDecoration,
+)
 from src.infrastructure.adapters.report.docx_labeled_paragraph_writer import (
     DocxLabeledParagraphWriter,
 )
 from src.infrastructure.adapters.report.docx_markdown_run_writer import (
     DocxMarkdownRunWriter,
+)
+from src.infrastructure.adapters.report.docx_page_decoration import DocxPageDecoration
+from src.infrastructure.adapters.report.docx_page_number_decoration import (
+    DocxPageNumberDecoration,
 )
 from src.infrastructure.adapters.report.docx_quality_analysis_section import (
     DocxQualityAnalysisSection,
@@ -72,21 +82,25 @@ class ReportFixtures:
             sections=ReportFixtures.make_sections(
                 clock=report_clock, docx_report_settings=settings
             ),
-            logo_path=logo_path,
-            clock=report_clock,
-            docx_report_settings=settings,
+            page_decorations=ReportFixtures.make_page_decorations(
+                logo_path=logo_path, clock=report_clock, docx_report_settings=settings
+            ),
         )
 
     @staticmethod
     def make_adapter_with_sections(
         sections: dict[str, DocxReportSection],
-        logo_path: str | None = None,
-        clock: Callable[[], datetime] | None = None,
-        docx_report_settings: DocxReportSettings | None = None,
+        page_decorations: dict[str, DocxPageDecoration] | None = None,
     ) -> DocxReportAdapter:
+        decorations = (
+            page_decorations
+            if page_decorations is not None
+            else ReportFixtures.make_page_decorations()
+        )
         return DocxReportAdapter(
-            docx_report_settings=ReportFixtures._settings_or_default(docx_report_settings),
-            clock=clock if clock is not None else ReportFixtures.fixed_clock,
+            base_style_decoration=decorations["base_style_decoration"],
+            header_logo_decoration=decorations["header_logo_decoration"],
+            page_number_decoration=decorations["page_number_decoration"],
             title_page_section=sections["title_page_section"],
             executive_summary_section=sections["executive_summary_section"],
             document_info_section=sections["document_info_section"],
@@ -99,7 +113,49 @@ class ReportFixtures:
             citations_analysis_section=sections["citations_analysis_section"],
             recommendations_section=sections["recommendations_section"],
             footer_section=sections["footer_section"],
+        )
+
+    @staticmethod
+    def make_page_decorations(
+        logo_path: str | None = None,
+        clock: Callable[[], datetime] | None = None,
+        docx_report_settings: DocxReportSettings | None = None,
+    ) -> dict[str, DocxPageDecoration]:
+        settings = ReportFixtures._settings_or_default(docx_report_settings)
+        return {
+            "base_style_decoration": ReportFixtures.make_base_style_decoration(settings),
+            "header_logo_decoration": ReportFixtures.make_header_logo_decoration(
+                logo_path, clock, settings
+            ),
+            "page_number_decoration": ReportFixtures.make_page_number_decoration(settings),
+        }
+
+    @staticmethod
+    def make_base_style_decoration(
+        docx_report_settings: DocxReportSettings | None = None,
+    ) -> DocxBaseStyleDecoration:
+        return DocxBaseStyleDecoration(
+            docx_report_settings=ReportFixtures._settings_or_default(docx_report_settings)
+        )
+
+    @staticmethod
+    def make_header_logo_decoration(
+        logo_path: str | None = None,
+        clock: Callable[[], datetime] | None = None,
+        docx_report_settings: DocxReportSettings | None = None,
+    ) -> DocxHeaderLogoDecoration:
+        return DocxHeaderLogoDecoration(
+            docx_report_settings=ReportFixtures._settings_or_default(docx_report_settings),
+            clock=clock if clock is not None else ReportFixtures.fixed_clock,
             logo_path=logo_path,
+        )
+
+    @staticmethod
+    def make_page_number_decoration(
+        docx_report_settings: DocxReportSettings | None = None,
+    ) -> DocxPageNumberDecoration:
+        return DocxPageNumberDecoration(
+            docx_report_settings=ReportFixtures._settings_or_default(docx_report_settings)
         )
 
     @staticmethod

@@ -10,6 +10,9 @@ from src.infrastructure.adapters.report.citation_match_rate_formatter import (
 from src.infrastructure.adapters.report.docx_apa_validation_section import (
     DocxApaValidationSection,
 )
+from src.infrastructure.adapters.report.docx_base_style_decoration import (
+    DocxBaseStyleDecoration,
+)
 from src.infrastructure.adapters.report.docx_citations_analysis_section import (
     DocxCitationsAnalysisSection,
 )
@@ -32,11 +35,18 @@ from src.infrastructure.adapters.report.docx_footer_section import DocxFooterSec
 from src.infrastructure.adapters.report.docx_grammar_analysis_section import (
     DocxGrammarAnalysisSection,
 )
+from src.infrastructure.adapters.report.docx_header_logo_decoration import (
+    DocxHeaderLogoDecoration,
+)
 from src.infrastructure.adapters.report.docx_labeled_paragraph_writer import (
     DocxLabeledParagraphWriter,
 )
 from src.infrastructure.adapters.report.docx_markdown_run_writer import (
     DocxMarkdownRunWriter,
+)
+from src.infrastructure.adapters.report.docx_page_decoration import DocxPageDecoration
+from src.infrastructure.adapters.report.docx_page_number_decoration import (
+    DocxPageNumberDecoration,
 )
 from src.infrastructure.adapters.report.docx_quality_analysis_section import (
     DocxQualityAnalysisSection,
@@ -75,8 +85,16 @@ class ExportReportWiring:
         citation_match_rate_formatter = self._citation_match_rate_formatter()
         clock = self._clock()
         return DocxReportAdapter(
-            docx_report_settings=docx_report_settings,
-            clock=clock,
+            base_style_decoration=self._base_style_decoration(
+                docx_report_settings=docx_report_settings,
+            ),
+            header_logo_decoration=self._header_logo_decoration(
+                docx_report_settings=docx_report_settings,
+                clock=clock,
+            ),
+            page_number_decoration=self._page_number_decoration(
+                docx_report_settings=docx_report_settings,
+            ),
             title_page_section=self._title_page_section(
                 docx_report_settings=docx_report_settings,
             ),
@@ -134,7 +152,6 @@ class ExportReportWiring:
                 docx_report_settings=docx_report_settings,
                 clock=clock,
             ),
-            logo_path=join(ASSETS_DIR, "logo.jpg"),
         )
 
     def _docx_report_settings(self) -> DocxReportSettings:
@@ -177,6 +194,29 @@ class ExportReportWiring:
 
     def _clock(self) -> Callable[[], datetime]:
         return datetime.now
+
+    def _base_style_decoration(
+        self,
+        docx_report_settings: DocxReportSettings,
+    ) -> DocxPageDecoration:
+        return DocxBaseStyleDecoration(docx_report_settings=docx_report_settings)
+
+    def _header_logo_decoration(
+        self,
+        docx_report_settings: DocxReportSettings,
+        clock: Callable[[], datetime],
+    ) -> DocxPageDecoration:
+        return DocxHeaderLogoDecoration(
+            docx_report_settings=docx_report_settings,
+            clock=clock,
+            logo_path=join(ASSETS_DIR, "logo.jpg"),
+        )
+
+    def _page_number_decoration(
+        self,
+        docx_report_settings: DocxReportSettings,
+    ) -> DocxPageDecoration:
+        return DocxPageNumberDecoration(docx_report_settings=docx_report_settings)
 
     def _title_page_section(
         self,
