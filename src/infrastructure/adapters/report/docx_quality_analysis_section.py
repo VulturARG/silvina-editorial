@@ -1,8 +1,13 @@
+from collections.abc import Sequence
+
 from docx.document import Document as DocxDocument
 from docx.shared import Pt, RGBColor
 
 from src.domain.dtos.report_input_dto import ReportInputDTO
 from src.domain.enums.quality_dimension import QualityDimension
+from src.infrastructure.adapters.report.docx_feedback_block_payload import (
+    DocxFeedbackBlockPayload,
+)
 from src.infrastructure.adapters.report.docx_feedback_block_writer import (
     DocxFeedbackBlockWriter,
 )
@@ -65,16 +70,24 @@ class DocxQualityAnalysisSection(DocxReportSection):
                     value=f"{dimension_data['score']:.1f}/10",
                 )
 
-                feedback_blocks = dimension_data.get("feedback_blocks")
-                if feedback_blocks:
-                    self._feedback_block_writer.write_blocks(
-                        document=document, blocks=feedback_blocks
-                    )
-                elif dimension_data.get("feedback"):
-                    self._markdown_run_writer.write_paragraph(
-                        document=document,
-                        text=dimension_data["feedback"],
-                    )
+                self._write_dimension_feedback(
+                    document=document,
+                    feedback_blocks=dimension_data.get("feedback_blocks"),
+                    feedback=dimension_data.get("feedback"),
+                )
+
+    def _write_dimension_feedback(
+        self,
+        document: DocxDocument,
+        feedback_blocks: Sequence[DocxFeedbackBlockPayload] | None,
+        feedback: str | None,
+    ) -> None:
+        if feedback_blocks:
+            self._feedback_block_writer.write_blocks(document=document, blocks=feedback_blocks)
+            return
+        if not feedback:
+            return
+        self._markdown_run_writer.write_paragraph(document=document, text=feedback)
 
     def _color_for_score(self, score: float) -> tuple[int, int, int]:
         if score >= self._docx_report_settings.score_high_threshold:
