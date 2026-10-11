@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from datetime import datetime
 from unittest.mock import MagicMock
 
@@ -89,46 +89,28 @@ class ReportFixtures:
 
     @staticmethod
     def make_adapter_with_sections(
-        sections: dict[str, DocxReportSection],
-        page_decorations: dict[str, DocxPageDecoration] | None = None,
+        sections: Sequence[DocxReportSection],
+        page_decorations: Sequence[DocxPageDecoration] | None = None,
     ) -> DocxReportAdapter:
         decorations = (
             page_decorations
             if page_decorations is not None
             else ReportFixtures.make_page_decorations()
         )
-        return DocxReportAdapter(
-            base_style_decoration=decorations["base_style_decoration"],
-            header_logo_decoration=decorations["header_logo_decoration"],
-            page_number_decoration=decorations["page_number_decoration"],
-            title_page_section=sections["title_page_section"],
-            executive_summary_section=sections["executive_summary_section"],
-            document_info_section=sections["document_info_section"],
-            classification_section=sections["classification_section"],
-            quality_analysis_section=sections["quality_analysis_section"],
-            editorial_suitability_section=sections["editorial_suitability_section"],
-            grammar_analysis_section=sections["grammar_analysis_section"],
-            apa_validation_section=sections["apa_validation_section"],
-            structure_validation_section=sections["structure_validation_section"],
-            citations_analysis_section=sections["citations_analysis_section"],
-            recommendations_section=sections["recommendations_section"],
-            footer_section=sections["footer_section"],
-        )
+        return DocxReportAdapter(page_decorations=decorations, sections=sections)
 
     @staticmethod
     def make_page_decorations(
         logo_path: str | None = None,
         clock: Callable[[], datetime] | None = None,
         docx_report_settings: DocxReportSettings | None = None,
-    ) -> dict[str, DocxPageDecoration]:
+    ) -> tuple[DocxPageDecoration, ...]:
         settings = ReportFixtures._settings_or_default(docx_report_settings)
-        return {
-            "base_style_decoration": ReportFixtures.make_base_style_decoration(settings),
-            "header_logo_decoration": ReportFixtures.make_header_logo_decoration(
-                logo_path, clock, settings
-            ),
-            "page_number_decoration": ReportFixtures.make_page_number_decoration(settings),
-        }
+        return (
+            ReportFixtures.make_base_style_decoration(settings),
+            ReportFixtures.make_header_logo_decoration(logo_path, clock, settings),
+            ReportFixtures.make_page_number_decoration(settings),
+        )
 
     @staticmethod
     def make_base_style_decoration(
@@ -162,26 +144,22 @@ class ReportFixtures:
     def make_sections(
         clock: Callable[[], datetime] | None = None,
         docx_report_settings: DocxReportSettings | None = None,
-    ) -> dict[str, DocxReportSection]:
+    ) -> tuple[DocxReportSection, ...]:
         settings = ReportFixtures._settings_or_default(docx_report_settings)
-        return {
-            "title_page_section": ReportFixtures.make_title_page_section(settings),
-            "executive_summary_section": ReportFixtures.make_executive_summary_section(settings),
-            "document_info_section": ReportFixtures.make_document_info_section(settings),
-            "classification_section": ReportFixtures.make_classification_section(settings),
-            "quality_analysis_section": ReportFixtures.make_quality_analysis_section(settings),
-            "editorial_suitability_section": ReportFixtures.make_editorial_suitability_section(
-                settings
-            ),
-            "grammar_analysis_section": ReportFixtures.make_grammar_analysis_section(settings),
-            "apa_validation_section": ReportFixtures.make_apa_validation_section(settings),
-            "structure_validation_section": ReportFixtures.make_structure_validation_section(
-                settings
-            ),
-            "citations_analysis_section": ReportFixtures.make_citations_analysis_section(settings),
-            "recommendations_section": ReportFixtures.make_recommendations_section(settings),
-            "footer_section": ReportFixtures.make_footer_section(clock, settings),
-        }
+        return (
+            ReportFixtures.make_title_page_section(settings),
+            ReportFixtures.make_executive_summary_section(settings),
+            ReportFixtures.make_document_info_section(settings),
+            ReportFixtures.make_classification_section(settings),
+            ReportFixtures.make_quality_analysis_section(settings),
+            ReportFixtures.make_editorial_suitability_section(settings),
+            ReportFixtures.make_grammar_analysis_section(settings),
+            ReportFixtures.make_apa_validation_section(settings),
+            ReportFixtures.make_structure_validation_section(settings),
+            ReportFixtures.make_citations_analysis_section(settings),
+            ReportFixtures.make_recommendations_section(settings),
+            ReportFixtures.make_footer_section(clock, settings),
+        )
 
     @staticmethod
     def make_executive_summary_section(

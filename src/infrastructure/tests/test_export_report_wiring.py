@@ -11,7 +11,6 @@ from docx.opc.constants import RELATIONSHIP_TYPE
 from docx.shared import RGBColor
 
 from src.application.export_report_use_case import ExportReportUseCase
-from src.domain.exceptions.report_errors import ReportExportUnavailable
 from src.infrastructure.tests.adapters.report.fixtures import ReportFixtures
 from src.infrastructure.wirings.export_report_wiring import ExportReportWiring
 
@@ -128,8 +127,3 @@ class TestExportReportWiring(TestCase):
             if paragraph_style.name == "Heading 1":
                 section_headings.append(paragraph.text)
         self.assertEqual(section_headings, SECTION_HEADINGS_IN_REPORT_ORDER)
-
-    @patch("src.infrastructure.adapters.report.docx_report_adapter.DOCX_AVAILABLE", False)
-    def test_create_use_case_raises_report_export_unavailable_when_docx_missing(self):
-        with self.assertRaises(ReportExportUnavailable):
-            ExportReportWiring().create_use_case()

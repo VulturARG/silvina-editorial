@@ -77,42 +77,60 @@ class ExportReportWiring:
 
     def _report_export_port(self) -> ReportExportPort:
         docx_report_settings = self._docx_report_settings()
+        clock = self._clock()
+        return DocxReportAdapter(
+            page_decorations=self._page_decorations(
+                docx_report_settings=docx_report_settings,
+                clock=clock,
+            ),
+            sections=self._report_sections(
+                docx_report_settings=docx_report_settings,
+                clock=clock,
+            ),
+        )
+
+    def _page_decorations(
+        self,
+        docx_report_settings: DocxReportSettings,
+        clock: Callable[[], datetime],
+    ) -> tuple[DocxPageDecoration, ...]:
+        return (
+            self._base_style_decoration(docx_report_settings=docx_report_settings),
+            self._header_logo_decoration(
+                docx_report_settings=docx_report_settings,
+                clock=clock,
+            ),
+            self._page_number_decoration(docx_report_settings=docx_report_settings),
+        )
+
+    def _report_sections(
+        self,
+        docx_report_settings: DocxReportSettings,
+        clock: Callable[[], datetime],
+    ) -> tuple[DocxReportSection, ...]:
         markdown_run_writer = self._markdown_run_writer()
         section_heading_writer = self._section_heading_writer(
             docx_report_settings=docx_report_settings,
         )
         labeled_paragraph_writer = self._labeled_paragraph_writer()
         citation_match_rate_formatter = self._citation_match_rate_formatter()
-        clock = self._clock()
-        return DocxReportAdapter(
-            base_style_decoration=self._base_style_decoration(
-                docx_report_settings=docx_report_settings,
-            ),
-            header_logo_decoration=self._header_logo_decoration(
-                docx_report_settings=docx_report_settings,
-                clock=clock,
-            ),
-            page_number_decoration=self._page_number_decoration(
-                docx_report_settings=docx_report_settings,
-            ),
-            title_page_section=self._title_page_section(
-                docx_report_settings=docx_report_settings,
-            ),
-            executive_summary_section=self._executive_summary_section(
+        return (
+            self._title_page_section(docx_report_settings=docx_report_settings),
+            self._executive_summary_section(
                 docx_report_settings=docx_report_settings,
                 section_heading_writer=section_heading_writer,
                 citation_match_rate_formatter=citation_match_rate_formatter,
             ),
-            document_info_section=self._document_info_section(
+            self._document_info_section(
                 docx_report_settings=docx_report_settings,
                 section_heading_writer=section_heading_writer,
                 labeled_paragraph_writer=labeled_paragraph_writer,
             ),
-            classification_section=self._classification_section(
+            self._classification_section(
                 section_heading_writer=section_heading_writer,
                 labeled_paragraph_writer=labeled_paragraph_writer,
             ),
-            quality_analysis_section=self._quality_analysis_section(
+            self._quality_analysis_section(
                 docx_report_settings=docx_report_settings,
                 section_heading_writer=section_heading_writer,
                 labeled_paragraph_writer=labeled_paragraph_writer,
@@ -122,36 +140,33 @@ class ExportReportWiring:
                     docx_report_settings=docx_report_settings,
                 ),
             ),
-            editorial_suitability_section=self._editorial_suitability_section(
+            self._editorial_suitability_section(
                 section_heading_writer=section_heading_writer,
                 labeled_paragraph_writer=labeled_paragraph_writer,
             ),
-            grammar_analysis_section=self._grammar_analysis_section(
+            self._grammar_analysis_section(
                 docx_report_settings=docx_report_settings,
                 section_heading_writer=section_heading_writer,
                 labeled_paragraph_writer=labeled_paragraph_writer,
             ),
-            apa_validation_section=self._apa_validation_section(
+            self._apa_validation_section(
                 docx_report_settings=docx_report_settings,
                 section_heading_writer=section_heading_writer,
             ),
-            structure_validation_section=self._structure_validation_section(
+            self._structure_validation_section(
                 docx_report_settings=docx_report_settings,
                 section_heading_writer=section_heading_writer,
             ),
-            citations_analysis_section=self._citations_analysis_section(
+            self._citations_analysis_section(
                 docx_report_settings=docx_report_settings,
                 section_heading_writer=section_heading_writer,
                 citation_match_rate_formatter=citation_match_rate_formatter,
             ),
-            recommendations_section=self._recommendations_section(
+            self._recommendations_section(
                 docx_report_settings=docx_report_settings,
                 section_heading_writer=section_heading_writer,
             ),
-            footer_section=self._footer_section(
-                docx_report_settings=docx_report_settings,
-                clock=clock,
-            ),
+            self._footer_section(docx_report_settings=docx_report_settings, clock=clock),
         )
 
     def _docx_report_settings(self) -> DocxReportSettings:
