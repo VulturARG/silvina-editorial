@@ -1,5 +1,8 @@
+from os.path import join
+from tempfile import TemporaryDirectory
 from unittest import TestCase
-from unittest.mock import MagicMock, patch
+
+from docx import Document
 
 from src.domain.dtos.apa_violation_dto import ApaViolationDTO
 from src.domain.enums.apa_error_type import ApaErrorType
@@ -7,25 +10,9 @@ from src.infrastructure.tests.adapters.report.fixtures import ReportFixtures
 
 
 class TestDocxReportAdapterFieldTranslations(TestCase):
-    """Verify DTO attribute access is used (not dict key access)."""
+    """Verify the exported report reads DTO attributes, not dictionary keys."""
 
-    @patch("src.infrastructure.adapters.report.docx_report_adapter.Document")
-    def test_add_grammar_analysis_reads_report_input_grammar_directly(self, mock_document_class):
-        mock_document_class.return_value = MagicMock()
-        adapter = ReportFixtures.make_adapter()
-
-        grammar = ReportFixtures.make_grammar_mock(score=6.5)
-        report_input = ReportFixtures.make_report_input_dto(grammar=grammar)
-
-        adapter._add_grammar_analysis(
-            document=mock_document_class.return_value, report_input=report_input
-        )
-
-    @patch("src.infrastructure.adapters.report.docx_report_adapter.Document")
-    def test_add_apa_validation_reads_citation_text_attribute(self, mock_document_class):
-        mock_document_class.return_value = MagicMock()
-        adapter = ReportFixtures.make_adapter()
-
+    def test_export_renders_grammar_score_and_apa_citation_text_attributes(self):
         violation = ApaViolationDTO(
             citation_text="(Smith, 2020)",
             error_type=ApaErrorType.CONJUNCTION_ERROR,
@@ -33,33 +20,15 @@ class TestDocxReportAdapterFieldTranslations(TestCase):
             explanation="Missing year",
             correction="(Smith, 2020)",
         )
-        apa = ReportFixtures.make_apa_validation_mock(violations=[violation])
-        report_input = ReportFixtures.make_report_input_dto(apa_validation=apa)
-
-        adapter._add_apa_validation(
-            document=mock_document_class.return_value, report_input=report_input
+        report_input = ReportFixtures.make_report_input_dto(
+            grammar=ReportFixtures.make_grammar_mock(score=6.5),
+            apa_validation=ReportFixtures.make_apa_validation_mock(violations=[violation]),
         )
 
-    @patch("src.infrastructure.adapters.report.docx_report_adapter.Document")
-    def test_add_classification_reads_article_type_attribute(self, mock_document_class):
-        mock_document_class.return_value = MagicMock()
-        adapter = ReportFixtures.make_adapter()
+        with TemporaryDirectory() as temporary_directory:
+            output_path = join(temporary_directory, "report.docx")
+            ReportFixtures.make_adapter().export(report_input=report_input, output_path=output_path)
+            paragraph_texts = [paragraph.text for paragraph in Document(output_path).paragraphs]
 
-        classification = ReportFixtures.make_classification_mock(article_type_value="investigacion")
-        report_input = ReportFixtures.make_report_input_dto(classification=classification)
-
-        adapter._add_classification(
-            document=mock_document_class.return_value, report_input=report_input
-        )
-
-    @patch("src.infrastructure.adapters.report.docx_report_adapter.Document")
-    def test_add_document_info_derives_estimated_pages_from_word_count(self, mock_document_class):
-        mock_document_class.return_value = MagicMock()
-        adapter = ReportFixtures.make_adapter()
-
-        doc_content = ReportFixtures.make_doc_content_mock(word_count=500)
-        report_input = ReportFixtures.make_report_input_dto(document_content=doc_content)
-
-        adapter._add_document_info(
-            document=mock_document_class.return_value, report_input=report_input
-        )
+        self.assertIn("Puntuación: 6.5/10", paragraph_texts)
+        self.assertIn("1. Citación: (Smith, 2020)", paragraph_texts)
