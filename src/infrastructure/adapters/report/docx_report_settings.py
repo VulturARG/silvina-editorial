@@ -42,3 +42,4 @@ class DocxReportSettings:
     header_table_width_inches: float = 6.5
     header_left_cell_width_inches: float = 4.5
     header_right_cell_width_inches: float = 2.0
+    feedback_item_indent_inches: tuple[float, float, float] = (0.25, 0.5, 0.75)

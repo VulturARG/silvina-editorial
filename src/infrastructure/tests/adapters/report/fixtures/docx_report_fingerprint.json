@@ -1,0 +1,1585 @@
+{
+  "body": [
+    {
+      "alignment": "CENTER",
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": "003366",
+          "font_size_pt": 22.0,
+          "italic": null,
+          "text": "INFORME DE ANÁLISIS EDITORIAL",
+          "underline": true
+        }
+      ],
+      "style_name": "Title",
+      "text": "INFORME DE ANÁLISIS EDITORIAL",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [],
+      "style_name": "Normal",
+      "text": "",
+      "type": "paragraph"
+    },
+    {
+      "alignment": "CENTER",
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": null,
+          "font_size_pt": 12.0,
+          "italic": null,
+          "text": "El Impacto de la Inteligencia Artificial en la Edición Científica",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "El Impacto de la Inteligencia Artificial en la Edición Científica",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": "003366",
+          "font_size_pt": null,
+          "italic": null,
+          "text": "RESUMEN EJECUTIVO",
+          "underline": null
+        }
+      ],
+      "style_name": "Heading 1",
+      "text": "RESUMEN EJECUTIVO",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": "C00000",
+          "font_size_pt": 16.0,
+          "italic": null,
+          "text": "⚠️ REQUIERE REVISIÓN",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "⚠️ REQUIERE REVISIÓN",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "El documento requiere revisión. Calidad: 8.4/10, Gramática: 7.5/10, Errores APA: 2.",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "El documento requiere revisión. Calidad: 8.4/10, Gramática: 7.5/10, Errores APA: 2.",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [],
+      "style_name": "Normal",
+      "text": "",
+      "type": "paragraph"
+    },
+    {
+      "rows": [
+        [
+          "Métrica",
+          "Valor"
+        ],
+        [
+          "Calidad General",
+          "8.4/10"
+        ],
+        [
+          "Gramática y Ortografía",
+          "7.5/10"
+        ],
+        [
+          "Estructura",
+          "✗ Incompleta"
+        ],
+        [
+          "Errores APA 7",
+          "2 detectados"
+        ],
+        [
+          "Tasa de Coincidencia",
+          "70.0%"
+        ]
+      ],
+      "style_name": "Light Grid Accent 1",
+      "type": "table"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [],
+      "style_name": "Normal",
+      "text": "",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": "003366",
+          "font_size_pt": null,
+          "italic": null,
+          "text": "📄 INFORMACIÓN DEL DOCUMENTO",
+          "underline": null
+        }
+      ],
+      "style_name": "Heading 1",
+      "text": "📄 INFORMACIÓN DEL DOCUMENTO",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Título: ",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "El Impacto de la Inteligencia Artificial en la Edición Científica",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "Título: El Impacto de la Inteligencia Artificial en la Edición Científica",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Autor(es): ",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Juan Pérez, María Gómez",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "Autor(es): Juan Pérez, María Gómez",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Total de palabras: ",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "2,500",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "Total de palabras: 2,500",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Total de caracteres: ",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "15,000",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "Total de caracteres: 15,000",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Páginas estimadas: ",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "10",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "Páginas estimadas: 10",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": "003366",
+          "font_size_pt": null,
+          "italic": null,
+          "text": "🏷️ CLASIFICACIÓN DEL ARTÍCULO",
+          "underline": null
+        }
+      ],
+      "style_name": "Heading 1",
+      "text": "🏷️ CLASIFICACIÓN DEL ARTÍCULO",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Categoría: ",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "CIENTÍFICO",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "Categoría: CIENTÍFICO",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Confianza: ",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "92.0%",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "Confianza: 92.0%",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Razonamiento: ",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "El documento sigue la estructura IMRyD y presenta metodología experimental clara.",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "Razonamiento: El documento sigue la estructura IMRyD y presenta metodología experimental clara.",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": "003366",
+          "font_size_pt": null,
+          "italic": null,
+          "text": "⭐ ANÁLISIS DE CALIDAD SEMÁNTICA",
+          "underline": null
+        }
+      ],
+      "style_name": "Heading 1",
+      "text": "⭐ ANÁLISIS DE CALIDAD SEMÁNTICA",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Puntuación General: ",
+          "underline": null
+        },
+        {
+          "bold": true,
+          "font_color_rgb": "008000",
+          "font_size_pt": 14.0,
+          "italic": null,
+          "text": "8.4/10",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "Puntuación General: 8.4/10",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Claridad",
+          "underline": null
+        }
+      ],
+      "style_name": "Heading 3",
+      "text": "Claridad",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Puntuación: ",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "8.5/10",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "Puntuación: 8.5/10",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Fortalezas del manuscrito",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "Fortalezas del manuscrito",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": 18.0,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "• ",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Primer aspecto positivo con ",
+          "underline": null
+        },
+        {
+          "bold": true,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "negrita",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": " y ",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": true,
+          "text": "cursiva",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": " destacada.",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "• Primer aspecto positivo con negrita y cursiva destacada.",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": 36.0,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "• ",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Segundo aspecto positivo detallado en subnivel uno.",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "• Segundo aspecto positivo detallado en subnivel uno.",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": 54.0,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "1. ",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Tercer aspecto con marcador numerado en subnivel dos.",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "1. Tercer aspecto con marcador numerado en subnivel dos.",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Observación complementaria en formato de texto plano con ",
+          "underline": null
+        },
+        {
+          "bold": true,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "énfasis",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": ".",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "Observación complementaria en formato de texto plano con énfasis.",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Coherencia",
+          "underline": null
+        }
+      ],
+      "style_name": "Heading 3",
+      "text": "Coherencia",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Puntuación: ",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "8.0/10",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "Puntuación: 8.0/10",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Argumentos consistentes y lógica expositiva ",
+          "underline": null
+        },
+        {
+          "bold": true,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "sólida",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": " a lo largo del manuscrito.",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "Argumentos consistentes y lógica expositiva sólida a lo largo del manuscrito.",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": "003366",
+          "font_size_pt": null,
+          "italic": null,
+          "text": "🎯 PERTINENCIA EDITORIAL",
+          "underline": null
+        }
+      ],
+      "style_name": "Heading 1",
+      "text": "🎯 PERTINENCIA EDITORIAL",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Contribución",
+          "underline": null
+        }
+      ],
+      "style_name": "Heading 3",
+      "text": "Contribución",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Veredicto: ",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Aporte relevante",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "Veredicto: Aporte relevante",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Aporte identificado: ",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Presenta un marco de análisis original",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "Aporte identificado: Presenta un marco de análisis original",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Observación: ",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "La contribución al campo disciplinar es clara y sustentada.",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "Observación: La contribución al campo disciplinar es clara y sustentada.",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Alineación con líneas de investigación",
+          "underline": null
+        }
+      ],
+      "style_name": "Heading 3",
+      "text": "Alineación con líneas de investigación",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Veredicto: ",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Alineado",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "Veredicto: Alineado",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Líneas relacionadas: ",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Línea 1: Innovación Editorial, Línea 2: Tecnologías Lingüísticas",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "Líneas relacionadas: Línea 1: Innovación Editorial, Línea 2: Tecnologías Lingüísticas",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Justificación: ",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "El contenido coincide plenamente con las líneas temáticas prioritarias.",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "Justificación: El contenido coincide plenamente con las líneas temáticas prioritarias.",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": "003366",
+          "font_size_pt": null,
+          "italic": null,
+          "text": "📝 GRAMÁTICA Y ORTOGRAFÍA",
+          "underline": null
+        }
+      ],
+      "style_name": "Heading 1",
+      "text": "📝 GRAMÁTICA Y ORTOGRAFÍA",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Puntuación: ",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "7.5/10",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "Puntuación: 7.5/10",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Estado: ",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Redacción aceptable con observaciones puntuales.",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "Estado: Redacción aceptable con observaciones puntuales.",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [],
+      "style_name": "Normal",
+      "text": "",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Errores Detectados:",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "Errores Detectados:",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Posible error de concordancia en el sintagma nominal.",
+          "underline": null
+        }
+      ],
+      "style_name": "List Number",
+      "text": "Posible error de concordancia en el sintagma nominal.",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "   Contexto: \"los datos recopilados durante el estudio fue analizados exhaustivamente\"",
+          "underline": null
+        }
+      ],
+      "style_name": "List Bullet 2",
+      "text": "   Contexto: \"los datos recopilados durante el estudio fue analizados exhaustivamente\"",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "   Sugerencia: fueron, habían sido",
+          "underline": null
+        }
+      ],
+      "style_name": "List Bullet 2",
+      "text": "   Sugerencia: fueron, habían sido",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Puntuación inadecuada al cierre de oración.",
+          "underline": null
+        }
+      ],
+      "style_name": "List Number",
+      "text": "Puntuación inadecuada al cierre de oración.",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "   Contexto: \"el resultado final se presenta a continuación,\"",
+          "underline": null
+        }
+      ],
+      "style_name": "List Bullet 2",
+      "text": "   Contexto: \"el resultado final se presenta a continuación,\"",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": "003366",
+          "font_size_pt": null,
+          "italic": null,
+          "text": "📖 VALIDACIÓN APA 7 (ESPAÑOL)",
+          "underline": null
+        }
+      ],
+      "style_name": "Heading 1",
+      "text": "📖 VALIDACIÓN APA 7 (ESPAÑOL)",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "CITACIÓN INCORRECTA (1):",
+          "underline": null
+        }
+      ],
+      "style_name": "Heading 3",
+      "text": "CITACIÓN INCORRECTA (1):",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "1. Citación: (Smith, 2020)",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "1. Citación: (Smith, 2020)",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "   Ubicación: \"145\"",
+          "underline": null
+        }
+      ],
+      "style_name": "List Bullet 2",
+      "text": "   Ubicación: \"145\"",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "   Problema: Falta punto y coma antes del año en formato específico.",
+          "underline": null
+        }
+      ],
+      "style_name": "List Bullet 2",
+      "text": "   Problema: Falta punto y coma antes del año en formato específico.",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "   Corrección: (Smith; 2020)",
+          "underline": null
+        }
+      ],
+      "style_name": "List Bullet 2",
+      "text": "   Corrección: (Smith; 2020)",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "CITACIÓN INCORRECTA (1):",
+          "underline": null
+        }
+      ],
+      "style_name": "Heading 3",
+      "text": "CITACIÓN INCORRECTA (1):",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "1. Citación: (Lopez y Diaz, 2019)",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "1. Citación: (Lopez y Diaz, 2019)",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "   Ubicación: \"310\"",
+          "underline": null
+        }
+      ],
+      "style_name": "List Bullet 2",
+      "text": "   Ubicación: \"310\"",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "   Problema: Formato de múltiples autores incorrecto para más de dos autores en texto.",
+          "underline": null
+        }
+      ],
+      "style_name": "List Bullet 2",
+      "text": "   Problema: Formato de múltiples autores incorrecto para más de dos autores en texto.",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": "003366",
+          "font_size_pt": null,
+          "italic": null,
+          "text": "📋 VALIDACIÓN DE ESTRUCTURA (EUMIC)",
+          "underline": null
+        }
+      ],
+      "style_name": "Heading 1",
+      "text": "📋 VALIDACIÓN DE ESTRUCTURA (EUMIC)",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": "C00000",
+          "font_size_pt": null,
+          "italic": null,
+          "text": "✗ Estructura incompleta",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "✗ Estructura incompleta",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [],
+      "style_name": "Normal",
+      "text": "",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Secciones faltantes:",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "Secciones faltantes:",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "• conclusiones",
+          "underline": null
+        }
+      ],
+      "style_name": "List Bullet",
+      "text": "• conclusiones",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "• referencias",
+          "underline": null
+        }
+      ],
+      "style_name": "List Bullet",
+      "text": "• referencias",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": "003366",
+          "font_size_pt": null,
+          "italic": null,
+          "text": "📚 ANÁLISIS DE CITAS Y REFERENCIAS",
+          "underline": null
+        }
+      ],
+      "style_name": "Heading 1",
+      "text": "📚 ANÁLISIS DE CITAS Y REFERENCIAS",
+      "type": "paragraph"
+    },
+    {
+      "rows": [
+        [
+          "Total de citas en texto",
+          "10"
+        ],
+        [
+          "Total de referencias bibliográficas",
+          "8"
+        ],
+        [
+          "Citas con referencia",
+          "7"
+        ],
+        [
+          "Tasa de coincidencia",
+          "70.0%"
+        ]
+      ],
+      "style_name": "Light Grid Accent 1",
+      "type": "table"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": "003366",
+          "font_size_pt": null,
+          "italic": null,
+          "text": "💡 RECOMENDACIONES",
+          "underline": null
+        }
+      ],
+      "style_name": "Heading 1",
+      "text": "💡 RECOMENDACIONES",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": "C00000",
+          "font_size_pt": 12.0,
+          "italic": null,
+          "text": "⚠️ REQUIERE REVISIÓN antes de publicación.",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "⚠️ REQUIERE REVISIÓN antes de publicación.",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Recomendaciones específicas:",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "Recomendaciones específicas:",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "🔴 Incorporar la sección obligatoria de conclusiones.",
+          "underline": null
+        }
+      ],
+      "style_name": "List Bullet",
+      "text": "🔴 Incorporar la sección obligatoria de conclusiones.",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "🟡 Corregir las citas en texto observadas según normativa APA 7.",
+          "underline": null
+        }
+      ],
+      "style_name": "List Bullet",
+      "text": "🟡 Corregir las citas en texto observadas según normativa APA 7.",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "🟢 Ajustar la concordancia gramatical y conectores redundantes señalados.",
+          "underline": null
+        }
+      ],
+      "style_name": "List Bullet",
+      "text": "🟢 Ajustar la concordancia gramatical y conectores redundantes señalados.",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [],
+      "style_name": "Normal",
+      "text": "",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "────────────────────────────────────────────────────────────────────────────────",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "────────────────────────────────────────────────────────────────────────────────",
+      "type": "paragraph"
+    },
+    {
+      "alignment": "CENTER",
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": "808080",
+          "font_size_pt": 9.0,
+          "italic": true,
+          "text": "Generado por Silvina Editorial Assistant v0.9 | ",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": "808080",
+          "font_size_pt": 9.0,
+          "italic": true,
+          "text": "<DATE>",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "Generado por Silvina Editorial Assistant v0.9 | <DATE>",
+      "type": "paragraph"
+    }
+  ],
+  "footer": {
+    "paragraphs": [
+      {
+        "alignment": "CENTER",
+        "field_instructions": [
+          "PAGE",
+          "NUMPAGES"
+        ],
+        "text": " de "
+      }
+    ]
+  },
+  "header": {
+    "paragraphs": [
+      {
+        "alignment": null,
+        "has_inline_picture": false,
+        "picture_width_inches": null,
+        "text": ""
+      }
+    ],
+    "tables": [
+      {
+        "rows": [
+          [
+            {
+              "paragraphs": [
+                {
+                  "alignment": "LEFT",
+                  "has_inline_picture": false,
+                  "picture_width_inches": null,
+                  "text": "Generado por Silvina Editorial Assistant v0.9\n<DATE>"
+                }
+              ],
+              "text": "Generado por Silvina Editorial Assistant v0.9\n<DATE>"
+            },
+            {
+              "paragraphs": [
+                {
+                  "alignment": "RIGHT",
+                  "has_inline_picture": true,
+                  "picture_width_inches": 1.8,
+                  "text": ""
+                }
+              ],
+              "text": ""
+            }
+          ]
+        ],
+        "style_name": "Normal Table"
+      }
+    ]
+  },
+  "normal_style": {
+    "font_name": "Calibri",
+    "font_size_pt": 12.0,
+    "line_spacing": 1.15,
+    "space_after_pt": 0.0,
+    "space_before_pt": 0.0
+  }
+}

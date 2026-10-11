@@ -12,7 +12,7 @@ Before reading, writing, or reviewing any file under `src/`, `.agent/skills/clea
 
 ## Code Exploration
 
-- **CodeGraph first**: To explore or understand code under `src/`, call `codegraph_explore` (MCP tool `mcp__codegraph__codegraph_explore`, or the `codegraph` tool) BEFORE `grep`, `read`, or `bash`. It returns verbatim source, call relationships, and blast radius; do not re-read the files it already returned.
+- **CodeGraph first**: To explore, understand, fix, or refactor code under `src/`, call `codegraph_explore` (MCP tool `mcp__codegraph__codegraph_explore`, or the `codegraph` tool) BEFORE using `grep`, `read`, or `bash` to search or read code. It returns verbatim source, call relationships, and blast radius; do not re-read the files it already returned. Running tests or builds via `bash` is unaffected.
 - **Query by symbol names**: Use class, method, or function names (e.g. `QualityTextSampler build_sample`). Environment variable names and string literals are not indexed as symbols and will not be found this way.
 - **Fall back to `grep`/`read`** only for what the graph does not cover: environment variables and `.env` keys, string literals, non-Python files (Modelfiles, prompts, docs), logs, and a single known line range.
 - **Before editing**, check the blast radius of the symbols to change and update the callers and tests it lists.

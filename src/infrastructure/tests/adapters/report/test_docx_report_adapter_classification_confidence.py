@@ -5,7 +5,6 @@ from unittest import TestCase
 from docx import Document
 
 from src.domain.enums.classification_confidence import ClassificationConfidence
-from src.infrastructure.adapters.report.docx_report_adapter import DocxReportAdapter
 from src.infrastructure.tests.adapters.report.fixtures import ReportFixtures
 
 
@@ -15,9 +14,7 @@ class TestDocxReportAdapterClassificationConfidence(TestCase):
     def test_export_succeeds_and_renders_formatted_confidence_percentage(self):
         with TemporaryDirectory() as temporary_directory:
             output_path = str(Path(temporary_directory) / "test_report.docx")
-            adapter = DocxReportAdapter(
-                logo_path=None, docx_report_settings=ReportFixtures.make_settings()
-            )
+            adapter = ReportFixtures.make_adapter()
             classification = ReportFixtures.make_classification_mock()
             classification.confidence = ClassificationConfidence.FULL_SIGNAL_MATCH
             report_input = ReportFixtures.make_report_input_dto(classification=classification)

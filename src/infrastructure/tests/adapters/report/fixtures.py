@@ -1,12 +1,307 @@
+from collections.abc import Callable, Sequence
+from datetime import datetime
 from unittest.mock import MagicMock
 
 from src.domain.dtos.publication_verdict_dto import PublicationVerdictDTO
 from src.domain.dtos.report_input_dto import ReportInputDTO
 from src.domain.enums.publication_verdict import PublicationVerdict
+from src.infrastructure.adapters.report.citation_match_rate_formatter import (
+    CitationMatchRateFormatter,
+)
+from src.infrastructure.adapters.report.docx_apa_validation_section import (
+    DocxApaValidationSection,
+)
+from src.infrastructure.adapters.report.docx_base_style_decoration import (
+    DocxBaseStyleDecoration,
+)
+from src.infrastructure.adapters.report.docx_citations_analysis_section import (
+    DocxCitationsAnalysisSection,
+)
+from src.infrastructure.adapters.report.docx_classification_section import (
+    DocxClassificationSection,
+)
+from src.infrastructure.adapters.report.docx_document_info_section import (
+    DocxDocumentInfoSection,
+)
+from src.infrastructure.adapters.report.docx_editorial_suitability_section import (
+    DocxEditorialSuitabilitySection,
+)
+from src.infrastructure.adapters.report.docx_executive_summary_section import (
+    DocxExecutiveSummarySection,
+)
+from src.infrastructure.adapters.report.docx_feedback_block_writer import (
+    DocxFeedbackBlockWriter,
+)
+from src.infrastructure.adapters.report.docx_footer_section import DocxFooterSection
+from src.infrastructure.adapters.report.docx_grammar_analysis_section import (
+    DocxGrammarAnalysisSection,
+)
+from src.infrastructure.adapters.report.docx_header_logo_decoration import (
+    DocxHeaderLogoDecoration,
+)
+from src.infrastructure.adapters.report.docx_labeled_paragraph_writer import (
+    DocxLabeledParagraphWriter,
+)
+from src.infrastructure.adapters.report.docx_markdown_run_writer import (
+    DocxMarkdownRunWriter,
+)
+from src.infrastructure.adapters.report.docx_page_decoration import DocxPageDecoration
+from src.infrastructure.adapters.report.docx_page_number_decoration import (
+    DocxPageNumberDecoration,
+)
+from src.infrastructure.adapters.report.docx_quality_analysis_section import (
+    DocxQualityAnalysisSection,
+)
+from src.infrastructure.adapters.report.docx_recommendations_section import (
+    DocxRecommendationsSection,
+)
+from src.infrastructure.adapters.report.docx_report_adapter import DocxReportAdapter
+from src.infrastructure.adapters.report.docx_report_section import DocxReportSection
 from src.infrastructure.adapters.report.docx_report_settings import DocxReportSettings
+from src.infrastructure.adapters.report.docx_section_heading_writer import (
+    DocxSectionHeadingWriter,
+)
+from src.infrastructure.adapters.report.docx_structure_validation_section import (
+    DocxStructureValidationSection,
+)
+from src.infrastructure.adapters.report.docx_title_page_section import DocxTitlePageSection
+
+FIXED_CLOCK_TIME = datetime(2026, 1, 15, 10, 30)
 
 
 class ReportFixtures:
+    @staticmethod
+    def make_adapter(
+        logo_path: str | None = None,
+        clock: Callable[[], datetime] | None = None,
+        docx_report_settings: DocxReportSettings | None = None,
+    ) -> DocxReportAdapter:
+        settings = ReportFixtures._settings_or_default(docx_report_settings)
+        report_clock = clock if clock is not None else ReportFixtures.fixed_clock
+        return ReportFixtures.make_adapter_with_sections(
+            sections=ReportFixtures.make_sections(
+                clock=report_clock, docx_report_settings=settings
+            ),
+            page_decorations=ReportFixtures.make_page_decorations(
+                logo_path=logo_path, clock=report_clock, docx_report_settings=settings
+            ),
+        )
+
+    @staticmethod
+    def make_adapter_with_sections(
+        sections: Sequence[DocxReportSection],
+        page_decorations: Sequence[DocxPageDecoration] | None = None,
+    ) -> DocxReportAdapter:
+        decorations = (
+            page_decorations
+            if page_decorations is not None
+            else ReportFixtures.make_page_decorations()
+        )
+        return DocxReportAdapter(page_decorations=decorations, sections=sections)
+
+    @staticmethod
+    def make_page_decorations(
+        logo_path: str | None = None,
+        clock: Callable[[], datetime] | None = None,
+        docx_report_settings: DocxReportSettings | None = None,
+    ) -> tuple[DocxPageDecoration, ...]:
+        settings = ReportFixtures._settings_or_default(docx_report_settings)
+        return (
+            ReportFixtures.make_base_style_decoration(settings),
+            ReportFixtures.make_header_logo_decoration(logo_path, clock, settings),
+            ReportFixtures.make_page_number_decoration(settings),
+        )
+
+    @staticmethod
+    def make_base_style_decoration(
+        docx_report_settings: DocxReportSettings | None = None,
+    ) -> DocxBaseStyleDecoration:
+        return DocxBaseStyleDecoration(
+            docx_report_settings=ReportFixtures._settings_or_default(docx_report_settings)
+        )
+
+    @staticmethod
+    def make_header_logo_decoration(
+        logo_path: str | None = None,
+        clock: Callable[[], datetime] | None = None,
+        docx_report_settings: DocxReportSettings | None = None,
+    ) -> DocxHeaderLogoDecoration:
+        return DocxHeaderLogoDecoration(
+            docx_report_settings=ReportFixtures._settings_or_default(docx_report_settings),
+            clock=clock if clock is not None else ReportFixtures.fixed_clock,
+            logo_path=logo_path,
+        )
+
+    @staticmethod
+    def make_page_number_decoration(
+        docx_report_settings: DocxReportSettings | None = None,
+    ) -> DocxPageNumberDecoration:
+        return DocxPageNumberDecoration(
+            docx_report_settings=ReportFixtures._settings_or_default(docx_report_settings)
+        )
+
+    @staticmethod
+    def make_sections(
+        clock: Callable[[], datetime] | None = None,
+        docx_report_settings: DocxReportSettings | None = None,
+    ) -> tuple[DocxReportSection, ...]:
+        settings = ReportFixtures._settings_or_default(docx_report_settings)
+        return (
+            ReportFixtures.make_title_page_section(settings),
+            ReportFixtures.make_executive_summary_section(settings),
+            ReportFixtures.make_document_info_section(settings),
+            ReportFixtures.make_classification_section(settings),
+            ReportFixtures.make_quality_analysis_section(settings),
+            ReportFixtures.make_editorial_suitability_section(settings),
+            ReportFixtures.make_grammar_analysis_section(settings),
+            ReportFixtures.make_apa_validation_section(settings),
+            ReportFixtures.make_structure_validation_section(settings),
+            ReportFixtures.make_citations_analysis_section(settings),
+            ReportFixtures.make_recommendations_section(settings),
+            ReportFixtures.make_footer_section(clock, settings),
+        )
+
+    @staticmethod
+    def make_executive_summary_section(
+        docx_report_settings: DocxReportSettings | None = None,
+    ) -> DocxExecutiveSummarySection:
+        settings = ReportFixtures._settings_or_default(docx_report_settings)
+        return DocxExecutiveSummarySection(
+            docx_report_settings=settings,
+            section_heading_writer=DocxSectionHeadingWriter(docx_report_settings=settings),
+            citation_match_rate_formatter=CitationMatchRateFormatter(),
+        )
+
+    @staticmethod
+    def make_quality_analysis_section(
+        docx_report_settings: DocxReportSettings | None = None,
+    ) -> DocxQualityAnalysisSection:
+        settings = ReportFixtures._settings_or_default(docx_report_settings)
+        markdown_run_writer = DocxMarkdownRunWriter()
+        return DocxQualityAnalysisSection(
+            docx_report_settings=settings,
+            section_heading_writer=DocxSectionHeadingWriter(docx_report_settings=settings),
+            labeled_paragraph_writer=DocxLabeledParagraphWriter(),
+            markdown_run_writer=markdown_run_writer,
+            feedback_block_writer=DocxFeedbackBlockWriter(
+                markdown_run_writer=markdown_run_writer,
+                docx_report_settings=settings,
+            ),
+        )
+
+    @staticmethod
+    def make_grammar_analysis_section(
+        docx_report_settings: DocxReportSettings | None = None,
+    ) -> DocxGrammarAnalysisSection:
+        settings = ReportFixtures._settings_or_default(docx_report_settings)
+        return DocxGrammarAnalysisSection(
+            docx_report_settings=settings,
+            section_heading_writer=DocxSectionHeadingWriter(docx_report_settings=settings),
+            labeled_paragraph_writer=DocxLabeledParagraphWriter(),
+        )
+
+    @staticmethod
+    def make_apa_validation_section(
+        docx_report_settings: DocxReportSettings | None = None,
+    ) -> DocxApaValidationSection:
+        settings = ReportFixtures._settings_or_default(docx_report_settings)
+        return DocxApaValidationSection(
+            docx_report_settings=settings,
+            section_heading_writer=DocxSectionHeadingWriter(docx_report_settings=settings),
+        )
+
+    @staticmethod
+    def make_recommendations_section(
+        docx_report_settings: DocxReportSettings | None = None,
+    ) -> DocxRecommendationsSection:
+        settings = ReportFixtures._settings_or_default(docx_report_settings)
+        return DocxRecommendationsSection(
+            docx_report_settings=settings,
+            section_heading_writer=DocxSectionHeadingWriter(docx_report_settings=settings),
+        )
+
+    @staticmethod
+    def make_title_page_section(
+        docx_report_settings: DocxReportSettings | None = None,
+    ) -> DocxTitlePageSection:
+        return DocxTitlePageSection(
+            docx_report_settings=ReportFixtures._settings_or_default(docx_report_settings)
+        )
+
+    @staticmethod
+    def make_document_info_section(
+        docx_report_settings: DocxReportSettings | None = None,
+    ) -> DocxDocumentInfoSection:
+        settings = ReportFixtures._settings_or_default(docx_report_settings)
+        return DocxDocumentInfoSection(
+            docx_report_settings=settings,
+            section_heading_writer=DocxSectionHeadingWriter(docx_report_settings=settings),
+            labeled_paragraph_writer=DocxLabeledParagraphWriter(),
+        )
+
+    @staticmethod
+    def make_classification_section(
+        docx_report_settings: DocxReportSettings | None = None,
+    ) -> DocxClassificationSection:
+        settings = ReportFixtures._settings_or_default(docx_report_settings)
+        return DocxClassificationSection(
+            section_heading_writer=DocxSectionHeadingWriter(docx_report_settings=settings),
+            labeled_paragraph_writer=DocxLabeledParagraphWriter(),
+        )
+
+    @staticmethod
+    def make_editorial_suitability_section(
+        docx_report_settings: DocxReportSettings | None = None,
+    ) -> DocxEditorialSuitabilitySection:
+        settings = ReportFixtures._settings_or_default(docx_report_settings)
+        return DocxEditorialSuitabilitySection(
+            section_heading_writer=DocxSectionHeadingWriter(docx_report_settings=settings),
+            labeled_paragraph_writer=DocxLabeledParagraphWriter(),
+        )
+
+    @staticmethod
+    def make_structure_validation_section(
+        docx_report_settings: DocxReportSettings | None = None,
+    ) -> DocxStructureValidationSection:
+        settings = ReportFixtures._settings_or_default(docx_report_settings)
+        return DocxStructureValidationSection(
+            docx_report_settings=settings,
+            section_heading_writer=DocxSectionHeadingWriter(docx_report_settings=settings),
+        )
+
+    @staticmethod
+    def make_citations_analysis_section(
+        docx_report_settings: DocxReportSettings | None = None,
+    ) -> DocxCitationsAnalysisSection:
+        settings = ReportFixtures._settings_or_default(docx_report_settings)
+        return DocxCitationsAnalysisSection(
+            docx_report_settings=settings,
+            section_heading_writer=DocxSectionHeadingWriter(docx_report_settings=settings),
+            citation_match_rate_formatter=CitationMatchRateFormatter(),
+        )
+
+    @staticmethod
+    def make_footer_section(
+        clock: Callable[[], datetime] | None = None,
+        docx_report_settings: DocxReportSettings | None = None,
+    ) -> DocxFooterSection:
+        return DocxFooterSection(
+            docx_report_settings=ReportFixtures._settings_or_default(docx_report_settings),
+            clock=clock if clock is not None else ReportFixtures.fixed_clock,
+        )
+
+    @staticmethod
+    def _settings_or_default(
+        docx_report_settings: DocxReportSettings | None,
+    ) -> DocxReportSettings:
+        if docx_report_settings is not None:
+            return docx_report_settings
+        return ReportFixtures.make_settings()
+
+    @staticmethod
+    def fixed_clock() -> datetime:
+        return FIXED_CLOCK_TIME
+
     @staticmethod
     def make_settings(**overrides) -> DocxReportSettings:
         defaults = {
@@ -52,15 +347,15 @@ class ReportFixtures:
         return apa
 
     @staticmethod
-    def make_doc_content_mock(
+    def make_document_content_mock(
         word_count: int = 2500, char_count: int = 12000, title: str = "Test"
     ) -> MagicMock:
-        doc_content = MagicMock()
-        doc_content.word_count = word_count
-        doc_content.char_count = char_count
-        doc_content.title = title
-        doc_content.authors = "Test Author"
-        return doc_content
+        document_content = MagicMock()
+        document_content.word_count = word_count
+        document_content.char_count = char_count
+        document_content.title = title
+        document_content.authors = "Test Author"
+        return document_content
 
     @staticmethod
     def make_classification_mock(article_type_value: str = "Investigación") -> MagicMock:
@@ -92,7 +387,7 @@ class ReportFixtures:
     def make_report_input_dto(**overrides) -> ReportInputDTO:
         defaults = {
             "filename": "test.docx",
-            "document_content": ReportFixtures.make_doc_content_mock(),
+            "document_content": ReportFixtures.make_document_content_mock(),
             "classification": ReportFixtures.make_classification_mock(),
             "quality": ReportFixtures.make_quality_mock(),
             "grammar": ReportFixtures.make_grammar_mock(),

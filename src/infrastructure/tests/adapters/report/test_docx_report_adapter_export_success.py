@@ -1,18 +1,29 @@
 from unittest import TestCase
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
+from src.infrastructure.adapters.report.docx_page_decoration import DocxPageDecoration
 from src.infrastructure.adapters.report.docx_report_adapter import DocxReportAdapter
+from src.infrastructure.adapters.report.docx_report_section import DocxReportSection
 from src.infrastructure.tests.adapters.report.fixtures import ReportFixtures
+
+PAGE_DECORATION_NAMES_IN_APPLY_ORDER = (
+    "first_decoration",
+    "second_decoration",
+    "third_decoration",
+)
+SECTION_NAMES_IN_RENDER_ORDER = (
+    "first_section",
+    "second_section",
+    "third_section",
+)
 
 
 class TestDocxReportAdapterExportSuccess(TestCase):
     @patch("src.infrastructure.adapters.report.docx_report_adapter.Document")
-    def test_export_returns_true_on_success(self, mock_document_class):
-        mock_document_class.return_value = MagicMock()
+    def test_export_returns_true_on_success(self, document_class_mock):
+        document_class_mock.return_value = MagicMock()
 
-        adapter = DocxReportAdapter(
-            logo_path=None, docx_report_settings=ReportFixtures.make_settings()
-        )
+        adapter = ReportFixtures.make_adapter()
         result = adapter.export(
             report_input=ReportFixtures.make_report_input_dto(), output_path="output.docx"
         )
@@ -20,57 +31,61 @@ class TestDocxReportAdapterExportSuccess(TestCase):
         self.assertTrue(result)
 
     @patch("src.infrastructure.adapters.report.docx_report_adapter.Document")
-    def test_export_calls_doc_save_with_correct_path(self, mock_document_class):
-        mock_doc = MagicMock()
-        mock_document_class.return_value = mock_doc
+    def test_export_calls_document_save_with_correct_path(self, document_class_mock):
+        document_mock = MagicMock()
+        document_class_mock.return_value = document_mock
 
-        adapter = DocxReportAdapter(
-            logo_path=None, docx_report_settings=ReportFixtures.make_settings()
-        )
+        adapter = ReportFixtures.make_adapter()
         adapter.export(
             report_input=ReportFixtures.make_report_input_dto(), output_path="output.docx"
         )
 
-        mock_doc.save.assert_called_once_with("output.docx")
+        document_mock.save.assert_called_once_with("output.docx")
 
     @patch("src.infrastructure.adapters.report.docx_report_adapter.Document")
-    def test_export_calls_all_fourteen_add_methods(self, mock_document_class):
-        mock_document_class.return_value = MagicMock()
-
-        adapter = DocxReportAdapter(
-            logo_path=None, docx_report_settings=ReportFixtures.make_settings()
-        )
+    def test_export_applies_every_decoration_then_renders_every_section_in_order(
+        self, document_class_mock
+    ):
+        document_mock = MagicMock()
+        document_class_mock.return_value = document_mock
+        call_recorder = MagicMock()
+        page_decorations = []
+        for decoration_name in PAGE_DECORATION_NAMES_IN_APPLY_ORDER:
+            decoration_double = MagicMock(spec=DocxPageDecoration)
+            call_recorder.attach_mock(decoration_double.apply, decoration_name)
+            page_decorations.append(decoration_double)
+        sections = []
+        for section_name in SECTION_NAMES_IN_RENDER_ORDER:
+            section_double = MagicMock(spec=DocxReportSection)
+            call_recorder.attach_mock(section_double.render, section_name)
+            sections.append(section_double)
+        adapter = DocxReportAdapter(page_decorations=page_decorations, sections=sections)
         report_input = ReportFixtures.make_report_input_dto()
 
-        with (
-            patch.object(adapter, "_add_title_page") as m_title,
-            patch.object(adapter, "_add_header_logo") as m_logo,
-            patch.object(adapter, "_add_page_numbers") as m_pages,
-            patch.object(adapter, "_add_executive_summary") as m_exec,
-            patch.object(adapter, "_add_document_info") as m_doc_info,
-            patch.object(adapter, "_add_classification") as m_class,
-            patch.object(adapter, "_add_quality_analysis") as m_quality,
-            patch.object(adapter, "_add_editorial_suitability") as m_suitability,
-            patch.object(adapter, "_add_grammar_analysis") as m_grammar,
-            patch.object(adapter, "_add_apa_validation") as m_apa,
-            patch.object(adapter, "_add_structure_validation") as m_struct,
-            patch.object(adapter, "_add_citations_analysis") as m_citations,
-            patch.object(adapter, "_add_recommendations") as m_recs,
-            patch.object(adapter, "_add_footer") as m_footer,
-        ):
-            adapter.export(report_input=report_input, output_path="out.docx")
+        adapter.export(report_input=report_input, output_path="out.docx")
 
-            m_title.assert_called_once()
-            m_logo.assert_called_once()
-            m_pages.assert_called_once()
-            m_exec.assert_called_once()
-            m_doc_info.assert_called_once()
-            m_class.assert_called_once()
-            m_quality.assert_called_once()
-            m_suitability.assert_called_once()
-            m_grammar.assert_called_once()
-            m_apa.assert_called_once()
-            m_struct.assert_called_once()
-            m_citations.assert_called_once()
-            m_recs.assert_called_once()
-            m_footer.assert_called_once()
+        self.assertEqual(
+            call_recorder.mock_calls,
+            [
+                getattr(call, decoration_name)(document=document_mock)
+                for decoration_name in PAGE_DECORATION_NAMES_IN_APPLY_ORDER
+            ]
+            + [
+                getattr(call, section_name)(document=document_mock, report_input=report_input)
+                for section_name in SECTION_NAMES_IN_RENDER_ORDER
+            ],
+        )
+        document_mock.save.assert_called_once_with("out.docx")
+
+    @patch("src.infrastructure.adapters.report.docx_report_adapter.Document")
+    def test_export_saves_document_when_no_decorations_or_sections(self, document_class_mock):
+        document_mock = MagicMock()
+        document_class_mock.return_value = document_mock
+        adapter = DocxReportAdapter(page_decorations=(), sections=())
+
+        result = adapter.export(
+            report_input=ReportFixtures.make_report_input_dto(), output_path="empty.docx"
+        )
+
+        self.assertTrue(result)
+        document_mock.save.assert_called_once_with("empty.docx")
