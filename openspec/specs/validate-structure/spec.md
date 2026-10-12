@@ -17,25 +17,25 @@ slice. It does NOT describe implementation details — only observable behavior.
 
 ## 1. Domain Service — StructureValidator
 
-### 1.1 Section Alias Map (behavioral-critical)
+### 1.1 Section Aliases (behavioral-critical)
 
-`StructureValidator` MUST use the following `_SECTION_ALIASES` dict verbatim for header detection.
-Keys are `SectionName` enum members; values are lists of lowercase detection strings.
-Every key-value pair is required; adding or removing aliases breaks legacy test parity.
+`StructureValidator` detects section headers with the aliases in `structure_norms.section_aliases`. That field is a `dict[SectionName, tuple[str, ...]]` built from the `[section_aliases]` table of `editorial_norms.toml` (see section 4.1). The keys are `SectionName` values and the loader lowercases the aliases. Every section listed in `[required_sections]` MUST have an entry in `[section_aliases]`; the loader rejects the file otherwise.
 
-```python
-_SECTION_ALIASES: dict[SectionName, list[str]] = {
-    SectionName.SUMMARY:       ['resumen', 'abstract'],
-    SectionName.INTRODUCTION:  ['introducción', 'introduccion', 'introduction'],
-    SectionName.METHODOLOGY:   ['metodología', 'metodologia', 'methodology'],
-    SectionName.RESULTS:       ['resultados', 'results'],
-    SectionName.DISCUSSION:    ['discusión', 'discusion', 'discussion'],
-    SectionName.ARGUMENTATION: ['argumentación', 'argumentacion', 'argumentation'],
-    SectionName.DEVELOPMENT:   ['desarrollo', 'development'],
-    SectionName.CONCLUSIONS:   ['conclusiones', 'conclusión', 'conclusion'],
-    SectionName.REFERENCES:    ['referencias', 'bibliografía', 'bibliografia', 'fuentes bibliográficas'],
-}
-```
+The values shipped in `editorial_norms.toml` are:
+
+| Section | Aliases, in file order |
+|---|---|
+| `Resumen` | `resumen`, `abstract` |
+| `Introducción` | `introducción`, `introduccion`, `introduction` |
+| `Metodología` | `metodología`, `metodologia`, `methodology` |
+| `Resultados` | `resultados`, `results` |
+| `Discusión` | `discusión`, `discusion`, `discussion` |
+| `Argumentación` | `argumentación`, `argumentacion`, `argumentation` |
+| `Desarrollo` | `desarrollo`, `development` |
+| `Conclusiones` | `conclusiones`, `conclusión`, `conclusion` |
+| `Referencias` | `referencias`, `bibliografía`, `bibliografia`, `fuentes bibliográficas` |
+
+**Order matters**: the first section whose alias matches wins, so the order of the `[section_aliases]` entries is part of the behavior. The table is a reading aid; the file is the source of truth.
 
 ### 1.2 Header Detection Rule
 
@@ -44,20 +44,21 @@ following conditions is true:
 
 1. `len(paragraph) < max_header_length` (short-header rule), OR
 2. The paragraph (lowercased, stripped) starts with `{keyword}:` or `{keyword} :`
-   for any keyword in any alias list in `section_map` (inline-header rule).
+   for any keyword in any alias list in `structure_norms.section_aliases` (inline-header rule).
 
-`StructureValidator` MUST accept an optional `max_header_length: int` in its constructor (defaulting to 100).
+`StructureValidator` takes `max_header_length: int` and `structure_norms: StructureNormsDTO` as required constructor arguments; `max_header_length` has no default. The wiring passes `EnvConfig.structure_max_header_length`: the `STRUCTURE_MAX_HEADER_LENGTH` environment variable when it is set, otherwise `[structure] max_header_length` in `analysis_settings.toml` (100 in the shipped file).
 Paragraphs of length >= `max_header_length` that do NOT match the inline-header pattern are NEVER treated as
 section headers, even if they contain section keywords in body text.
 
 When a paragraph qualifies as a header, the service searches it (case-insensitively) for
-any keyword from each `section_map` entry. The first matching entry's key is recorded as the
-detected canonical section name (capitalized first letter).
+any keyword from each `structure_norms.section_aliases` entry. The first matching section is recorded
+as the detected `SectionName`.
 
 ### 1.3 Required Sections per ArticleType
 
-`RequiredSectionsProvider` encodes the following as authoritative, pure domain knowledge.
-Returns `list[SectionName]` — enum members, not raw strings.
+The required sections come from `[required_sections]` in `editorial_norms.toml`, loaded into
+`structure_norms.required_sections` and looked up by `StructureValidator`. The table below is the
+content shipped with that file. Each entry is a `SectionName` enum member, not a raw string.
 
 | ArticleType        | Required sections (ordered)                                                              |
 |--------------------|------------------------------------------------------------------------------------------|
@@ -164,7 +165,8 @@ def _validate_structure(
 `AnalyzeDocumentUseCaseWiring` MUST:
 - Create the `StructureValidator` dependency in its own private `_get_structure_validator(self) -> StructureValidator` method.
 - Inject it into `AnalyzeDocumentUseCase`'s constructor (not constructed inline inside `execute()`).
-- Load the maximum header length from the environment variable `STRUCTURE_MAX_HEADER_LENGTH` (defaulting to 100) and pass it to `StructureValidator`.
+- Pass `max_header_length` from `EnvConfig.structure_max_header_length`, which reads the `STRUCTURE_MAX_HEADER_LENGTH` environment variable or, when it is not set, `[structure] max_header_length` in `analysis_settings.toml`.
+- Pass `structure_norms` from the editorial norms: `EditorialNormsLoader` reads `editorial_norms.toml` from the project root (resolved from the wiring module as `parents[3]`), validates it, and the wiring passes its `structure` field. The norms are loaded once per wiring instance, and a missing or invalid file fails fast when the use case is created.
 
 Pattern:
 ```python
@@ -177,14 +179,18 @@ class AnalyzeDocumentUseCaseWiring:
         )
 
     def _get_structure_validator(self) -> StructureValidator:
-        max_header_length = int(os.environ.get("STRUCTURE_MAX_HEADER_LENGTH", 100))
-        return StructureValidator(max_header_length=max_header_length)
+        env_config = self._get_env_config()
+        return StructureValidator(
+            max_header_length=env_config.structure_max_header_length,
+            structure_norms=self._get_editorial_norms().structure,
+        )
 ```
 
 ### 4.2 No Infrastructure Dependencies
 
-`_get_structure_validator()` MUST NOT import from `src.infrastructure.adapters`, any port
-interface, or any external library. `StructureValidator` is a pure domain-layer class.
+`StructureValidator` MUST depend only on domain types (an `int` and a `StructureNormsDTO`). It MUST NOT
+import from `src.infrastructure`, any port interface, or any external library. Reading the file, looking up
+the environment variable and building the DTO are wiring-layer work; the domain class receives plain values.
 
 ---
 
@@ -408,15 +414,15 @@ And result.missing_sections == []
 ### S-16: DESARROLLO not required for CIENTIFICO
 
 ```
-Given RequiredSectionsProvider.get_required(ArticleType.CIENTIFICO)
-Then "Desarrollo" is NOT in the returned list
+Given `structure_norms.required_sections[ArticleType.CIENTIFICO]` (loaded from `editorial_norms.toml`)
+Then `SectionName.DEVELOPMENT` ("Desarrollo") is NOT in the returned tuple
 ```
 
 ### S-17: DESARROLLO not required for OPINION
 
 ```
-Given RequiredSectionsProvider.get_required(ArticleType.OPINION)
-Then "Desarrollo" is NOT in the returned list
+Given `structure_norms.required_sections[ArticleType.OPINION]` (loaded from `editorial_norms.toml`)
+Then `SectionName.DEVELOPMENT` ("Desarrollo") is NOT in the returned tuple
 ```
 
 ### S-18: "fuentes bibliográficas" alias maps to "Referencias"
@@ -432,7 +438,7 @@ Then "referencias" appears in the lowercased detected sections
 ```
 Given AnalyzeDocumentUseCaseWiring()._get_structure_validator() is called
 Then the return value is an instance of StructureValidator
-And the instance is configured with the value from environment variable STRUCTURE_MAX_HEADER_LENGTH (defaulting to 100)
+And its `max_header_length` is `EnvConfig.structure_max_header_length` (the `STRUCTURE_MAX_HEADER_LENGTH` variable, or 100 from `analysis_settings.toml`)
 And no external adapters, ports, or infrastructure classes are imported
 ```
 

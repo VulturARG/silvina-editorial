@@ -201,6 +201,7 @@ The application version attribute (`silvina_version`) MUST be resolved dynamical
 | `REPORT_CONTEXT_TRUNCATION_LIMIT` | `int` | `analysis_settings.toml` `[report]` `context_truncation_limit` | `150` | `report_context_truncation_limit` |
 | `REPORT_MAX_REPLACEMENTS` | `int` | `analysis_settings.toml` `[report]` `max_replacements` | `3` | `report_max_replacements` |
 | `UPLOAD_MAX_SIZE_BYTES` | `int` | `analysis_settings.toml` `[upload]` `max_size_bytes` | `26214400` | `upload_max_size_bytes` |
+| `EUMIC_MIN_WORDS_FOR_ABSTRACT_CHECK` | `int` | `analysis_settings.toml` `[eumic_check]` `min_words_for_abstract_check` | `1000` | `eumic_min_words_for_abstract_check` |
 
 > **Naming note**: the `PUBLISH_THRESHOLD` … `CRITICAL_GRAMMAR_THRESHOLD` variables (recommendation thresholds) carry no `RECOMMENDATION_` prefix. In `analysis_settings.toml` they are grouped under the `[recommendation]` section, and in `.env.example` under a section comment (e.g. `# Recommendation thresholds`), instead of relying on a name prefix for grouping.
 
@@ -278,6 +279,39 @@ The application version attribute (`silvina_version`) MUST be resolved dynamical
 - AND `version.txt` is missing
 - WHEN `EnvConfig` is instantiated
 - THEN `env_config.silvina_version` is `"0.9"`
+
+---
+
+### Requirement: Editorial Norms Loader
+
+The editorial norms (document format, figure and table caption prefixes, abstract and keyword limits, required sections per article type, and section aliases) MUST be read from `editorial_norms.toml` in the project root. The wiring resolves the path from its own module (`parents[3]`). `EditorialNormsLoader` (`src/infrastructure/editorial_norms_loader.py`) reads the file with `tomllib`, validates it, and returns an `EditorialNormsDTO` (`src/domain/dtos/editorial_norms_dto.py`) whose sections are `[document_format]`, `[figures]`, `[tables]`, `[abstract]`, `[keywords]`, `[required_sections]` and `[section_aliases]`.
+
+The load MUST run at wiring time, when `AnalyzeDocumentUseCaseWiring.create_use_case()` builds the use case, and MUST fail fast. Environment variables MUST NOT override any value in `editorial_norms.toml`. A missing file raises `EditorialNormsFileNotFound` naming the path; a file that is not valid TOML raises `EditorialNormsFileInvalid`; a missing section or key raises `EditorialNormMissing`; a value of the wrong type, out of range or inconsistent (for example `min_word_count` greater than `max_word_count`, or an unknown article type or section name) raises `EditorialNormInvalid`. The last two MUST name the section and, when applicable, the key. These exceptions live in `src/domain/exceptions/editorial_norms_errors.py` and extend `EditorialNormsError`. The norms reach their consumers by constructor injection from the wiring (for example `DocxEumicAdapter` and `StructureValidator`); no consumer reads the file itself.
+
+#### Scenario: Norms are loaded from editorial_norms.toml when the use case is created
+
+- GIVEN a valid `editorial_norms.toml` in the project root
+- WHEN `AnalyzeDocumentUseCaseWiring().create_use_case()` is called
+- THEN the `EditorialNormsDTO` built from the file is injected into the EUMIC format adapter and into `StructureValidator`
+
+#### Scenario: Environment variables do not override editorial norms
+
+- GIVEN the environment contains `MIN_WORD_COUNT=50`
+- AND `editorial_norms.toml` sets `[abstract]` `min_word_count = 100`
+- WHEN the editorial norms are loaded
+- THEN `min_word_count` is `100`
+
+#### Scenario: A missing key fails fast naming the section and key
+
+- GIVEN `editorial_norms.toml` has no `max_word_count` in `[abstract]`
+- WHEN `AnalyzeDocumentUseCaseWiring().create_use_case()` is called
+- THEN `EditorialNormMissing` is raised and its detail names `max_word_count` and `[abstract]`
+
+#### Scenario: An invalid value fails fast naming the section and key
+
+- GIVEN `editorial_norms.toml` sets `[abstract]` `min_word_count = 400` and `max_word_count = 300`
+- WHEN `AnalyzeDocumentUseCaseWiring().create_use_case()` is called
+- THEN `EditorialNormInvalid` is raised and its detail names `max_word_count` and `[abstract]`
 
 ---
 

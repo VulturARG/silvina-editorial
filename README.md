@@ -218,12 +218,22 @@ The base GGUF tag is published by a third party and can change upstream, so a mo
 
 ### Configuration files
 
-Silvina reads its configuration from two places:
+Silvina reads its configuration from three places:
 
 - `analysis_settings.toml` (project root, versioned): the tuning parameters, grouped by section (`[grammar]`, `[article_size]`, `[quality_text_sample]`, `[recommendation]`, `[report]`, `[upload]`, and others). Edit it to adjust thresholds, sampling limits and size bands.
+- `editorial_norms.toml` (project root, versioned): the editorial norms that Silvina checks documents against: the document format (`[document_format]`: margins, font size, allowed fonts and the unjustified paragraph ratio), the caption prefixes for figures and tables (`[figures]`, `[tables]`), the abstract and keyword limits (`[abstract]`, `[keywords]`), and the sections required by each article type with their aliases (`[required_sections]`, `[section_aliases]`).
 - `.env` (not versioned, see `.env.example`): the values that depend on the machine or the deployment, such as `APP_MODE`, `METRICS_DATABASE_PATH`, `LOG_FILE_PATH` and the Ollama connection.
 
 An environment variable with the same name as a setting (for example `GRAMMAR_MAX_PARAGRAPHS`) overrides the value in `analysis_settings.toml`, so a line left in your local `.env` wins over the file on that machine. If a setting is missing from both, or has the wrong type, the application stops at startup with a message naming the section and key. The parameters that live in `.env` have no default in the code: if one is missing or blank, the application stops at startup naming the variable (`OLLAMA_NUM_CTX` is the only optional one: without it Ollama decides the context size).
+
+No environment variable overrides `editorial_norms.toml`; its values are read only from the file. Silvina reads it once, when it starts. If the file is missing or is not valid TOML, or if a key is missing or has an invalid value, the application stops at startup with a message that names the file, or the section and key.
+
+To change a norm, edit its value in `editorial_norms.toml`, keep the type of the value (numbers without quotes, text in double quotes, lists in square brackets), and restart the application. The labels must match the existing names:
+
+- The keys of `[required_sections]` are article types: `"científico"`, `"divulgación"` and `"opinión"`. All three must be present.
+- Each list in `[required_sections]` names sections from the list below, and each of those sections must have an entry in `[section_aliases]`.
+- The keys of `[section_aliases]` are section names: `"Resumen"`, `"Introducción"`, `"Metodología"`, `"Resultados"`, `"Discusión"`, `"Argumentación"`, `"Desarrollo"`, `"Conclusiones"` and `"Referencias"`.
+- An alias is the word that identifies a section header. Aliases are compared in lowercase, and the order of the entries in `[section_aliases]` matters: the first section whose alias matches a header wins.
 
 ### Ollama warm-up and keep_alive
 
@@ -279,6 +289,8 @@ silvina_editorial_v100/
 ├── web_main.py
 ├── version.txt
 ├── requirements.txt
+├── analysis_settings.toml
+├── editorial_norms.toml
 ├── src/
 │   ├── domain/                  # Entities, DTOs, enums, exceptions, and ports
 │   │   ├── citation/
@@ -328,6 +340,8 @@ silvina_editorial_v100/
 - 🧪 **External LLM for debugging (Claude)** in `APP_MODE=DEBUG`.
 - 🔧 **FIXED:** classification signals S2a/S2b could never be satisfied because references were not extracted; reports keep the uploaded file name and a unique folder per analysis; specific language model error messages; concurrent analyses are cancelled or serialized; feedback rendering in the Word report.
 - ♻️ **Refactor:** the feedback, quality and editorial suitability parsers were rebuilt on single-purpose collaborators.
+- **Editorial norms file:** the EUMIC format, abstract and keyword limits, required sections per article type and section aliases are read from `editorial_norms.toml` instead of the code. A missing or invalid norm stops the application at startup.
+- **Tuning file renamed:** the tuning parameters live in `analysis_settings.toml`. The Word report takes the publication threshold from it (`PUBLISH_THRESHOLD`), the same value used for the recommendations.
 
 ### v0.95 (Q2 2026)
 

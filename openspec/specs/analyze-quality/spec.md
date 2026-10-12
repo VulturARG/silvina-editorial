@@ -242,9 +242,9 @@ values (`unscored_dimension_score`, `unscored_dimension_feedback`) are construct
 parameters defaulting to `7.0` and `"No disponible"` respectively (not module
 constants) — consistent with `QualityTextSampler`'s tunables, so future `.env`
 sourcing happens via infrastructure-injected constructor arguments, never via the
-domain reading `os`/`dotenv` directly. `_NARRATIVE_SCORE_KEYWORDS` stays a named
-module-level constant in this file, following the same pattern as the existing
-`_SECTION_ALIASES` constant in `src/domain/structure/structure_validator.py`.
+domain reading `os`/`dotenv` directly. `_NARRATIVE_SCORE_KEYWORDS` (in `src/domain/quality/dimension_score_extractor.py`) stays a named
+module-level constant, following the same pattern as the existing module-level keyword table
+`_DIMENSION_KEYWORDS` in `src/domain/quality/quality_dimension_matcher.py`.
 `_map_block_to_dimension` uses a declarative `_DIMENSION_KEYWORDS` lookup table
 (dimension → keyword tuple) instead of an if/elif chain, mirroring
 `_NARRATIVE_SCORE_KEYWORDS`'s shape. `parse()` MUST preserve the

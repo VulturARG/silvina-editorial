@@ -44,6 +44,10 @@ Defines the port, DTO, exception, adapter, use case, wiring, and fake double tha
 
 > Updated in Slice 13: `recommendations` is now `list[RecommendationDTO]` (was `list[dict]`). `verdict: PublicationVerdictDTO` and `eumic_violations: list[EumicViolationDTO]` were added.
 
+`ReportInputDTO` holds no publication threshold. Its two publication methods take it as an argument:
+- `is_publishable(publish_threshold: float) -> bool` returns True only when `quality.overall_score` and `grammar.score` are both at or above `publish_threshold`, `structure.is_valid` is True, there are no APA violations, and at least one citation was found.
+- `publishability_reason(publish_threshold: float) -> str` returns the message that explains the decision for the same threshold. It checks for missing citations first.
+
 #### Scenario: DTO is immutable after construction
 
 - GIVEN a constructed `ReportInputDTO`
@@ -72,11 +76,12 @@ Defines the port, DTO, exception, adapter, use case, wiring, and fake double tha
 
 ### Requirement: DocxReportSettings Configuration Object
 
-`DocxReportSettings` MUST be a frozen dataclass at `src/infrastructure/adapters/report/docx_report_settings.py`. Its 8 deployment-config fields are **required** (no defaults) — the wiring layer MUST supply them from `EnvConfig`:
+`DocxReportSettings` MUST be a frozen dataclass at `src/infrastructure/adapters/report/docx_report_settings.py`. Its 9 deployment-config fields are **required** (no defaults) — the wiring layer MUST supply them from `EnvConfig`:
 - `app_name: str`
 - `app_version: str`
 - `score_high_threshold: float`
 - `score_medium_threshold: float`
+- `publish_threshold: float`
 - `words_per_page: int`
 - `max_errors_displayed: int`
 - `context_truncation_limit: int`
@@ -96,13 +101,13 @@ Its remaining fields (Word template visual constants: fonts, colors, sizes, tabl
 
 #### Scenario: Visual template fields use static defaults when only deployment fields are provided
 
-- GIVEN all 8 deployment fields are provided and no visual fields are provided
+- GIVEN all 9 deployment fields are provided and no visual fields are provided
 - WHEN `DocxReportSettings(...)` is instantiated
 - THEN `settings.font_name`, `settings.table_style`, `settings.heading_color_rgb`, and other visual fields match their static defaults
 
 #### Scenario: Settings accepts arguments passed during instantiation
 
-- GIVEN all 8 deployment fields are provided, with `words_per_page=300` and `max_errors_displayed=10` overriding the rest
+- GIVEN all 9 deployment fields are provided, with `words_per_page=300` and `max_errors_displayed=10` overriding the rest
 - WHEN `DocxReportSettings(...)` is instantiated
 - THEN `settings.words_per_page == 300` AND `settings.max_errors_displayed == 10`
 
@@ -216,6 +221,8 @@ The `_add_recommendations` method MUST render the publication verdict from `repo
 ### Requirement: ExportReportWiring Assembles the Full Object Graph
 
 `ExportReportWiring.create_use_case()` MUST resolve `logo_path` relative to the project root, instantiate `EnvConfig`, construct `DocxReportSettings` using values from the `EnvConfig` instance, instantiate `DocxReportAdapter` with that settings object, and return a fully wired `ExportReportUseCase`. It MUST raise `ReportExportUnavailable` at startup if python-docx is absent.
+
+`DocxReportSettings.publish_threshold` MUST be set from `EnvConfig.publish_threshold`, the same value that `RecommendationSettingsDTO.publish_threshold` receives (`PUBLISH_THRESHOLD`, or `[recommendation] publish_threshold` in `analysis_settings.toml`).
 
 (Previously: Instantiated `DocxReportSettings` which read environment variables dynamically from `os.environ` via default factories.)
 
