@@ -72,3 +72,6 @@ max_replacements = 3
 
 [upload]
 max_size_bytes = 26214400
+
+[eumic_check]
+min_words_for_abstract_check = 1000

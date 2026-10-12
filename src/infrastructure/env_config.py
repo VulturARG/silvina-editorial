@@ -232,6 +232,9 @@ class EnvConfig:
         self.upload_max_size_bytes: int = settings.read_integer(
             "UPLOAD_MAX_SIZE_BYTES", "upload", "max_size_bytes"
         )
+        self.eumic_min_words_for_abstract_check: int = settings.read_integer(
+            "EUMIC_MIN_WORDS_FOR_ABSTRACT_CHECK", "eumic_check", "min_words_for_abstract_check"
+        )
 
     def get_recommendation_settings(self) -> RecommendationSettingsDTO:
         """Builds RecommendationSettingsDTO from cached configuration values."""

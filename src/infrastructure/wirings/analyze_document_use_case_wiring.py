@@ -1,4 +1,5 @@
 from os.path import join
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -30,6 +31,7 @@ from src.domain.document.document_text_port import DocumentTextPort
 from src.domain.document.reference_extraction_port import ReferenceExtractionPort
 from src.domain.dtos.article_size_thresholds_dto import ArticleSizeThresholdsDTO
 from src.domain.dtos.dimension_score_dto import DimensionScoreDTO
+from src.domain.dtos.editorial_norms_dto import EditorialNormsDTO
 from src.domain.enums.ai_provider import AiProvider
 from src.domain.enums.ai_purpose import AiPurpose
 from src.domain.grammar.grammar_check_port import GrammarCheckPort
@@ -90,6 +92,7 @@ from src.infrastructure.adapters.metrics.fail_safe_analysis_metrics_adapter impo
 from src.infrastructure.adapters.metrics.sqlite_analysis_metrics_adapter import (
     SqliteAnalysisMetricsAdapter,
 )
+from src.infrastructure.editorial_norms_loader import EditorialNormsLoader
 from src.infrastructure.env_config import EnvConfig
 from src.infrastructure.resources.prompts.classification import (
     PROMPTS_DIR as CLASSIFICATION_PROMPTS_DIR,
@@ -102,6 +105,7 @@ from src.infrastructure.wirings.external_llm_generator_loader import (
 
 load_dotenv()
 
+_EDITORIAL_NORMS_PATH = Path(__file__).resolve().parents[3] / "editorial_norms.toml"
 _SUITABILITY_PHRASE_MAX_LENGTH = 120
 _SUITABILITY_JUSTIFICATION_MAX_LENGTH = 120
 _SUITABILITY_LINES_MAX_LENGTH = 200
@@ -117,6 +121,7 @@ class AnalyzeDocumentUseCaseWiring:
         self._ollama_generator_instance: LlmGeneratorPort | None = None
         self._llm_backend_generator_instance: LlmGeneratorPort | None = None
         self._env_config_instance: EnvConfig | None = None
+        self._editorial_norms_instance: EditorialNormsDTO | None = None
         self._analysis_metrics_port_instance: AnalysisMetricsPort | None = None
         self._audit_payload_policy_instance: AuditPayloadPolicy | None = None
 
@@ -164,8 +169,16 @@ class AnalyzeDocumentUseCaseWiring:
             language_tool_settings=self._get_env_config().get_language_tool_settings()
         )
 
+    def _get_editorial_norms(self) -> EditorialNormsDTO:
+        if self._editorial_norms_instance is None:
+            self._editorial_norms_instance = EditorialNormsLoader(_EDITORIAL_NORMS_PATH).load()
+        return self._editorial_norms_instance
+
     def _get_document_format_inspection_port(self) -> DocumentFormatInspectionPort:
-        return DocxEumicAdapter()
+        return DocxEumicAdapter(
+            norms=self._get_editorial_norms(),
+            minimum_words_for_abstract_check=self._get_env_config().eumic_min_words_for_abstract_check,
+        )
 
     def _get_document_content_extractor(self) -> DocumentContentExtractor:
         return DocumentContentExtractor(

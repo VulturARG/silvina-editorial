@@ -34,6 +34,7 @@ from src.domain.quality.suitability_field_truncator import SuitabilityFieldTrunc
 from src.domain.quality.suitability_verdict_matcher import SuitabilityVerdictMatcher
 from src.domain.tests.classification.fake_llm_generator_adapter import FakeLlmGeneratorAdapter
 from src.infrastructure.adapters.document.docx_citation_adapter import DocxCitationAdapter
+from src.infrastructure.adapters.document.docx_eumic_adapter import DocxEumicAdapter
 from src.infrastructure.adapters.grammar.language_tool_adapter import LanguageToolAdapter
 from src.infrastructure.adapters.grammar.language_tool_settings import (
     LanguageToolSettings,
@@ -83,6 +84,14 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
     def test_create_use_case_wires_analysis_tracker(self):
         result = AnalyzeDocumentUseCaseWiring().create_use_case()
         self.assertIsInstance(result._analysis_tracker, AnalysisTracker)
+
+    def test_wiring_builds_document_format_inspection_port_with_project_norms(self):
+        wiring = AnalyzeDocumentUseCaseWiring()
+        port = wiring._get_document_format_inspection_port()
+        self.assertIsInstance(port, DocxEumicAdapter)
+        assert isinstance(port, DocxEumicAdapter)
+        self.assertEqual(port._minimum_words_for_abstract_check, 1000)
+        self.assertEqual(port._norms.document_format.font_size_pt, 12.0)
 
     def test_wiring_builds_quality_response_parser_holding_collaborators(self):
         wiring = AnalyzeDocumentUseCaseWiring()
