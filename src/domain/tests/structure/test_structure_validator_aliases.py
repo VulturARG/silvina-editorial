@@ -1,8 +1,13 @@
 from unittest import TestCase
 
 from src.domain.dtos.document_content_dto import DocumentContentDTO
+from src.domain.dtos.structure_norms_dto import StructureNormsDTO
+from src.domain.enums.article_type import ArticleType
 from src.domain.enums.section_name import SectionName
 from src.domain.structure.structure_validator import StructureValidator
+from src.domain.tests.structure.structure_norms_builder_for_test import (
+    build_structure_norms_for_test,
+)
 
 
 def _make_document(paragraphs: list[str]) -> DocumentContentDTO:
@@ -11,7 +16,10 @@ def _make_document(paragraphs: list[str]) -> DocumentContentDTO:
 
 class TestStructureValidatorAliases(TestCase):
     def setUp(self):
-        self.validator = StructureValidator(max_header_length=100)
+        self.validator = StructureValidator(
+            max_header_length=100,
+            structure_norms=build_structure_norms_for_test(),
+        )
 
     def test_english_alias_abstract_maps_to_resumen(self):
         present = self.validator._extract_present_sections(["Abstract"])
@@ -52,13 +60,38 @@ class TestStructureValidatorAliases(TestCase):
         self.assertIn(SectionName.INTRODUCTION, present)
 
     def test_custom_max_header_length_rejects_paragraph_over_custom_threshold(self):
-        validator = StructureValidator(max_header_length=50)
+        validator = StructureValidator(
+            max_header_length=50,
+            structure_norms=build_structure_norms_for_test(),
+        )
         long_paragraph = "Introducción de nuevas metodologías en el campo de la ciencia"
         self.assertEqual(len(long_paragraph), 61)
         present = validator._extract_present_sections([long_paragraph])
         self.assertEqual(present, [])
 
     def test_custom_max_header_length_accepts_short_paragraph_under_custom_threshold(self):
-        validator = StructureValidator(max_header_length=50)
+        validator = StructureValidator(
+            max_header_length=50,
+            structure_norms=build_structure_norms_for_test(),
+        )
         present = validator._extract_present_sections([SectionName.INTRODUCTION.value])
         self.assertIn(SectionName.INTRODUCTION, present)
+
+    def test_validator_detects_custom_injected_alias(self):
+        custom_norms = StructureNormsDTO(
+            required_sections={ArticleType.SCIENTIFIC: (SectionName.SUMMARY,)},
+            section_aliases={SectionName.SUMMARY: ("resumen", "sinopsis")},
+        )
+        validator = StructureValidator(max_header_length=100, structure_norms=custom_norms)
+        present = validator._extract_present_sections(["Sinopsis del documento"])
+        self.assertIn(SectionName.SUMMARY, present)
+
+    def test_validator_respects_custom_required_sections(self):
+        custom_norms = StructureNormsDTO(
+            required_sections={ArticleType.OPINION: (SectionName.SUMMARY,)},
+            section_aliases={SectionName.SUMMARY: ("resumen",)},
+        )
+        validator = StructureValidator(max_header_length=100, structure_norms=custom_norms)
+        doc = _make_document(["Introducción"])
+        present, missing = validator.validate(doc, ArticleType.OPINION)
+        self.assertEqual(missing, [SectionName.SUMMARY])

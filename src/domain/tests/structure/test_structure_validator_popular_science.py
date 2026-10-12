@@ -4,6 +4,9 @@ from src.domain.dtos.document_content_dto import DocumentContentDTO
 from src.domain.enums.article_type import ArticleType
 from src.domain.enums.section_name import SectionName
 from src.domain.structure.structure_validator import StructureValidator
+from src.domain.tests.structure.structure_norms_builder_for_test import (
+    build_structure_norms_for_test,
+)
 
 
 def _make_document(paragraphs: list[str]) -> DocumentContentDTO:
@@ -24,7 +27,10 @@ _POPULAR_SCIENCE_ALL_SECTIONS = [
 
 class TestStructureValidatorPopularScience(TestCase):
     def setUp(self):
-        self.validator = StructureValidator(max_header_length=100)
+        self.validator = StructureValidator(
+            max_header_length=100,
+            structure_norms=build_structure_norms_for_test(),
+        )
 
     def test_all_popular_science_sections_present_is_valid(self):
         doc = _make_document(_POPULAR_SCIENCE_ALL_SECTIONS)

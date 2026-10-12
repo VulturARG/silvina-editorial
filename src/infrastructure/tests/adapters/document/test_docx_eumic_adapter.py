@@ -9,7 +9,11 @@ from src.domain.dtos.caption_norms_dto import CaptionNormsDTO
 from src.domain.dtos.document_format_norms_dto import DocumentFormatNormsDTO
 from src.domain.dtos.editorial_norms_dto import EditorialNormsDTO
 from src.domain.dtos.keyword_norms_dto import KeywordNormsDTO
+from src.domain.dtos.structure_norms_dto import StructureNormsDTO
 from src.domain.enums.severity_level import SeverityLevel
+from src.domain.tests.structure.structure_norms_builder_for_test import (
+    build_structure_norms_for_test,
+)
 from src.infrastructure.tests.adapters.document.docx_eumic_adapter_builder_for_test import (
     DocxEumicAdapterBuilderForTest,
 )
@@ -106,6 +110,7 @@ def _make_editorial_norms(
     ),
     keyword_min_count: int = 3,
     keyword_max_count: int = 5,
+    structure: StructureNormsDTO | None = None,
 ) -> EditorialNormsDTO:
     return EditorialNormsDTO(
         document_format=DocumentFormatNormsDTO(
@@ -128,6 +133,7 @@ def _make_editorial_norms(
             min_count=keyword_min_count,
             max_count=keyword_max_count,
         ),
+        structure=structure or build_structure_norms_for_test(),
     )
 
 

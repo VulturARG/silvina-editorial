@@ -22,7 +22,24 @@ class TestEditorialNormsValueResolver(TestCase):
                 "blank_item_list": ["Times New Roman", "   "],
                 "non_string_item_list": ["Times New Roman", 123],
                 "not_a_list": "Arial",
-            }
+            },
+            "aliases_table": {
+                "Summary": ["resumen", "abstract"],
+                "Introduction": ["introducción", "introduction"],
+            },
+            "table_with_empty_list": {
+                "Summary": [],
+            },
+            "table_with_blank_string": {
+                "Summary": ["resumen", "   "],
+            },
+            "table_with_non_string": {
+                "Summary": ["resumen", 123],
+            },
+            "table_with_not_a_list": {
+                "Summary": "resumen",
+            },
+            "not_a_table": "just a string",
         }
         self._resolver = EditorialNormsValueResolver(norms)
 
@@ -111,3 +128,47 @@ class TestEditorialNormsValueResolver(TestCase):
         with self.assertRaises(EditorialNormMissing) as context:
             self._resolver.read_integer("missing_section", "missing_key")
         self.assertRegex(context.exception.dict()["error"], r"'missing_key'.*\[missing_section\]")
+
+    def test_reads_string_list_table(self):
+        value = self._resolver.read_string_list_table("aliases_table")
+
+        self.assertEqual(
+            value,
+            {
+                "Summary": ("resumen", "abstract"),
+                "Introduction": ("introducción", "introduction"),
+            },
+        )
+        self.assertEqual(list(value.keys()), ["Summary", "Introduction"])
+
+    def test_raises_editorial_norm_missing_when_string_list_table_section_is_missing(self):
+        with self.assertRaises(EditorialNormMissing) as context:
+            self._resolver.read_string_list_table("missing_section")
+        self.assertRegex(context.exception.dict()["error"], r"\[missing_section\]")
+
+    def test_raises_editorial_norm_invalid_when_string_list_table_is_not_a_dict(self):
+        with self.assertRaises(EditorialNormInvalid) as context:
+            self._resolver.read_string_list_table("not_a_table")
+        self.assertRegex(context.exception.dict()["error"], r"\[not_a_table\]")
+
+    def test_raises_editorial_norm_invalid_when_string_list_table_value_is_not_a_list(self):
+        with self.assertRaises(EditorialNormInvalid) as context:
+            self._resolver.read_string_list_table("table_with_not_a_list")
+        self.assertRegex(context.exception.dict()["error"], r"'Summary'.*\[table_with_not_a_list\]")
+
+    def test_raises_editorial_norm_invalid_when_string_list_table_value_is_empty(self):
+        with self.assertRaises(EditorialNormInvalid) as context:
+            self._resolver.read_string_list_table("table_with_empty_list")
+        self.assertRegex(context.exception.dict()["error"], r"'Summary'.*\[table_with_empty_list\]")
+
+    def test_raises_editorial_norm_invalid_when_string_list_table_contains_blank_string(self):
+        with self.assertRaises(EditorialNormInvalid) as context:
+            self._resolver.read_string_list_table("table_with_blank_string")
+        self.assertRegex(
+            context.exception.dict()["error"], r"'Summary'.*\[table_with_blank_string\]"
+        )
+
+    def test_raises_editorial_norm_invalid_when_string_list_table_contains_non_string_element(self):
+        with self.assertRaises(EditorialNormInvalid) as context:
+            self._resolver.read_string_list_table("table_with_non_string")
+        self.assertRegex(context.exception.dict()["error"], r"'Summary'.*\[table_with_non_string\]")

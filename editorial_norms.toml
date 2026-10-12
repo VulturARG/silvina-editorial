@@ -26,3 +26,23 @@ max_word_count = 300
 section_markers = ["palabras clave", "keywords", "key words", "descriptores"]
 min_count = 3
 max_count = 5
+
+# The keys of [required_sections] are article type labels.
+# The keys of [section_aliases] are canonical section labels.
+# Aliases are compared with the lowercased header text.
+# ORDER MATTERS in [section_aliases] because the first section whose alias matches wins.
+[required_sections]
+"científico" = ["Resumen", "Introducción", "Metodología", "Resultados", "Discusión", "Conclusiones", "Referencias"]
+"divulgación" = ["Resumen", "Introducción", "Desarrollo", "Conclusiones", "Referencias"]
+"opinión" = ["Introducción", "Argumentación", "Conclusiones"]
+
+[section_aliases]
+"Resumen" = ["resumen", "abstract"]
+"Introducción" = ["introducción", "introduccion", "introduction"]
+"Metodología" = ["metodología", "metodologia", "methodology"]
+"Resultados" = ["resultados", "results"]
+"Discusión" = ["discusión", "discusion", "discussion"]
+"Argumentación" = ["argumentación", "argumentacion", "argumentation"]
+"Desarrollo" = ["desarrollo", "development"]
+"Conclusiones" = ["conclusiones", "conclusión", "conclusion"]
+"Referencias" = ["referencias", "bibliografía", "bibliografia", "fuentes bibliográficas"]

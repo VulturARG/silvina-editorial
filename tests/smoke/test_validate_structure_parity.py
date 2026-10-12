@@ -1,5 +1,4 @@
-"""
-Smoke test: StructureValidator validates real sample documents correctly.
+"""Smoke test: StructureValidator validates real sample documents correctly.
 
 Exercises src.domain.structure.structure_validator.StructureValidator directly
 against real sample documents, verifying the expected missing sections and
@@ -16,6 +15,9 @@ from src.domain.dtos.document_content_dto import DocumentContentDTO
 from src.domain.enums.article_type import ArticleType
 from src.domain.enums.section_name import SectionName
 from src.domain.structure.structure_validator import StructureValidator
+from src.domain.tests.structure.structure_norms_builder_for_test import (
+    build_structure_norms_for_test,
+)
 from src.infrastructure.adapters.document.docx_text_adapter import DocxTextAdapter
 
 DOCS = Path(__file__).parent.parent.parent / "docs" / "sample-documents"
@@ -39,7 +41,10 @@ class TestValidateStructureParity(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.reader = DocxTextAdapter()
-        cls.structure_validator = StructureValidator(max_header_length=100)
+        cls.structure_validator = StructureValidator(
+            max_header_length=100,
+            structure_norms=build_structure_norms_for_test(),
+        )
 
     def _validate(self, filename: str, article_type: ArticleType) -> tuple[bool, set]:
         paragraphs = self.reader.read_paragraphs(path=str(DOCS / filename))
@@ -52,7 +57,6 @@ class TestValidateStructureParity(TestCase):
 
     def test_cientifico_missing_sections(self):
         is_valid, missing = self._validate(*_DOCUMENTS[0])
-        # test_Científico.docx lacks dedicated Methodology, Results, and Discussion sections.
         self.assertEqual(
             missing,
             {SectionName.METHODOLOGY, SectionName.RESULTS, SectionName.DISCUSSION},
@@ -66,7 +70,6 @@ class TestValidateStructureParity(TestCase):
 
     def test_opinion_missing_sections(self):
         is_valid, missing = self._validate(*_DOCUMENTS[2])
-        # test_opinion_v2.docx lacks dedicated Introduction, Argumentation, and Conclusions sections.
         self.assertEqual(
             missing,
             {SectionName.INTRODUCTION, SectionName.ARGUMENTATION, SectionName.CONCLUSIONS},

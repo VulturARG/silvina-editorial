@@ -3,7 +3,12 @@ from tempfile import TemporaryDirectory
 from unittest import TestCase
 
 from src.domain.dtos.editorial_norms_dto import EditorialNormsDTO
+from src.domain.enums.article_type import ArticleType
+from src.domain.enums.section_name import SectionName
 from src.domain.exceptions.editorial_norms_errors import EditorialNormInvalid
+from src.domain.tests.structure.structure_norms_builder_for_test import (
+    build_structure_norms_for_test,
+)
 from src.infrastructure.editorial_norms_loader import EditorialNormsLoader
 
 PROJECT_EDITORIAL_NORMS_PATH = Path(__file__).resolve().parents[3] / "editorial_norms.toml"
@@ -42,6 +47,22 @@ class TestEditorialNormsLoader(TestCase):
             'section_markers = ["palabras clave", "keywords", "key words", "descriptores"]\n'
             "min_count = 3\n"
             "max_count = 5\n"
+            "\n"
+            "[required_sections]\n"
+            '"científico" = ["Resumen", "Introducción", "Metodología", "Resultados", "Discusión", "Conclusiones", "Referencias"]\n'
+            '"divulgación" = ["Resumen", "Introducción", "Desarrollo", "Conclusiones", "Referencias"]\n'
+            '"opinión" = ["Introducción", "Argumentación", "Conclusiones"]\n'
+            "\n"
+            "[section_aliases]\n"
+            '"Resumen" = ["resumen", "abstract"]\n'
+            '"Introducción" = ["introducción", "introduccion", "introduction"]\n'
+            '"Metodología" = ["metodología", "metodologia", "methodology"]\n'
+            '"Resultados" = ["resultados", "results"]\n'
+            '"Discusión" = ["discusión", "discusion", "discussion"]\n'
+            '"Argumentación" = ["argumentación", "argumentacion", "argumentation"]\n'
+            '"Desarrollo" = ["desarrollo", "development"]\n'
+            '"Conclusiones" = ["conclusiones", "conclusión", "conclusion"]\n'
+            '"Referencias" = ["referencias", "bibliografía", "bibliografia", "fuentes bibliográficas"]\n'
         )
         self._editorial_norms_file_path.write_text(content, encoding="utf-8")
 
@@ -80,6 +101,21 @@ class TestEditorialNormsLoader(TestCase):
         )
         self.assertEqual(norms.keywords.min_count, 3)
         self.assertEqual(norms.keywords.max_count, 5)
+        self.assertEqual(
+            norms.structure.required_sections[ArticleType.SCIENTIFIC],
+            (
+                SectionName.SUMMARY,
+                SectionName.INTRODUCTION,
+                SectionName.METHODOLOGY,
+                SectionName.RESULTS,
+                SectionName.DISCUSSION,
+                SectionName.CONCLUSIONS,
+                SectionName.REFERENCES,
+            ),
+        )
+        self.assertEqual(
+            norms.structure.section_aliases[SectionName.SUMMARY], ("resumen", "abstract")
+        )
 
     def test_raises_editorial_norm_invalid_when_margin_cm_is_zero_or_negative(self):
         self._write_norms_with_replacement("margin_cm = 2.5", "margin_cm = 0.0")
@@ -205,3 +241,4 @@ class TestEditorialNormsLoader(TestCase):
         )
         self.assertEqual(norms.keywords.min_count, 3)
         self.assertEqual(norms.keywords.max_count, 5)
+        self.assertEqual(norms.structure, build_structure_norms_for_test())

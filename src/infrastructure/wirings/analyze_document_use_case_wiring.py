@@ -210,7 +210,10 @@ class AnalyzeDocumentUseCaseWiring:
 
     def _get_structure_validator(self) -> StructureValidator:
         env_config = self._get_env_config()
-        return StructureValidator(max_header_length=env_config.structure_max_header_length)
+        return StructureValidator(
+            max_header_length=env_config.structure_max_header_length,
+            structure_norms=self._get_editorial_norms().structure,
+        )
 
     def _get_recommendation_builder(self) -> RecommendationBuilder:
         return RecommendationBuilder(

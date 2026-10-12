@@ -45,6 +45,29 @@ class EditorialNormsValueResolver:
                 )
         return tuple(value)
 
+    def read_string_list_table(self, section: str) -> dict[str, tuple[str, ...]]:
+        """Return an ordered mapping of string keys to tuples of non-blank strings for a table."""
+        if section not in self._norms:
+            raise EditorialNormMissing(f"Section [{section}] in the editorial norms file.")
+        section_values = self._norms[section]
+        if not isinstance(section_values, dict):
+            raise EditorialNormInvalid(
+                f"Section [{section}] of the editorial norms file (expected a table)."
+            )
+        resolved_table: dict[str, tuple[str, ...]] = {}
+        for key, value in section_values.items():
+            if not isinstance(value, list) or len(value) == 0:
+                raise EditorialNormInvalid(
+                    f"'{key}' in section [{section}] of the editorial norms file (expected a non-empty list of text)."
+                )
+            for element in value:
+                if not isinstance(element, str) or not element.strip():
+                    raise EditorialNormInvalid(
+                        f"'{key}' in section [{section}] of the editorial norms file contains an invalid or blank string element."
+                    )
+            resolved_table[key] = tuple(value)
+        return resolved_table
+
     def _read_norm_value(self, section: str, key: str) -> Any:
         section_values = self._norms.get(section)
         if not isinstance(section_values, dict):

@@ -5,6 +5,7 @@ from src.domain.dtos.base_dto import BaseDTO
 from src.domain.dtos.caption_norms_dto import CaptionNormsDTO
 from src.domain.dtos.document_format_norms_dto import DocumentFormatNormsDTO
 from src.domain.dtos.keyword_norms_dto import KeywordNormsDTO
+from src.domain.dtos.structure_norms_dto import StructureNormsDTO
 
 
 @dataclass(frozen=True)
@@ -16,3 +17,4 @@ class EditorialNormsDTO(BaseDTO):
     table_captions: CaptionNormsDTO
     abstract: AbstractNormsDTO
     keywords: KeywordNormsDTO
+    structure: StructureNormsDTO

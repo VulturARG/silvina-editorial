@@ -6,6 +6,9 @@ from src.domain.dtos.caption_norms_dto import CaptionNormsDTO
 from src.domain.dtos.document_format_norms_dto import DocumentFormatNormsDTO
 from src.domain.dtos.editorial_norms_dto import EditorialNormsDTO
 from src.domain.dtos.keyword_norms_dto import KeywordNormsDTO
+from src.domain.dtos.structure_norms_dto import StructureNormsDTO
+from src.domain.enums.article_type import ArticleType
+from src.domain.enums.section_name import SectionName
 
 
 class TestDocumentFormatNormsDTO(TestCase):
@@ -206,6 +209,10 @@ class TestEditorialNormsDTO(TestCase):
                 min_count=3,
                 max_count=5,
             ),
+            structure=StructureNormsDTO(
+                required_sections={ArticleType.SCIENTIFIC: (SectionName.SUMMARY,)},
+                section_aliases={SectionName.SUMMARY: ("resumen",)},
+            ),
         )
         field_name = "document_format"
         with self.assertRaises(FrozenInstanceError):
@@ -233,6 +240,10 @@ class TestEditorialNormsDTO(TestCase):
                 min_count=3,
                 max_count=5,
             ),
+            structure=StructureNormsDTO(
+                required_sections={ArticleType.SCIENTIFIC: (SectionName.SUMMARY,)},
+                section_aliases={SectionName.SUMMARY: ("resumen",)},
+            ),
         )
         expected = {
             "document_format": {
@@ -254,6 +265,10 @@ class TestEditorialNormsDTO(TestCase):
                 "section_markers": ("keywords",),
                 "min_count": 3,
                 "max_count": 5,
+            },
+            "structure": {
+                "required_sections": {ArticleType.SCIENTIFIC: (SectionName.SUMMARY,)},
+                "section_aliases": {SectionName.SUMMARY: ("resumen",)},
             },
         }
         self.assertEqual(dto.as_dict(), expected)

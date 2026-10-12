@@ -8,6 +8,7 @@ from src.domain.dtos.keyword_norms_dto import KeywordNormsDTO
 from src.domain.exceptions.editorial_norms_errors import EditorialNormInvalid
 from src.infrastructure.editorial_norms_toml_reader import EditorialNormsTomlReader
 from src.infrastructure.editorial_norms_value_resolver import EditorialNormsValueResolver
+from src.infrastructure.structure_norms_loader import StructureNormsLoader
 
 
 class EditorialNormsLoader:
@@ -58,6 +59,8 @@ class EditorialNormsLoader:
             max_count=keyword_max_count,
         )
 
+        structure = StructureNormsLoader(resolver).load()
+
         return EditorialNormsDTO(
             document_format=DocumentFormatNormsDTO(
                 margin_cm=margin_cm,
@@ -79,6 +82,7 @@ class EditorialNormsLoader:
                 min_count=keyword_min_count,
                 max_count=keyword_max_count,
             ),
+            structure=structure,
         )
 
     def _validate_document_format(
