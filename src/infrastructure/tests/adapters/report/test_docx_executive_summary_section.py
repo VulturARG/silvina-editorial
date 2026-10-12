@@ -31,7 +31,7 @@ class TestDocxExecutiveSummarySection(TestCase):
             [
                 "RESUMEN EJECUTIVO",
                 "✅ APTO PARA PUBLICACIÓN",
-                report_input.publishability_reason,
+                report_input.publishability_reason(self.settings.publish_threshold),
             ],
         )
         decision_run = self.document.paragraphs[1].runs[0]
@@ -97,3 +97,12 @@ class TestDocxExecutiveSummarySection(TestCase):
 
         self.assertEqual(self._table_rows()[3], ["Estructura", "✗ Incompleta"])
         self.assertEqual(self._table_rows()[4], ["Errores APA 7", "2 detectados"])
+
+    def test_render_decides_publishability_with_publish_threshold_from_settings(self) -> None:
+        section = ReportFixtures.make_executive_summary_section(
+            docx_report_settings=ReportFixtures.make_settings(publish_threshold=9.0)
+        )
+
+        section.render(document=self.document, report_input=ReportFixtures.make_report_input_dto())
+
+        self.assertEqual(self.document.paragraphs[1].text, "⚠️ REQUIERE REVISIÓN")

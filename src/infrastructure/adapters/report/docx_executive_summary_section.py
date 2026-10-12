@@ -32,8 +32,9 @@ class DocxExecutiveSummarySection(DocxReportSection):
         """Add the colored decision, the publishability reason and the metrics table."""
         self._section_heading_writer.write(document=document, text="RESUMEN EJECUTIVO", level=1)
 
-        can_publish = report_input.is_publishable
-        reason = report_input.publishability_reason
+        publish_threshold = self._docx_report_settings.publish_threshold
+        can_publish = report_input.is_publishable(publish_threshold)
+        reason = report_input.publishability_reason(publish_threshold)
 
         decision_paragraph = document.add_paragraph()
         decision_run = decision_paragraph.add_run(

@@ -1,3 +1,4 @@
+from typing import Any
 from unittest import TestCase
 
 from src.domain.enums.allowed_font import AllowedFont
@@ -9,6 +10,20 @@ class TestDocxReportSettings(TestCase):
     def test_deployment_fields_are_required(self):
         with self.assertRaises(TypeError):
             DocxReportSettings()
+
+    def test_publish_threshold_is_required(self):
+        arguments: dict[str, Any] = {
+            "app_name": "Silvina Editorial Assistant",
+            "app_version": "0.9",
+            "score_high_threshold": 8.0,
+            "score_medium_threshold": 6.0,
+            "words_per_page": 250,
+            "max_errors_displayed": 5,
+            "context_truncation_limit": 150,
+            "max_replacements": 3,
+        }
+        with self.assertRaises(TypeError):
+            DocxReportSettings(**arguments)
 
     def test_visual_template_fields_use_static_defaults(self):
         settings = ReportFixtures.make_settings()
