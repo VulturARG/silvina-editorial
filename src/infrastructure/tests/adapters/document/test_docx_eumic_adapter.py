@@ -4,8 +4,19 @@ from unittest.mock import MagicMock, patch
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Cm
 
+from src.domain.dtos.abstract_norms_dto import AbstractNormsDTO
+from src.domain.dtos.caption_norms_dto import CaptionNormsDTO
+from src.domain.dtos.document_format_norms_dto import DocumentFormatNormsDTO
+from src.domain.dtos.editorial_norms_dto import EditorialNormsDTO
+from src.domain.dtos.keyword_norms_dto import KeywordNormsDTO
+from src.domain.dtos.structure_norms_dto import StructureNormsDTO
 from src.domain.enums.severity_level import SeverityLevel
-from src.infrastructure.adapters.document.docx_eumic_adapter import DocxEumicAdapter
+from src.domain.tests.structure.structure_norms_builder_for_test import (
+    build_structure_norms_for_test,
+)
+from src.infrastructure.tests.adapters.document.docx_eumic_adapter_builder_for_test import (
+    DocxEumicAdapterBuilderForTest,
+)
 
 
 def _mock_length(cm_value: float) -> MagicMock:
@@ -79,23 +90,76 @@ def _make_compliant_doc() -> MagicMock:
     return doc
 
 
+def _make_editorial_norms(
+    margin_cm: float = 2.5,
+    margin_tolerance_cm: float = 0.3,
+    font_size_pt: float = 12.0,
+    font_size_tolerance_pt: float = 1.0,
+    allowed_fonts: tuple[str, ...] = ("Times New Roman", "Arial", "Calibri"),
+    max_unjustified_paragraph_ratio: float = 0.3,
+    figure_caption_prefixes: tuple[str, ...] = ("figura", "fig.", "figure"),
+    table_caption_prefixes: tuple[str, ...] = ("tabla", "table", "cuadro"),
+    abstract_section_keywords: tuple[str, ...] = ("resumen", "abstract", "síntesis", "sumario"),
+    abstract_min_word_count: int = 100,
+    abstract_max_word_count: int = 300,
+    keyword_section_markers: tuple[str, ...] = (
+        "palabras clave",
+        "keywords",
+        "key words",
+        "descriptores",
+    ),
+    keyword_min_count: int = 3,
+    keyword_max_count: int = 5,
+    structure: StructureNormsDTO | None = None,
+) -> EditorialNormsDTO:
+    return EditorialNormsDTO(
+        document_format=DocumentFormatNormsDTO(
+            margin_cm=margin_cm,
+            margin_tolerance_cm=margin_tolerance_cm,
+            font_size_pt=font_size_pt,
+            font_size_tolerance_pt=font_size_tolerance_pt,
+            allowed_fonts=allowed_fonts,
+            max_unjustified_paragraph_ratio=max_unjustified_paragraph_ratio,
+        ),
+        figure_captions=CaptionNormsDTO(caption_prefixes=figure_caption_prefixes),
+        table_captions=CaptionNormsDTO(caption_prefixes=table_caption_prefixes),
+        abstract=AbstractNormsDTO(
+            section_keywords=abstract_section_keywords,
+            min_word_count=abstract_min_word_count,
+            max_word_count=abstract_max_word_count,
+        ),
+        keywords=KeywordNormsDTO(
+            section_markers=keyword_section_markers,
+            min_count=keyword_min_count,
+            max_count=keyword_max_count,
+        ),
+        structure=structure or build_structure_norms_for_test(),
+    )
+
+
 class TestDocxEumicAdapterFullyCompliantDocument(TestCase):
     @patch("src.infrastructure.adapters.document.docx_eumic_adapter.Document")
     def test_inspect_returns_empty_list_when_fully_compliant_document(self, mock_document_class):
         mock_document_class.return_value = _make_compliant_doc()
-        result = DocxEumicAdapter().inspect(docx_path="test.docx", word_count=500)
+        result = (
+            DocxEumicAdapterBuilderForTest().build().inspect(docx_path="test.docx", word_count=500)
+        )
         self.assertEqual(result, [])
 
     @patch("src.infrastructure.adapters.document.docx_eumic_adapter.Document")
     def test_inspect_returns_list_instance(self, mock_document_class):
         mock_document_class.return_value = _make_compliant_doc()
-        result = DocxEumicAdapter().inspect(docx_path="test.docx", word_count=500)
+        result = (
+            DocxEumicAdapterBuilderForTest().build().inspect(docx_path="test.docx", word_count=500)
+        )
         self.assertIsInstance(result, list)
 
     @patch("src.infrastructure.adapters.document.docx_eumic_adapter.Document")
     def test_inspect_calls_document_with_provided_path(self, mock_document_class):
         mock_document_class.return_value = _make_compliant_doc()
-        DocxEumicAdapter().inspect(docx_path="/path/to/doc.docx", word_count=500)
+        DocxEumicAdapterBuilderForTest().build().inspect(
+            docx_path="/path/to/doc.docx", word_count=500
+        )
         mock_document_class.assert_called_once_with("/path/to/doc.docx")
 
 
@@ -109,7 +173,9 @@ class TestDocxEumicAdapterMarginCheck(TestCase):
         section.top_margin = _mock_length(1.0)
         doc.sections = [section]
         mock_document_class.return_value = doc
-        result = DocxEumicAdapter().inspect(docx_path="test.docx", word_count=500)
+        result = (
+            DocxEumicAdapterBuilderForTest().build().inspect(docx_path="test.docx", word_count=500)
+        )
         messages = [violation.message for violation in result]
         self.assertTrue(any("Margen superior" in message for message in messages))
 
@@ -120,7 +186,9 @@ class TestDocxEumicAdapterMarginCheck(TestCase):
         doc = _make_compliant_doc()
         doc.sections = []
         mock_document_class.return_value = doc
-        result = DocxEumicAdapter().inspect(docx_path="test.docx", word_count=500)
+        result = (
+            DocxEumicAdapterBuilderForTest().build().inspect(docx_path="test.docx", word_count=500)
+        )
         margin_violations = [violation for violation in result if "Margen" in violation.message]
         self.assertEqual(margin_violations, [])
 
@@ -131,7 +199,9 @@ class TestDocxEumicAdapterMarginCheck(TestCase):
         doc = _make_compliant_doc()
         doc.sections = [_make_mock_section(1.0)]
         mock_document_class.return_value = doc
-        result = DocxEumicAdapter().inspect(docx_path="test.docx", word_count=500)
+        result = (
+            DocxEumicAdapterBuilderForTest().build().inspect(docx_path="test.docx", word_count=500)
+        )
         margin_violations = [violation for violation in result if "Margen" in violation.message]
         self.assertEqual(len(margin_violations), 4)
         self.assertTrue(all(v.severity == SeverityLevel.WARNING for v in margin_violations))
@@ -146,7 +216,9 @@ class TestDocxEumicAdapterFontCheck(TestCase):
         run = _make_run(font_name="Comic Sans MS")
         doc.paragraphs = [_make_paragraph(text="Content", runs=[run])]
         mock_document_class.return_value = doc
-        result = DocxEumicAdapter().inspect(docx_path="test.docx", word_count=500)
+        result = (
+            DocxEumicAdapterBuilderForTest().build().inspect(docx_path="test.docx", word_count=500)
+        )
         font_violations = [
             violation for violation in result if "Fuentes no estándar" in violation.message
         ]
@@ -161,7 +233,9 @@ class TestDocxEumicAdapterFontCheck(TestCase):
         run = _make_run(font_name="Times New Roman")
         doc.paragraphs = [_make_paragraph(text="Content", runs=[run])]
         mock_document_class.return_value = doc
-        result = DocxEumicAdapter().inspect(docx_path="test.docx", word_count=500)
+        result = (
+            DocxEumicAdapterBuilderForTest().build().inspect(docx_path="test.docx", word_count=500)
+        )
         font_violations = [
             violation for violation in result if "Fuentes no estándar" in violation.message
         ]
@@ -175,7 +249,9 @@ class TestDocxEumicAdapterFontCheck(TestCase):
         run = _make_run(font_name="Times New Roman", font_size_pt=8.0)
         doc.paragraphs = [_make_paragraph(text="Content", runs=[run])]
         mock_document_class.return_value = doc
-        result = DocxEumicAdapter().inspect(docx_path="test.docx", word_count=500)
+        result = (
+            DocxEumicAdapterBuilderForTest().build().inspect(docx_path="test.docx", word_count=500)
+        )
         size_violations = [
             violation for violation in result if "Tamaños de fuente" in violation.message
         ]
@@ -196,7 +272,9 @@ class TestDocxEumicAdapterAlignmentCheck(TestCase):
             _make_paragraph(text="Fourth", alignment=WD_ALIGN_PARAGRAPH.LEFT),
         ]
         mock_document_class.return_value = doc
-        result = DocxEumicAdapter().inspect(docx_path="test.docx", word_count=500)
+        result = (
+            DocxEumicAdapterBuilderForTest().build().inspect(docx_path="test.docx", word_count=500)
+        )
         alignment_violations = [
             violation for violation in result if "justificado" in violation.message
         ]
@@ -213,7 +291,9 @@ class TestDocxEumicAdapterAlignmentCheck(TestCase):
             _make_paragraph(text="Second", alignment=WD_ALIGN_PARAGRAPH.JUSTIFY),
         ]
         mock_document_class.return_value = doc
-        result = DocxEumicAdapter().inspect(docx_path="test.docx", word_count=500)
+        result = (
+            DocxEumicAdapterBuilderForTest().build().inspect(docx_path="test.docx", word_count=500)
+        )
         alignment_violations = [
             violation for violation in result if "justificado" in violation.message
         ]
@@ -228,7 +308,9 @@ class TestDocxEumicAdapterFigureCheck(TestCase):
         doc = _make_compliant_doc()
         doc.part.rels = {}
         mock_document_class.return_value = doc
-        result = DocxEumicAdapter().inspect(docx_path="test.docx", word_count=500)
+        result = (
+            DocxEumicAdapterBuilderForTest().build().inspect(docx_path="test.docx", word_count=500)
+        )
         figure_violations = [violation for violation in result if violation.category == "Figuras"]
         self.assertEqual(figure_violations, [])
 
@@ -238,7 +320,9 @@ class TestDocxEumicAdapterFigureCheck(TestCase):
         doc.part.rels = {"rId1": _make_image_rel()}
         doc.paragraphs = []
         mock_document_class.return_value = doc
-        result = DocxEumicAdapter().inspect(docx_path="test.docx", word_count=500)
+        result = (
+            DocxEumicAdapterBuilderForTest().build().inspect(docx_path="test.docx", word_count=500)
+        )
         caption_violations = [
             violation for violation in result if "título formal" in violation.message
         ]
@@ -255,7 +339,9 @@ class TestDocxEumicAdapterFigureCheck(TestCase):
             _make_paragraph(text="Figura 1. Second image"),
         ]
         mock_document_class.return_value = doc
-        result = DocxEumicAdapter().inspect(docx_path="test.docx", word_count=500)
+        result = (
+            DocxEumicAdapterBuilderForTest().build().inspect(docx_path="test.docx", word_count=500)
+        )
         numbering_violations = [
             violation for violation in result if "Numeración de figuras" in violation.message
         ]
@@ -270,7 +356,9 @@ class TestDocxEumicAdapterFigureCheck(TestCase):
         rels_mock.values.side_effect = AttributeError("no rels")
         doc.part.rels = rels_mock
         mock_document_class.return_value = doc
-        result = DocxEumicAdapter().inspect(docx_path="test.docx", word_count=500)
+        result = (
+            DocxEumicAdapterBuilderForTest().build().inspect(docx_path="test.docx", word_count=500)
+        )
         figure_violations = [violation for violation in result if violation.category == "Figuras"]
         self.assertEqual(figure_violations, [])
 
@@ -283,7 +371,9 @@ class TestDocxEumicAdapterTableCheck(TestCase):
         doc = _make_compliant_doc()
         doc.tables = []
         mock_document_class.return_value = doc
-        result = DocxEumicAdapter().inspect(docx_path="test.docx", word_count=500)
+        result = (
+            DocxEumicAdapterBuilderForTest().build().inspect(docx_path="test.docx", word_count=500)
+        )
         table_violations = [violation for violation in result if violation.category == "Tablas"]
         self.assertEqual(table_violations, [])
 
@@ -293,7 +383,9 @@ class TestDocxEumicAdapterTableCheck(TestCase):
         doc.tables = [MagicMock(), MagicMock()]
         doc.paragraphs = []
         mock_document_class.return_value = doc
-        result = DocxEumicAdapter().inspect(docx_path="test.docx", word_count=500)
+        result = (
+            DocxEumicAdapterBuilderForTest().build().inspect(docx_path="test.docx", word_count=500)
+        )
         title_violations = [
             violation for violation in result if "sin título descriptivo" in violation.message
         ]
@@ -310,7 +402,9 @@ class TestDocxEumicAdapterTableCheck(TestCase):
             _make_paragraph(text="Tabla 1. Second table"),
         ]
         mock_document_class.return_value = doc
-        result = DocxEumicAdapter().inspect(docx_path="test.docx", word_count=500)
+        result = (
+            DocxEumicAdapterBuilderForTest().build().inspect(docx_path="test.docx", word_count=500)
+        )
         numbering_violations = [
             violation for violation in result if "Numeración de tablas" in violation.message
         ]
@@ -326,7 +420,9 @@ class TestDocxEumicAdapterFormulaCheck(TestCase):
         run = _make_run(xml="<w:r/>")
         doc.paragraphs = [_make_paragraph(text="No formulas here", runs=[run])]
         mock_document_class.return_value = doc
-        result = DocxEumicAdapter().inspect(docx_path="test.docx", word_count=500)
+        result = (
+            DocxEumicAdapterBuilderForTest().build().inspect(docx_path="test.docx", word_count=500)
+        )
         formula_violations = [violation for violation in result if violation.category == "Fórmulas"]
         self.assertEqual(formula_violations, [])
 
@@ -342,7 +438,9 @@ class TestDocxEumicAdapterFormulaCheck(TestCase):
         )
         doc.paragraphs = [formula_para]
         mock_document_class.return_value = doc
-        result = DocxEumicAdapter().inspect(docx_path="test.docx", word_count=500)
+        result = (
+            DocxEumicAdapterBuilderForTest().build().inspect(docx_path="test.docx", word_count=500)
+        )
         formula_violations = [
             violation for violation in result if "Fórmulas no centradas" in violation.message
         ]
@@ -365,7 +463,9 @@ class TestDocxEumicAdapterFormulaCheck(TestCase):
         doc = _make_compliant_doc()
         doc.paragraphs = [_make_paragraph(text="formula paragraph", runs=[bad_run])]
         mock_document_class.return_value = doc
-        result = DocxEumicAdapter().inspect(docx_path="test.docx", word_count=500)
+        result = (
+            DocxEumicAdapterBuilderForTest().build().inspect(docx_path="test.docx", word_count=500)
+        )
         self.assertIsInstance(result, list)
 
 
@@ -376,7 +476,9 @@ class TestDocxEumicAdapterAbstractKeywordCheck(TestCase):
     ):
         doc = _make_compliant_doc()
         mock_document_class.return_value = doc
-        result = DocxEumicAdapter().inspect(docx_path="test.docx", word_count=999)
+        result = (
+            DocxEumicAdapterBuilderForTest().build().inspect(docx_path="test.docx", word_count=999)
+        )
         abstract_violations = [
             violation for violation in result if violation.category == "Resumen y Palabras Clave"
         ]
@@ -389,7 +491,9 @@ class TestDocxEumicAdapterAbstractKeywordCheck(TestCase):
         doc = _make_compliant_doc()
         doc.paragraphs = [_make_paragraph(text="Palabras clave: investigación, ciencia, datos")]
         mock_document_class.return_value = doc
-        result = DocxEumicAdapter().inspect(docx_path="test.docx", word_count=2000)
+        result = (
+            DocxEumicAdapterBuilderForTest().build().inspect(docx_path="test.docx", word_count=2000)
+        )
         abstract_violations = [
             violation for violation in result if "Resumen/Abstract" in violation.message
         ]
@@ -407,7 +511,9 @@ class TestDocxEumicAdapterAbstractKeywordCheck(TestCase):
             _make_paragraph(text="Palabras clave: investigación, ciencia, datos"),
         ]
         mock_document_class.return_value = doc
-        result = DocxEumicAdapter().inspect(docx_path="test.docx", word_count=2000)
+        result = (
+            DocxEumicAdapterBuilderForTest().build().inspect(docx_path="test.docx", word_count=2000)
+        )
         length_violations = [
             violation for violation in result if "Extensión del resumen" in violation.message
         ]
@@ -425,7 +531,9 @@ class TestDocxEumicAdapterAbstractKeywordCheck(TestCase):
             _make_paragraph(text=abstract_content),
         ]
         mock_document_class.return_value = doc
-        result = DocxEumicAdapter().inspect(docx_path="test.docx", word_count=2000)
+        result = (
+            DocxEumicAdapterBuilderForTest().build().inspect(docx_path="test.docx", word_count=2000)
+        )
         keyword_violations = [
             violation for violation in result if "palabras clave" in violation.message.lower()
         ]
@@ -444,9 +552,147 @@ class TestDocxEumicAdapterAbstractKeywordCheck(TestCase):
             _make_paragraph(text="Palabras clave: alpha, beta, gamma, delta, epsilon, zeta"),
         ]
         mock_document_class.return_value = doc
-        result = DocxEumicAdapter().inspect(docx_path="test.docx", word_count=2000)
+        result = (
+            DocxEumicAdapterBuilderForTest().build().inspect(docx_path="test.docx", word_count=2000)
+        )
         keyword_count_violations = [
             violation for violation in result if "Número incorrecto" in violation.message
         ]
         self.assertEqual(len(keyword_count_violations), 1)
         self.assertEqual(keyword_count_violations[0].severity, SeverityLevel.WARNING)
+
+
+class TestDocxEumicAdapterCustomNorms(TestCase):
+    @patch("src.infrastructure.adapters.document.docx_eumic_adapter.Document")
+    def test_inspect_evaluates_margins_using_custom_norms(self, mock_document_class):
+        norms = _make_editorial_norms(margin_cm=3.0, margin_tolerance_cm=0.2)
+        adapter = DocxEumicAdapterBuilderForTest().build(norms=norms)
+        doc = _make_compliant_doc()
+        doc.sections = [_make_mock_section(2.5)]
+        mock_document_class.return_value = doc
+        result = adapter.inspect(docx_path="test.docx", word_count=500)
+        margin_violations = [violation for violation in result if "Margen" in violation.message]
+        self.assertEqual(len(margin_violations), 4)
+        self.assertIn("3.0 cm", margin_violations[0].details)
+
+    @patch("src.infrastructure.adapters.document.docx_eumic_adapter.Document")
+    def test_inspect_evaluates_allowed_fonts_using_custom_norms(self, mock_document_class):
+        norms = _make_editorial_norms(allowed_fonts=("Courier New",))
+        adapter = DocxEumicAdapterBuilderForTest().build(norms=norms)
+        doc = _make_compliant_doc()
+        run = _make_run(font_name="Times New Roman")
+        doc.paragraphs = [_make_paragraph(text="Content", runs=[run])]
+        mock_document_class.return_value = doc
+        result = adapter.inspect(docx_path="test.docx", word_count=500)
+        font_violations = [
+            violation for violation in result if "Fuentes no estándar" in violation.message
+        ]
+        self.assertEqual(len(font_violations), 1)
+        self.assertIn("Courier New", font_violations[0].details)
+        self.assertIn("Times New Roman", font_violations[0].details)
+
+    @patch("src.infrastructure.adapters.document.docx_eumic_adapter.Document")
+    def test_inspect_evaluates_font_size_using_custom_norms(self, mock_document_class):
+        norms = _make_editorial_norms(font_size_pt=14.0, font_size_tolerance_pt=0.5)
+        adapter = DocxEumicAdapterBuilderForTest().build(norms=norms)
+        doc = _make_compliant_doc()
+        run = _make_run(font_name="Times New Roman", font_size_pt=12.0)
+        doc.paragraphs = [_make_paragraph(text="Content", runs=[run])]
+        mock_document_class.return_value = doc
+        result = adapter.inspect(docx_path="test.docx", word_count=500)
+        size_violations = [
+            violation for violation in result if "Tamaños de fuente" in violation.message
+        ]
+        self.assertEqual(len(size_violations), 1)
+        self.assertIn("14pt", size_violations[0].details)
+
+    @patch("src.infrastructure.adapters.document.docx_eumic_adapter.Document")
+    def test_inspect_evaluates_justified_ratio_using_custom_norms(self, mock_document_class):
+        norms = _make_editorial_norms(max_unjustified_paragraph_ratio=0.8)
+        adapter = DocxEumicAdapterBuilderForTest().build(norms=norms)
+        doc = _make_compliant_doc()
+        doc.paragraphs = [
+            _make_paragraph(text="First", alignment=WD_ALIGN_PARAGRAPH.LEFT),
+            _make_paragraph(text="Second", alignment=WD_ALIGN_PARAGRAPH.LEFT),
+            _make_paragraph(text="Third", alignment=WD_ALIGN_PARAGRAPH.JUSTIFY),
+            _make_paragraph(text="Fourth", alignment=WD_ALIGN_PARAGRAPH.JUSTIFY),
+        ]
+        mock_document_class.return_value = doc
+        result = adapter.inspect(docx_path="test.docx", word_count=500)
+        alignment_violations = [
+            violation for violation in result if "justificado" in violation.message
+        ]
+        self.assertEqual(alignment_violations, [])
+
+    @patch("src.infrastructure.adapters.document.docx_eumic_adapter.Document")
+    def test_inspect_evaluates_figure_captions_using_custom_prefixes(self, mock_document_class):
+        norms = _make_editorial_norms(figure_caption_prefixes=("grafico",))
+        adapter = DocxEumicAdapterBuilderForTest().build(norms=norms)
+        doc = _make_compliant_doc()
+        doc.part.rels = {"rId1": _make_image_rel()}
+        doc.paragraphs = [_make_paragraph(text="Grafico 1. Un grafico descriptivo")]
+        mock_document_class.return_value = doc
+        result = adapter.inspect(docx_path="test.docx", word_count=500)
+        caption_violations = [
+            violation for violation in result if "título formal" in violation.message
+        ]
+        self.assertEqual(caption_violations, [])
+
+    @patch("src.infrastructure.adapters.document.docx_eumic_adapter.Document")
+    def test_inspect_evaluates_table_captions_using_custom_prefixes(self, mock_document_class):
+        norms = _make_editorial_norms(table_caption_prefixes=("matriz",))
+        adapter = DocxEumicAdapterBuilderForTest().build(norms=norms)
+        doc = _make_compliant_doc()
+        doc.tables = [MagicMock()]
+        doc.paragraphs = [_make_paragraph(text="Matriz 1. Una matriz descriptiva")]
+        mock_document_class.return_value = doc
+        result = adapter.inspect(docx_path="test.docx", word_count=500)
+        title_violations = [
+            violation for violation in result if "sin título descriptivo" in violation.message
+        ]
+        self.assertEqual(title_violations, [])
+
+    @patch("src.infrastructure.adapters.document.docx_eumic_adapter.Document")
+    def test_inspect_evaluates_abstract_length_using_custom_range(self, mock_document_class):
+        norms = _make_editorial_norms(abstract_min_word_count=20, abstract_max_word_count=50)
+        adapter = DocxEumicAdapterBuilderForTest().build(norms=norms)
+        doc = _make_compliant_doc()
+        doc.paragraphs = [
+            _make_paragraph(text="Resumen"),
+            _make_paragraph(text=" ".join(["palabra"] * 30)),
+            _make_paragraph(text="Palabras clave: investigacion, ciencia, datos"),
+        ]
+        mock_document_class.return_value = doc
+        result = adapter.inspect(docx_path="test.docx", word_count=2000)
+        length_violations = [
+            violation for violation in result if "Extensión del resumen" in violation.message
+        ]
+        self.assertEqual(length_violations, [])
+
+    @patch("src.infrastructure.adapters.document.docx_eumic_adapter.Document")
+    def test_inspect_evaluates_keyword_count_using_custom_range(self, mock_document_class):
+        norms = _make_editorial_norms(keyword_min_count=1, keyword_max_count=2)
+        adapter = DocxEumicAdapterBuilderForTest().build(norms=norms)
+        doc = _make_compliant_doc()
+        doc.paragraphs = [
+            _make_paragraph(text="Resumen"),
+            _make_paragraph(text=" ".join(["palabra"] * 150)),
+            _make_paragraph(text="Palabras clave: alfa, beta"),
+        ]
+        mock_document_class.return_value = doc
+        result = adapter.inspect(docx_path="test.docx", word_count=2000)
+        keyword_violations = [
+            violation for violation in result if "Número incorrecto" in violation.message
+        ]
+        self.assertEqual(keyword_violations, [])
+
+    @patch("src.infrastructure.adapters.document.docx_eumic_adapter.Document")
+    def test_inspect_evaluates_abstract_check_using_custom_minimum_words(self, mock_document_class):
+        adapter = DocxEumicAdapterBuilderForTest().build(minimum_words_for_abstract_check=500)
+        doc = _make_compliant_doc()
+        mock_document_class.return_value = doc
+        result = adapter.inspect(docx_path="test.docx", word_count=600)
+        abstract_violations = [
+            violation for violation in result if "Resumen/Abstract" in violation.message
+        ]
+        self.assertEqual(len(abstract_violations), 1)

@@ -20,16 +20,20 @@ class EumicViolationFactory:
         )
 
     @staticmethod
-    def non_standard_fonts(detected_fonts: set[str]) -> EumicViolationDTO:
+    def non_standard_fonts(
+        detected_fonts: set[str] | tuple[str, ...], allowed_fonts: tuple[str, ...]
+    ) -> EumicViolationDTO:
+        """Build violation for fonts outside the allowed fonts list."""
         return EumicViolationDTO(
             category=EumicCategory.FORMAT,
             message="Fuentes no estándar detectadas",
             severity=SeverityLevel.WARNING,
-            details=f"Usar Times New Roman o Arial. Detectadas: {', '.join(detected_fonts)}",
+            details=f"Usar una de las fuentes permitidas: {', '.join(allowed_fonts)}. Detectadas: {', '.join(detected_fonts)}",
         )
 
     @staticmethod
-    def variable_font_sizes(non_standard_sizes: list) -> EumicViolationDTO:
+    def variable_font_sizes(non_standard_sizes: list, required_size_pt: float) -> EumicViolationDTO:
+        """Build violation for font sizes deviating from the required size."""
         sizes_str = ", ".join(
             f"{size.pt:.0f}pt" for size in non_standard_sizes[:_MAX_DISPLAYED_NON_STANDARD_SIZES]
         )
@@ -37,7 +41,7 @@ class EumicViolationFactory:
             category=EumicCategory.FORMAT,
             message="Tamaños de fuente variables detectados",
             severity=SeverityLevel.INFO,
-            details=f"Predominantemente use 12pt. Detectados: {sizes_str}",
+            details=f"Predominantemente use {required_size_pt:g}pt. Detectados: {sizes_str}",
         )
 
     @staticmethod
@@ -99,12 +103,13 @@ class EumicViolationFactory:
         )
 
     @staticmethod
-    def missing_abstract() -> EumicViolationDTO:
+    def missing_abstract(min_words: int, max_words: int) -> EumicViolationDTO:
+        """Build violation for a missing abstract section."""
         return EumicViolationDTO(
             category=EumicCategory.ABSTRACT_KEYWORDS,
             message="Falta sección de Resumen/Abstract",
             severity=SeverityLevel.CRITICAL,
-            details="El documento debe incluir un resumen de 150-250 palabras",
+            details=f"El documento debe incluir un resumen de {min_words}-{max_words} palabras",
         )
 
     @staticmethod
@@ -119,12 +124,13 @@ class EumicViolationFactory:
         )
 
     @staticmethod
-    def missing_keywords() -> EumicViolationDTO:
+    def missing_keywords(min_count: int, max_count: int) -> EumicViolationDTO:
+        """Build violation for missing keywords section."""
         return EumicViolationDTO(
             category=EumicCategory.ABSTRACT_KEYWORDS,
             message="Faltan palabras clave",
             severity=SeverityLevel.CRITICAL,
-            details="Se requieren 3-5 palabras clave relevantes al contenido",
+            details=f"Se requieren {min_count}-{max_count} palabras clave relevantes al contenido",
         )
 
     @staticmethod

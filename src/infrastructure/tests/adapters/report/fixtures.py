@@ -309,6 +309,7 @@ class ReportFixtures:
             "app_version": "0.9",
             "score_high_threshold": 8.0,
             "score_medium_threshold": 6.0,
+            "publish_threshold": 7.0,
             "words_per_page": 250,
             "max_errors_displayed": 5,
             "context_truncation_limit": 150,

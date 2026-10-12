@@ -20,7 +20,7 @@ from src.infrastructure.settings_value_resolver import SettingsValueResolver
 
 _PROJECT_ROOT_PATH = Path(__file__).resolve().parents[2]
 _VERSION_FILE_PATH = _PROJECT_ROOT_PATH / "version.txt"
-_SETTINGS_FILE_PATH = _PROJECT_ROOT_PATH / "settings.toml"
+_SETTINGS_FILE_PATH = _PROJECT_ROOT_PATH / "analysis_settings.toml"
 _DURATION_PATTERN = r"-?(\d+(\.\d+)?(ms|s|m|h))+"
 
 
@@ -231,6 +231,9 @@ class EnvConfig:
         )
         self.upload_max_size_bytes: int = settings.read_integer(
             "UPLOAD_MAX_SIZE_BYTES", "upload", "max_size_bytes"
+        )
+        self.eumic_min_words_for_abstract_check: int = settings.read_integer(
+            "EUMIC_MIN_WORDS_FOR_ABSTRACT_CHECK", "eumic_check", "min_words_for_abstract_check"
         )
 
     def get_recommendation_settings(self) -> RecommendationSettingsDTO:

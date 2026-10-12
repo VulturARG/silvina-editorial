@@ -1,0 +1,48 @@
+# Silvina Editorial Assistant - Editorial Norms
+# This file defines the editorial standards and publication norms evaluated by Silvina.
+# It is versioned with the code and is not overridable by environment variables.
+# Operational and detector tuning parameters live in analysis_settings.toml.
+
+[document_format]
+margin_cm = 2.5
+margin_tolerance_cm = 0.3
+font_size_pt = 12
+font_size_tolerance_pt = 1.0
+allowed_fonts = ["Times New Roman", "Arial", "Calibri"]
+max_unjustified_paragraph_ratio = 0.3
+
+[figures]
+caption_prefixes = ["figura", "fig.", "figure"]
+
+[tables]
+caption_prefixes = ["tabla", "table", "cuadro"]
+
+[abstract]
+section_keywords = ["resumen", "abstract", "síntesis", "sumario"]
+min_word_count = 100
+max_word_count = 300
+
+[keywords]
+section_markers = ["palabras clave", "keywords", "key words", "descriptores"]
+min_count = 3
+max_count = 5
+
+# The keys of [required_sections] are article type labels.
+# The keys of [section_aliases] are canonical section labels.
+# Aliases are compared with the lowercased header text.
+# ORDER MATTERS in [section_aliases] because the first section whose alias matches wins.
+[required_sections]
+"científico" = ["Resumen", "Introducción", "Metodología", "Resultados", "Discusión", "Conclusiones", "Referencias"]
+"divulgación" = ["Resumen", "Introducción", "Desarrollo", "Conclusiones", "Referencias"]
+"opinión" = ["Introducción", "Argumentación", "Conclusiones"]
+
+[section_aliases]
+"Resumen" = ["resumen", "abstract"]
+"Introducción" = ["introducción", "introduccion", "introduction"]
+"Metodología" = ["metodología", "metodologia", "methodology"]
+"Resultados" = ["resultados", "results"]
+"Discusión" = ["discusión", "discusion", "discussion"]
+"Argumentación" = ["argumentación", "argumentacion", "argumentation"]
+"Desarrollo" = ["desarrollo", "development"]
+"Conclusiones" = ["conclusiones", "conclusión", "conclusion"]
+"Referencias" = ["referencias", "bibliografía", "bibliografia", "fuentes bibliográficas"]

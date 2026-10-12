@@ -218,7 +218,7 @@ descriptivo, sin sufijo `Service` — SKILL §4) con un método público, y vive
 | `classify_article_size(char_count)` | `ArticleSizeClassifier` | `classify(char_count) -> ArticleSize` | `domain/article/` |
 | `get_quality_level_from_score(score)` | `QualityLevelResolver` | `resolve(score) -> QualityLevel` | `domain/quality/` |
 | `classify_section_by_name(name)` | `SectionClassifier` | `classify(name) -> SectionType` | `domain/section/` |
-| `get_required_sections_for_category(cat)` | `RequiredSectionsProvider` | `for_category(cat) -> list[SectionType]` | `domain/structure/` |
+| `get_required_sections_for_category(cat)` | _Removed_: replaced by a lookup in `StructureNormsDTO`, read from `editorial_norms.toml` | `required_sections[article_type]` (field lookup, no class) | `domain/dtos/` |
 | `get_citation_type_from_pattern(text)` | `CitationTypeDetector` | `detect(text) -> CitationType` | `domain/citation/` |
 
 **Helpers de creación de `models.py`** (`create_empty_document`,

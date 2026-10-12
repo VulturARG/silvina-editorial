@@ -17,6 +17,7 @@ class DocxReportSettings:
     app_version: str
     score_high_threshold: float
     score_medium_threshold: float
+    publish_threshold: float
     words_per_page: int
     max_errors_displayed: int
     context_truncation_limit: int

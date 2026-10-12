@@ -5,26 +5,12 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Cm
 
 from src.domain.document.document_format_inspection_port import DocumentFormatInspectionPort
+from src.domain.dtos.editorial_norms_dto import EditorialNormsDTO
 from src.domain.dtos.eumic_violation_dto import EumicViolationDTO
-from src.domain.enums.allowed_font import AllowedFont
 from src.domain.enums.formula_xml_marker import FormulaXmlMarker
-from src.infrastructure.adapters.document.eumic_document_standards import (
-    ABSTRACT_MAX_WORD_COUNT,
-    ABSTRACT_MIN_WORD_COUNT,
+from src.infrastructure.adapters.document.eumic_detection_constants import (
     ABSTRACT_PARAGRAPH_LOOKAHEAD,
-    ABSTRACT_SECTION_KEYWORDS,
-    FIGURE_CAPTION_PREFIXES,
     FIGURE_NUMBERING_PATTERN,
-    FONT_SIZE_TOLERANCE_PT,
-    KEYWORD_SECTION_MARKERS,
-    MARGIN_TOLERANCE_CM,
-    MAX_KEYWORD_COUNT,
-    MAX_UNJUSTIFIED_PARAGRAPH_RATIO,
-    MIN_KEYWORD_COUNT,
-    MIN_WORDS_FOR_ABSTRACT_CHECK,
-    REQUIRED_FONT_SIZE_PT,
-    REQUIRED_MARGIN_CM,
-    TABLE_CAPTION_PREFIXES,
     TABLE_NUMBERING_PATTERN,
 )
 from src.infrastructure.adapters.document.eumic_violation_factory import EumicViolationFactory
@@ -33,7 +19,17 @@ from src.infrastructure.adapters.document.eumic_violation_factory import EumicVi
 class DocxEumicAdapter(DocumentFormatInspectionPort):
     """Inspects a .docx document for EUMIC editorial standard violations."""
 
+    def __init__(
+        self,
+        norms: EditorialNormsDTO,
+        minimum_words_for_abstract_check: int,
+    ) -> None:
+        """Initialize the adapter with editorial norms and word count thresholds."""
+        self._norms = norms
+        self._minimum_words_for_abstract_check = minimum_words_for_abstract_check
+
     def inspect(self, docx_path: str, word_count: int) -> list[EumicViolationDTO]:
+        """Inspect a .docx file and return detected EUMIC format violations."""
         document = Document(docx_path)
         violations: list[EumicViolationDTO] = []
         violations.extend(self._verify_format(document=document))
@@ -55,7 +51,7 @@ class DocxEumicAdapter(DocumentFormatInspectionPort):
         if image_count == 0:
             return []
         figure_captions = self._collect_paragraphs_starting_with(
-            document=document, prefixes=FIGURE_CAPTION_PREFIXES
+            document=document, prefixes=self._norms.figure_captions.caption_prefixes
         )
         violations: list[EumicViolationDTO] = []
         violations.extend(
@@ -77,7 +73,7 @@ class DocxEumicAdapter(DocumentFormatInspectionPort):
         if not tables:
             return []
         table_titles = self._collect_paragraphs_starting_with(
-            document=document, prefixes=TABLE_CAPTION_PREFIXES
+            document=document, prefixes=self._norms.table_captions.caption_prefixes
         )
         violations: list[EumicViolationDTO] = []
         violations.extend(
@@ -99,7 +95,7 @@ class DocxEumicAdapter(DocumentFormatInspectionPort):
         return self._check_formula_alignment(formula_paragraphs=formula_paragraphs)
 
     def _verify_abstract_keywords(self, document, word_count: int) -> list[EumicViolationDTO]:
-        if word_count < MIN_WORDS_FOR_ABSTRACT_CHECK:
+        if word_count < self._minimum_words_for_abstract_check:
             return []
         violations: list[EumicViolationDTO] = []
         has_abstract, abstract_word_count = self._find_abstract_word_count(document=document)
@@ -117,8 +113,8 @@ class DocxEumicAdapter(DocumentFormatInspectionPort):
         if not sections:
             return []
         section = sections[0]
-        required_twips = Cm(REQUIRED_MARGIN_CM).twips
-        tolerance_twips = Cm(MARGIN_TOLERANCE_CM).twips
+        required_twips = Cm(self._norms.document_format.margin_cm).twips
+        tolerance_twips = Cm(self._norms.document_format.margin_tolerance_cm).twips
         margins = [
             ("superior", section.top_margin),
             ("inferior", section.bottom_margin),
@@ -129,7 +125,7 @@ class DocxEumicAdapter(DocumentFormatInspectionPort):
             EumicViolationFactory.margin_non_compliant(
                 margin_name=margin_name,
                 actual_cm=margin_value.cm,
-                required_cm=REQUIRED_MARGIN_CM,
+                required_cm=self._norms.document_format.margin_cm,
             )
             for margin_name, margin_value in margins
             if abs(margin_value.twips - required_twips) > tolerance_twips
@@ -140,19 +136,26 @@ class DocxEumicAdapter(DocumentFormatInspectionPort):
         fonts_used = {run.font.name for run in all_runs if run.font.name}
         sizes_used = {run.font.size for run in all_runs if run.font.size}
         violations: list[EumicViolationDTO] = []
-        non_standard_fonts = fonts_used - set(AllowedFont)
+        non_standard_fonts = fonts_used - set(self._norms.document_format.allowed_fonts)
         if non_standard_fonts:
             violations.append(
-                EumicViolationFactory.non_standard_fonts(detected_fonts=non_standard_fonts)
+                EumicViolationFactory.non_standard_fonts(
+                    detected_fonts=non_standard_fonts,
+                    allowed_fonts=self._norms.document_format.allowed_fonts,
+                )
             )
         non_standard_sizes = [
             size
             for size in sizes_used
-            if abs(size.pt - REQUIRED_FONT_SIZE_PT) > FONT_SIZE_TOLERANCE_PT
+            if abs(size.pt - self._norms.document_format.font_size_pt)
+            > self._norms.document_format.font_size_tolerance_pt
         ]
         if non_standard_sizes:
             violations.append(
-                EumicViolationFactory.variable_font_sizes(non_standard_sizes=non_standard_sizes)
+                EumicViolationFactory.variable_font_sizes(
+                    non_standard_sizes=non_standard_sizes,
+                    required_size_pt=self._norms.document_format.font_size_pt,
+                )
             )
         return violations
 
@@ -167,7 +170,8 @@ class DocxEumicAdapter(DocumentFormatInspectionPort):
                 non_justified += 1
         if (
             total_paragraphs > 0
-            and non_justified / total_paragraphs > MAX_UNJUSTIFIED_PARAGRAPH_RATIO
+            and non_justified / total_paragraphs
+            > self._norms.document_format.max_unjustified_paragraph_ratio
         ):
             return [
                 EumicViolationFactory.text_not_justified(
@@ -254,7 +258,9 @@ class DocxEumicAdapter(DocumentFormatInspectionPort):
         paragraphs = document.paragraphs
         for paragraph_index, paragraph in enumerate(paragraphs):
             text = paragraph.text.strip()
-            if not any(keyword in text.lower() for keyword in ABSTRACT_SECTION_KEYWORDS):
+            if not any(
+                keyword in text.lower() for keyword in self._norms.abstract.section_keywords
+            ):
                 continue
             end_index = min(paragraph_index + ABSTRACT_PARAGRAPH_LOOKAHEAD, len(paragraphs))
             abstract_text = " ".join(
@@ -267,16 +273,21 @@ class DocxEumicAdapter(DocumentFormatInspectionPort):
         self, has_abstract: bool, abstract_word_count: int
     ) -> list[EumicViolationDTO]:
         if not has_abstract:
-            return [EumicViolationFactory.missing_abstract()]
+            return [
+                EumicViolationFactory.missing_abstract(
+                    min_words=self._norms.abstract.min_word_count,
+                    max_words=self._norms.abstract.max_word_count,
+                )
+            ]
         if (
-            abstract_word_count < ABSTRACT_MIN_WORD_COUNT
-            or abstract_word_count > ABSTRACT_MAX_WORD_COUNT
+            abstract_word_count < self._norms.abstract.min_word_count
+            or abstract_word_count > self._norms.abstract.max_word_count
         ):
             return [
                 EumicViolationFactory.abstract_length_out_of_range(
                     word_count=abstract_word_count,
-                    min_words=ABSTRACT_MIN_WORD_COUNT,
-                    max_words=ABSTRACT_MAX_WORD_COUNT,
+                    min_words=self._norms.abstract.min_word_count,
+                    max_words=self._norms.abstract.max_word_count,
                 )
             ]
         return []
@@ -284,7 +295,7 @@ class DocxEumicAdapter(DocumentFormatInspectionPort):
     def _find_keyword_count(self, document) -> tuple[bool, int]:
         for paragraph in document.paragraphs:
             text = paragraph.text.lower()
-            if not any(marker in text for marker in KEYWORD_SECTION_MARKERS):
+            if not any(marker in text for marker in self._norms.keywords.section_markers):
                 continue
             keyword_text = text.split(":", 1)[-1] if ":" in text else text
             count = len([token for token in split(r"[,;]", keyword_text) if token.strip()])
@@ -293,13 +304,21 @@ class DocxEumicAdapter(DocumentFormatInspectionPort):
 
     def _check_keywords(self, has_keywords: bool, keyword_count: int) -> list[EumicViolationDTO]:
         if not has_keywords:
-            return [EumicViolationFactory.missing_keywords()]
-        if keyword_count < MIN_KEYWORD_COUNT or keyword_count > MAX_KEYWORD_COUNT:
+            return [
+                EumicViolationFactory.missing_keywords(
+                    min_count=self._norms.keywords.min_count,
+                    max_count=self._norms.keywords.max_count,
+                )
+            ]
+        if (
+            keyword_count < self._norms.keywords.min_count
+            or keyword_count > self._norms.keywords.max_count
+        ):
             return [
                 EumicViolationFactory.incorrect_keyword_count(
                     count=keyword_count,
-                    min_count=MIN_KEYWORD_COUNT,
-                    max_count=MAX_KEYWORD_COUNT,
+                    min_count=self._norms.keywords.min_count,
+                    max_count=self._norms.keywords.max_count,
                 )
             ]
         return []

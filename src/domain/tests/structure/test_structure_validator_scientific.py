@@ -5,6 +5,9 @@ from src.domain.enums.article_type import ArticleType
 from src.domain.enums.section_name import SectionName
 from src.domain.exceptions.document_errors import DocumentEmpty
 from src.domain.structure.structure_validator import StructureValidator
+from src.domain.tests.structure.structure_norms_builder_for_test import (
+    build_structure_norms_for_test,
+)
 
 
 def _make_document(paragraphs: list[str]) -> DocumentContentDTO:
@@ -27,7 +30,10 @@ _SCIENTIFIC_ALL_SECTIONS = [
 
 class TestStructureValidatorScientific(TestCase):
     def setUp(self):
-        self.validator = StructureValidator(max_header_length=100)
+        self.validator = StructureValidator(
+            max_header_length=100,
+            structure_norms=build_structure_norms_for_test(),
+        )
 
     def test_all_7_sections_present_is_valid(self):
         doc = _make_document(_SCIENTIFIC_ALL_SECTIONS)

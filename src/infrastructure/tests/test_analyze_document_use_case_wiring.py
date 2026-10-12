@@ -18,6 +18,7 @@ from src.domain.enums.ai_provider import AiProvider
 from src.domain.enums.ai_purpose import AiPurpose
 from src.domain.enums.app_mode import AppMode
 from src.domain.enums.execution_status import ExecutionStatus
+from src.domain.enums.section_name import SectionName
 from src.domain.exceptions.settings_errors import SettingValueMissing
 from src.domain.metrics.analysis_tracker import AnalysisTracker
 from src.domain.metrics.audit_payload_policy import AuditPayloadPolicy
@@ -32,8 +33,10 @@ from src.domain.quality.quality_response_parser import QualityResponseParser
 from src.domain.quality.suitability_field_extractor import SuitabilityFieldExtractor
 from src.domain.quality.suitability_field_truncator import SuitabilityFieldTruncator
 from src.domain.quality.suitability_verdict_matcher import SuitabilityVerdictMatcher
+from src.domain.structure.structure_validator import StructureValidator
 from src.domain.tests.classification.fake_llm_generator_adapter import FakeLlmGeneratorAdapter
 from src.infrastructure.adapters.document.docx_citation_adapter import DocxCitationAdapter
+from src.infrastructure.adapters.document.docx_eumic_adapter import DocxEumicAdapter
 from src.infrastructure.adapters.grammar.language_tool_adapter import LanguageToolAdapter
 from src.infrastructure.adapters.grammar.language_tool_settings import (
     LanguageToolSettings,
@@ -83,6 +86,25 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
     def test_create_use_case_wires_analysis_tracker(self):
         result = AnalyzeDocumentUseCaseWiring().create_use_case()
         self.assertIsInstance(result._analysis_tracker, AnalysisTracker)
+
+    def test_wiring_builds_document_format_inspection_port_with_project_norms(self):
+        wiring = AnalyzeDocumentUseCaseWiring()
+        port = wiring._get_document_format_inspection_port()
+        self.assertIsInstance(port, DocxEumicAdapter)
+        assert isinstance(port, DocxEumicAdapter)
+        self.assertEqual(port._minimum_words_for_abstract_check, 1000)
+        self.assertEqual(port._norms.document_format.font_size_pt, 12.0)
+
+    def test_wiring_builds_structure_validator_with_project_norms(self):
+        wiring = AnalyzeDocumentUseCaseWiring()
+        validator = wiring._get_structure_validator()
+        self.assertIsInstance(validator, StructureValidator)
+        present = validator._extract_present_sections(["Resumen"])
+        self.assertIn(SectionName.SUMMARY, present)
+        self.assertEqual(
+            validator._structure_norms.section_aliases[SectionName.SUMMARY],
+            ("resumen", "abstract"),
+        )
 
     def test_wiring_builds_quality_response_parser_holding_collaborators(self):
         wiring = AnalyzeDocumentUseCaseWiring()

@@ -88,6 +88,11 @@ class TestExportReportWiring(TestCase):
         warning_color = ReportFixtures.make_settings().warning_color_rgb
         self.assertEqual(overall_score_paragraph.runs[1].font.color.rgb, RGBColor(*warning_color))
 
+    def test_execute_decides_publishability_with_publish_threshold_from_env(self):
+        document = self._export_with_environment({"PUBLISH_THRESHOLD": "8.0"})
+
+        self.assertIn("⚠️ REQUIERE REVISIÓN", self._paragraph_texts(document))
+
     def test_execute_stamps_footer_with_current_date_from_system_clock(self):
         document = self._export_with_environment({})
 

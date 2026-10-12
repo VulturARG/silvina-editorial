@@ -10,7 +10,7 @@ from src.infrastructure.tests.test_doubles.complete_test_environment import (
     CompleteTestEnvironment,
 )
 
-PROJECT_SETTINGS_FILE_PATH = Path(__file__).resolve().parents[3] / "settings.toml"
+PROJECT_SETTINGS_FILE_PATH = Path(__file__).resolve().parents[3] / "analysis_settings.toml"
 
 
 class TestEnvConfigSettingsFile(TestCase):
@@ -28,7 +28,7 @@ class TestEnvConfigSettingsFile(TestCase):
     def setUp(self):
         self._temporary_directory = TemporaryDirectory()
         self.addCleanup(self._temporary_directory.cleanup)
-        self._settings_file_path = Path(self._temporary_directory.name) / "settings.toml"
+        self._settings_file_path = Path(self._temporary_directory.name) / "analysis_settings.toml"
 
     def _write_project_settings_with(self, original_line: str, replacement_line: str) -> None:
         project_settings = PROJECT_SETTINGS_FILE_PATH.read_text(encoding="utf-8")
@@ -221,3 +221,20 @@ class TestEnvConfigSettingsFile(TestCase):
         with patch.dict(environ, self._complete_environment(), clear=True):
             with self.assertRaises(SettingsFileNotFound):
                 EnvConfig(settings_file_path=self._settings_file_path)
+
+    def test_project_settings_file_provides_the_eumic_check_values(self):
+        with patch.dict(environ, self._complete_environment(), clear=True):
+            config = EnvConfig()
+
+        self.assertEqual(config.eumic_min_words_for_abstract_check, 1000)
+
+    def test_environment_variable_overrides_the_eumic_min_words_for_abstract_check_setting(self):
+        self._write_project_settings_with(
+            "min_words_for_abstract_check = 1000", "min_words_for_abstract_check = 800"
+        )
+        environment = self._complete_environment({"EUMIC_MIN_WORDS_FOR_ABSTRACT_CHECK": "1500"})
+
+        with patch.dict(environ, environment, clear=True):
+            config = EnvConfig(settings_file_path=self._settings_file_path)
+
+        self.assertEqual(config.eumic_min_words_for_abstract_check, 1500)

@@ -176,6 +176,7 @@ class ExportReportWiring:
             app_version=env_config.silvina_version,
             score_high_threshold=env_config.report_score_high_threshold,
             score_medium_threshold=env_config.report_score_medium_threshold,
+            publish_threshold=env_config.publish_threshold,
             words_per_page=env_config.report_words_per_page,
             max_errors_displayed=env_config.report_max_errors_displayed,
             context_truncation_limit=env_config.report_context_truncation_limit,
