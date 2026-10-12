@@ -10,7 +10,7 @@ from src.infrastructure.tests.test_doubles.complete_test_environment import (
     CompleteTestEnvironment,
 )
 
-PROJECT_SETTINGS_FILE_PATH = Path(__file__).resolve().parents[3] / "settings.toml"
+PROJECT_SETTINGS_FILE_PATH = Path(__file__).resolve().parents[3] / "analysis_settings.toml"
 
 
 class TestEnvConfigSettingsFile(TestCase):
@@ -28,7 +28,7 @@ class TestEnvConfigSettingsFile(TestCase):
     def setUp(self):
         self._temporary_directory = TemporaryDirectory()
         self.addCleanup(self._temporary_directory.cleanup)
-        self._settings_file_path = Path(self._temporary_directory.name) / "settings.toml"
+        self._settings_file_path = Path(self._temporary_directory.name) / "analysis_settings.toml"
 
     def _write_project_settings_with(self, original_line: str, replacement_line: str) -> None:
         project_settings = PROJECT_SETTINGS_FILE_PATH.read_text(encoding="utf-8")

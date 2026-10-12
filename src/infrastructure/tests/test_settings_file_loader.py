@@ -10,7 +10,7 @@ class TestSettingsFileLoader(TestCase):
     def setUp(self):
         self._temporary_directory = TemporaryDirectory()
         self.addCleanup(self._temporary_directory.cleanup)
-        self._settings_file_path = Path(self._temporary_directory.name) / "settings.toml"
+        self._settings_file_path = Path(self._temporary_directory.name) / "analysis_settings.toml"
 
     def test_loads_sections_with_typed_values(self):
         self._settings_file_path.write_text(

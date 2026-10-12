@@ -20,7 +20,7 @@ from src.infrastructure.settings_value_resolver import SettingsValueResolver
 
 _PROJECT_ROOT_PATH = Path(__file__).resolve().parents[2]
 _VERSION_FILE_PATH = _PROJECT_ROOT_PATH / "version.txt"
-_SETTINGS_FILE_PATH = _PROJECT_ROOT_PATH / "settings.toml"
+_SETTINGS_FILE_PATH = _PROJECT_ROOT_PATH / "analysis_settings.toml"
 _DURATION_PATTERN = r"-?(\d+(\.\d+)?(ms|s|m|h))+"
 
 
