@@ -41,7 +41,7 @@ Rework `main.py` so that running it with a Word document analyzes it as if it ha
 - [x] **TASK-04** CLI input side in `src/infrastructure/cli/`: argument parser and its values object, document name prompter, source document locator/validator with explicit messages. RED first.
 - [x] **TASK-05** CLI output side in `src/infrastructure/cli/`: file name sanitizer, report file paths builder (`<document>_analisis_<model>.<ext>`, default `análisis` directory), console step announcer. RED first.
 - [x] **TASK-06** New orchestrator `DocumentAnalysisCommand` (runs the agreed steps with the step announcer and returns the exit status) plus `CliAnalysisServices`, `CliAnalysisServicesWiring` and `DocumentAnalysisCommandWiring`. New files only; it absorbs the language model error messages tested today by `tests/test_main_ollama_failure.py`. RED first.
-- [ ] **TASK-07** Rework `main.py` to the new flow: delete `SilvinaEditorialAssistant` and the old argument parser (user decision B), delete the 4 test modules of that class, rewrite the tests of `main()`, add an end-to-end test of the whole flow with the mocked Ollama client, and update the README usage.
+- [x] **TASK-07** Rework `main.py` to the new flow: delete `SilvinaEditorialAssistant` and the old argument parser (user decision B), delete the 4 test modules of that class, rewrite the tests of `main()`, add an end-to-end test of the whole flow with the mocked Ollama client, and update the README usage.
 
 ## 5. Open items
 
@@ -93,4 +93,13 @@ Rework `main.py` so that running it with a Word document analyzes it as if it ha
 - Two defects found by the parent from the worker's report and fixed test-first (RED: 2 failures, then GREEN): a failed Word export no longer prints `terminado` for its step; a blank answer to the document name prompt ends with `No se indicó el nombre del documento` (status 2) instead of reporting the current directory as a missing document.
 - Parent verification: full suite 2010 tests OK, ruff clean, pyright CLI 0 errors.
 - Known and not covered: `JSON`/`HTML` use cases returning `False` are not treated as failures (only Word can return `False` today, and the spec only defines the Word failure); the web's maximum upload size is not enforced by the CLI.
+- Commit: `60a9a5a` feat(cli): add the document analysis command and its wirings.
+
+### TASK-07 (verified by the parent)
+
+- `main.py` rewritten (configure logging, banner, `CommandLineArgumentParser`, `DocumentAnalysisCommandWiring().create_command().run(...)`, `exit` only on a non-zero status). `SilvinaEditorialAssistant` and the old argument parser deleted (user decision B).
+- Deleted: `tests/test_main_dto_mapping.py`, `tests/test_main_ollama_failure.py`, `src/infrastructure/tests/test_main_save_json_report.py`. Rewritten: `tests/test_main_cli_args.py` (5), `src/infrastructure/tests/test_main_logging.py` (2), `tests/e2e/test_cli_e2e.py` (5, in-process with the mocked Ollama client). README: new Command Line subsection.
+- Parent verification: `unittest discover -s src` 2008 tests OK (2010 before: 2 fewer after deleting a module), `pytest tests` 35 passed (51 before: 16 tests of deleted or rewritten modules), ruff and pyright clean.
+- Real run by the parent against the fixture (external model from the `.env`): all steps announced with start and end, exit status 0 after about 115 s, files `capacidades_razonamiento_emergente_LLMs_analisis_claude-haiku-5-5.docx|.json|.html` created in `análisis/` next to the document; the JSON is valid (3613 words), the HTML is a standalone page of about 702 KB with embedded CSS and no script, no external URL and no download link. A previous run failed with the clean message "The language model backend is unavailable." (provider unreachable at that moment); the error path prints the domain message and ends with a non-zero status.
+- Stale mentions left untouched on purpose: the docstring of `JsonReportAdapter._to_legacy_shape`, `docs/plan-migracion-hexagonal.md` and the comments of `scripts/regenerate_json_export_golden_fixture.py` still name the deleted `_map_report_to_legacy_dict`.
 - Commit: pending the user's instruction.
