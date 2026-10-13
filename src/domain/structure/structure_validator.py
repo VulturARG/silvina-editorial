@@ -43,7 +43,7 @@ class StructureValidator:
 
         return StructureValidationResultDTO(
             is_valid=len(missing) == 0,
-            missing_sections=list(missing),
+            missing_sections=[section.value for section in missing],
         )
 
     def _extract_present_sections(self, paragraphs: list[str]) -> list[SectionName]:
