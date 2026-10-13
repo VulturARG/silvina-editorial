@@ -21,7 +21,7 @@ Rework `main.py` so that running it with a Word document analyzes it as if it ha
 - Overrides of the `.env`, all optional: `--ollama-model-name`, `--use-external-llm true|false`, `--llm-provider`, `--external-llm-model-name`, `--app-mode DEBUG|PROD`.
 - `--word-report-path` and `--json-report-path` are removed.
 - Only `.docx` is accepted (same as the web). Errors are printed as plain text explaining the reason, without error codes in the message.
-- Invalid Windows characters are removed from the names.
+- Invalid Windows characters (`<>:"/\|?*`) are replaced with `_` in the names, as `main.py` does today.
 - Output files: `<document>_analisis_<model>.docx`, `.json` and `.html`, overwritten when they exist. The model is the effective one, sanitized.
 - HTML: the web result as a full standalone page, CSS embedded, without download buttons.
 - The console announces the start and the end of every step. At the end it prints only the end notice and the generated file paths.
@@ -39,7 +39,7 @@ Rework `main.py` so that running it with a Word document analyzes it as if it ha
 - [x] **TASK-02** `OverridableEnvConfig` (subclass of `EnvConfig`) with the five overrides and environment restoration. RED first.
 - [x] **TASK-03** Wiring subclass of `AnalyzeDocumentUseCaseWiring` that uses `OverridableEnvConfig`, exposing the effective model name. RED first.
 - [x] **TASK-04** CLI input side in `src/infrastructure/cli/`: argument parser and its values object, document name prompter, source document locator/validator with explicit messages. RED first.
-- [ ] **TASK-05** CLI output side in `src/infrastructure/cli/`: file name sanitizer, report file paths builder (`<document>_analisis_<model>.<ext>`, default `análisis` directory), console step announcer. RED first.
+- [x] **TASK-05** CLI output side in `src/infrastructure/cli/`: file name sanitizer, report file paths builder (`<document>_analisis_<model>.<ext>`, default `análisis` directory), console step announcer. RED first.
 - [ ] **TASK-06** New orchestrator class that runs the agreed steps with the overridable wiring, and rework `main.py` to use it; update the tests of the removed behavior (user approval required before touching them).
 
 ## 5. Open items
@@ -77,3 +77,10 @@ Rework `main.py` so that running it with a Word document analyzes it as if it ha
 - Extra step approved by the user: `DocumentNotFound` and `DocumentInvalidType` (`src/domain/exceptions/document_errors.py`, existing file) gain an optional `detail`, following the `SettingsFileNotFound` pattern. Without a detail `dict()` is identical to before, so the web and the other callers are unaffected. 10 tests added to `test_document_not_found.py` and `test_document_invalid_type.py` (none altered); the locator raises with `detail=<resolved path>`. Parent verification: full suite 1960 tests OK, ruff clean, pyright 0 errors on production files.
 - Known and pre-existing: pyright reports `len(MESSAGE)` in the existing `test_message_is_not_empty` of those two test modules (also reported on `HEAD`); not touched.
 - Commits: pending the user's instruction (two: the domain `detail` change first, then the CLI input side).
+
+### TASK-05 (verified by the parent)
+
+- New files: `src/infrastructure/cli/` (`windows_file_name_sanitizer.py`, `report_file_paths.py`, `report_file_paths_builder.py`, `console_step_announcer.py`) and three flat test modules in `src/infrastructure/tests/` (21 tests). No existing file modified.
+- RED observed by the worker (`ModuleNotFoundError`), GREEN: 21 tests OK. Parent re-run: full suite 1981 tests OK, ruff clean, pyright CLI 0 errors.
+- Spec wording fixed: invalid characters are replaced with `_` (the user had accepted this), not removed.
+- Commit: pending the user's instruction.
