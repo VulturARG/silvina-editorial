@@ -40,11 +40,12 @@ Rework `main.py` so that running it with a Word document analyzes it as if it ha
 - [x] **TASK-03** Wiring subclass of `AnalyzeDocumentUseCaseWiring` that uses `OverridableEnvConfig`, exposing the effective model name. RED first.
 - [x] **TASK-04** CLI input side in `src/infrastructure/cli/`: argument parser and its values object, document name prompter, source document locator/validator with explicit messages. RED first.
 - [x] **TASK-05** CLI output side in `src/infrastructure/cli/`: file name sanitizer, report file paths builder (`<document>_analisis_<model>.<ext>`, default `análisis` directory), console step announcer. RED first.
-- [ ] **TASK-06** New orchestrator class that runs the agreed steps with the overridable wiring, and rework `main.py` to use it; update the tests of the removed behavior (user approval required before touching them).
+- [x] **TASK-06** New orchestrator `DocumentAnalysisCommand` (runs the agreed steps with the step announcer and returns the exit status) plus `CliAnalysisServices`, `CliAnalysisServicesWiring` and `DocumentAnalysisCommandWiring`. New files only; it absorbs the language model error messages tested today by `tests/test_main_ollama_failure.py`. RED first.
+- [ ] **TASK-07** Rework `main.py` to the new flow: delete `SilvinaEditorialAssistant` and the old argument parser (user decision B), delete the 4 test modules of that class, rewrite the tests of `main()`, add an end-to-end test of the whole flow with the mocked Ollama client, and update the README usage.
 
 ## 5. Open items
 
-- TASK-06 will break tests of the current CLI (`tests/test_main_cli_args.py`, `tests/test_main_dto_mapping.py`, `tests/test_main_ollama_failure.py`, `tests/e2e/test_cli_e2e.py`, `src/infrastructure/tests/test_main_logging.py`, `src/infrastructure/tests/test_main_save_json_report.py`). Ask the user how to handle them before TASK-06. Idea to propose: keep `SilvinaEditorialAssistant` untouched and add the new orchestrator class, so only the tests of `main()` and of the removed arguments need changes.
+- TASK-07 will break tests of the current CLI (`tests/test_main_cli_args.py`, `tests/test_main_dto_mapping.py`, `tests/test_main_ollama_failure.py`, `tests/e2e/test_cli_e2e.py`, `src/infrastructure/tests/test_main_logging.py`, `src/infrastructure/tests/test_main_save_json_report.py`). Decision of the user (option B): `SilvinaEditorialAssistant` is deleted together with `tests/test_main_dto_mapping.py`, `tests/test_main_ollama_failure.py`, `tests/e2e/test_cli_e2e.py` and `src/infrastructure/tests/test_main_save_json_report.py`; `tests/test_main_cli_args.py` and `src/infrastructure/tests/test_main_logging.py` are rewritten for the new `main()`. Stale mentions to decide later: the docstring of `JsonReportAdapter._to_legacy_shape` and `docs/plan-migracion-hexagonal.md` name the deleted `_map_report_to_legacy_dict`.
 
 ## 6. Evidence
 
@@ -83,4 +84,13 @@ Rework `main.py` so that running it with a Word document analyzes it as if it ha
 - New files: `src/infrastructure/cli/` (`windows_file_name_sanitizer.py`, `report_file_paths.py`, `report_file_paths_builder.py`, `console_step_announcer.py`) and three flat test modules in `src/infrastructure/tests/` (21 tests). No existing file modified.
 - RED observed by the worker (`ModuleNotFoundError`), GREEN: 21 tests OK. Parent re-run: full suite 1981 tests OK, ruff clean, pyright CLI 0 errors.
 - Spec wording fixed: invalid characters are replaced with `_` (the user had accepted this), not removed.
+- Commit: `206abac` feat(cli): add file name sanitizer, report file paths builder and console step announcer.
+
+### TASK-06 (verified by the parent)
+
+- New files: `src/infrastructure/cli/` (`cli_analysis_services.py`, `document_analysis_command.py`), `src/infrastructure/wirings/` (`cli_analysis_services_wiring.py`, `document_analysis_command_wiring.py`) and three flat test modules in `src/infrastructure/tests/` (29 tests). No existing file modified.
+- RED observed by the worker (`ModuleNotFoundError`), GREEN: 27 tests OK.
+- Two defects found by the parent from the worker's report and fixed test-first (RED: 2 failures, then GREEN): a failed Word export no longer prints `terminado` for its step; a blank answer to the document name prompt ends with `No se indicó el nombre del documento` (status 2) instead of reporting the current directory as a missing document.
+- Parent verification: full suite 2010 tests OK, ruff clean, pyright CLI 0 errors.
+- Known and not covered: `JSON`/`HTML` use cases returning `False` are not treated as failures (only Word can return `False` today, and the spec only defines the Word failure); the web's maximum upload size is not enforced by the CLI.
 - Commit: pending the user's instruction.
