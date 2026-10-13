@@ -25,6 +25,9 @@ from src.infrastructure.adapters.report.docx_document_info_section import (
 from src.infrastructure.adapters.report.docx_editorial_suitability_section import (
     DocxEditorialSuitabilitySection,
 )
+from src.infrastructure.adapters.report.docx_eumic_violations_section import (
+    DocxEumicViolationsSection,
+)
 from src.infrastructure.adapters.report.docx_executive_summary_section import (
     DocxExecutiveSummarySection,
 )
@@ -154,6 +157,10 @@ class ExportReportWiring:
                 section_heading_writer=section_heading_writer,
             ),
             self._structure_validation_section(
+                docx_report_settings=docx_report_settings,
+                section_heading_writer=section_heading_writer,
+            ),
+            self._eumic_violations_section(
                 docx_report_settings=docx_report_settings,
                 section_heading_writer=section_heading_writer,
             ),
@@ -328,6 +335,16 @@ class ExportReportWiring:
         section_heading_writer: DocxSectionHeadingWriter,
     ) -> DocxReportSection:
         return DocxStructureValidationSection(
+            docx_report_settings=docx_report_settings,
+            section_heading_writer=section_heading_writer,
+        )
+
+    def _eumic_violations_section(
+        self,
+        docx_report_settings: DocxReportSettings,
+        section_heading_writer: DocxSectionHeadingWriter,
+    ) -> DocxReportSection:
+        return DocxEumicViolationsSection(
             docx_report_settings=docx_report_settings,
             section_heading_writer=section_heading_writer,
         )
