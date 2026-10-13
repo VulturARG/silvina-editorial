@@ -149,6 +149,48 @@
 </div>
 {% endif %}
 
+{# EUMIC Editorial Norms #}
+{% set eumic_violations = report.eumic_violations or [] %}
+{% set eumic_categories = namespace(labels=[]) %}
+{% for violation in eumic_violations %}
+    {% set violation_category = violation.category.value if violation.category.value is defined else violation.category %}
+    {% if violation_category not in eumic_categories.labels %}
+        {% set _ = eumic_categories.labels.append(violation_category) %}
+    {% endif %}
+{% endfor %}
+<div class="card">
+    <h3 class="card-title">Normas editoriales no cumplidas</h3>
+    {% if eumic_violations %}
+        <div class="alert alert-warning">
+            <p style="margin: 0; font-weight: 600;">No se reciben trabajos que incumplan estas normas editoriales. Corrija los puntos indicados antes de reenviar el manuscrito.</p>
+        </div>
+        {% for category_label in eumic_categories.labels %}
+            <div style="font-weight: 600; margin-top: 12px; margin-bottom: 6px;">{{ category_label }}</div>
+            <ul style="margin: 0 0 8px 0; padding-left: 20px;">
+                {% for violation in eumic_violations %}
+                    {% set violation_category = violation.category.value if violation.category.value is defined else violation.category %}
+                    {% if violation_category == category_label %}
+                        {% set severity_key = (violation.severity.value if violation.severity.value is defined else violation.severity) | string | lower %}
+                        {% set severity_label = violation.severity.label if violation.severity.label is defined else violation.severity %}
+                        {% set severity_color = 'var(--danger-color)' if severity_key in ['critical', 'error'] else ('var(--warning-color)' if severity_key == 'warning' else 'var(--info-color)') %}
+                        <li style="margin-bottom: 8px;">
+                            <span class="badge" style="display: inline-block; padding: 2px 8px; border-radius: 4px; background: {{ severity_color }}; color: white; font-weight: bold; font-size: 0.8rem;">{{ severity_label }}</span>
+                            {{ violation.message }}
+                            {% if violation.details %}
+                                <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 4px;">{{ violation.details }}</div>
+                            {% endif %}
+                        </li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-success">
+            <p style="margin: 0;">✓ El documento cumple las normas editoriales EUMIC evaluadas</p>
+        </div>
+    {% endif %}
+</div>
+
 {# Critical Issues #}
 {% set critical_recs = [] %}
 {% if report.recommendations %}

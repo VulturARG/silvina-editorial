@@ -3,14 +3,24 @@ from re import search
 from unittest import TestCase
 
 from src.domain.dtos.editorial_suitability_dto import EditorialSuitabilityDTO
+from src.domain.dtos.eumic_violation_dto import EumicViolationDTO
 from src.domain.dtos.recommendation_dto import RecommendationDTO
+from src.domain.enums.eumic_category import EumicCategory
 from src.domain.enums.publication_verdict import PublicationVerdict
 from src.domain.enums.recommendation_priority import RecommendationPriority
+from src.domain.enums.severity_level import SeverityLevel
 from src.infrastructure.fastapi.src.config.dependencies import (
     get_env_config,
     get_templates,
 )
 from src.infrastructure.tests.adapters.report.fixtures import ReportFixtures
+
+
+EUMIC_WARNING_TEXT = (
+    "No se reciben trabajos que incumplan estas normas editoriales. "
+    "Corrija los puntos indicados antes de reenviar el manuscrito."
+)
+EUMIC_COMPLIANT_NOTICE = "✓ El documento cumple las normas editoriales EUMIC evaluadas"
 
 
 class TestFastApiTemplates(TestCase):
@@ -446,3 +456,122 @@ class TestFastApiTemplates(TestCase):
 
         self.assertIn("Argumentación", rendered)
         self.assertNotIn("Argumentacion", rendered)
+
+    def _render_results(self, report) -> str:
+        template = self.env.get_template("partials/_results.html")
+        return template.render(
+            report=report,
+            word_filename="eumic.docx",
+            json_filename="eumic.json",
+        )
+
+    def test_results_template_renders_eumic_card_with_compliant_notice_when_no_violations(
+        self,
+    ) -> None:
+        report = ReportFixtures.make_report_input_dto(eumic_violations=[])
+
+        rendered = self._render_results(report)
+
+        self.assertIn("Normas editoriales no cumplidas", rendered)
+        self.assertIn(EUMIC_COMPLIANT_NOTICE, rendered)
+        self.assertNotIn(EUMIC_WARNING_TEXT, rendered)
+
+    def test_results_template_renders_eumic_warning_and_violations_grouped_by_category(
+        self,
+    ) -> None:
+        report = ReportFixtures.make_report_input_dto(
+            eumic_violations=[
+                EumicViolationDTO(
+                    category=EumicCategory.FORMAT,
+                    message="Margen superior no cumple",
+                    severity=SeverityLevel.WARNING,
+                    details="Requerido: 2.5 cm, Actual: 1.00 cm",
+                ),
+                EumicViolationDTO(
+                    category=EumicCategory.FIGURES,
+                    message="Figura sin fuente",
+                    severity=SeverityLevel.CRITICAL,
+                ),
+                EumicViolationDTO(
+                    category=EumicCategory.FORMAT,
+                    message="Fuente no estándar",
+                    severity=SeverityLevel.INFO,
+                ),
+            ]
+        )
+
+        rendered = self._render_results(report)
+
+        self.assertNotIn(EUMIC_COMPLIANT_NOTICE, rendered)
+        self.assertIn(EUMIC_WARNING_TEXT, rendered)
+        self.assertIn("Advertencia", rendered)
+        self.assertIn("Crítico", rendered)
+        self.assertIn("Información", rendered)
+        self.assertIn("Requerido: 2.5 cm, Actual: 1.00 cm", rendered)
+        self.assertEqual(rendered.count("Formato General"), 1)
+        self.assertLess(rendered.index("Fuente no estándar"), rendered.index("Figuras"))
+
+    def test_results_template_places_eumic_card_between_editorial_suitability_and_critical_issues(
+        self,
+    ) -> None:
+        quality = ReportFixtures.make_quality_mock()
+        quality.editorial_suitability = EditorialSuitabilityDTO(
+            contribution_verdict="SUSTENTADA",
+            contribution_phrase="Aporte metodológico claro.",
+            contribution_observation="Observación de prueba.",
+            alignment_verdict="ALINEADO",
+            alignment_lines="Línea 1: Educación y Sociedad",
+            alignment_justification="Justificación de prueba.",
+        )
+        high_rec = RecommendationDTO(
+            priority=RecommendationPriority.HIGH,
+            message="El manuscrito no incluye metodología explícita.",
+        )
+        report = ReportFixtures.make_report_input_dto(
+            quality=quality,
+            recommendations=[high_rec],
+            eumic_violations=[],
+        )
+
+        rendered = self._render_results(report)
+
+        suitability_position = rendered.index("Pertinencia Editorial")
+        eumic_position = rendered.index("Normas editoriales no cumplidas")
+        critical_position = rendered.index("Problemas Críticos Detectados")
+        self.assertLess(suitability_position, eumic_position)
+        self.assertLess(eumic_position, critical_position)
+
+    def test_results_template_escapes_eumic_violation_text(self) -> None:
+        report = ReportFixtures.make_report_input_dto(
+            eumic_violations=[
+                EumicViolationDTO(
+                    category=EumicCategory.TABLES,
+                    message="<script>alert(1)</script>",
+                    severity=SeverityLevel.ERROR,
+                )
+            ]
+        )
+
+        rendered = self._render_results(report)
+
+        self.assertNotIn("<script>alert(1)</script>", rendered)
+        self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", rendered)
+
+    def test_results_template_renders_eumic_violation_with_plain_string_category(
+        self,
+    ) -> None:
+        report = ReportFixtures.make_report_input_dto(
+            eumic_violations=[
+                EumicViolationDTO(
+                    category="estructura",
+                    message="Mensaje sin enumeración",
+                    severity=SeverityLevel.WARNING,
+                )
+            ]
+        )
+
+        rendered = self._render_results(report)
+
+        self.assertIn("estructura", rendered)
+        self.assertIn("Mensaje sin enumeración", rendered)
+        self.assertIn("Advertencia", rendered)

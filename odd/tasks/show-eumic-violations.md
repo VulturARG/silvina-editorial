@@ -28,5 +28,6 @@
 - [x] **TASK-01: Word section**
   - **Scope**: `DocxEumicViolationsSection` in `src/infrastructure/adapters/report/`, its wiring in `export_report_wiring.py`, tests (new section test plus any characterization/wiring test affected by the extra section).
   - **Outcome**: `DocxEumicViolationsSection` registered after the structure section. `SeverityLevel.label` added (Spanish labels; enum values unchanged, so JSON export is untouched). Section tests RED (missing module) then GREEN (12/12). Docx characterization fingerprint regenerated (92 lines added, none removed). Full suite: `src` 1859 OK, `tests` 51 OK. Commit: `feat(report): list unmet EUMIC norms in the Word report` (hash in `git log`).
-- [ ] **TASK-02: Web card**
+- [x] **TASK-02: Web card**
   - **Scope**: `src/infrastructure/fastapi/templates/partials/_results.html`, severity styles in `src/infrastructure/fastapi/static/css/silvina.css` if needed, template tests in `src/infrastructure/fastapi/tests/`.
+  - **Outcome**: Card "Normas editoriales no cumplidas" placed between "Pertinencia Editorial" and "Problemas Críticos". Compliant state uses a new `.alert-success` class (silvina.css, reuses `--success-light`/`--success-color`). Violations grouped by category in first-seen order with a severity badge (label from `SeverityLevel.label`), message and details. Template tests RED (5 new tests failing, card missing) then GREEN (22/22 in `test_templates.py`). Commit: `feat(web): list unmet EUMIC norms in the analysis results` (hash in `git log`).

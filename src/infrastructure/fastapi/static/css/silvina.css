@@ -460,6 +460,12 @@ body {
     color: #004085;
 }
 
+.alert-success {
+    background-color: var(--success-light);
+    border-color: var(--success-color);
+    color: #1e6b3a;
+}
+
 .critical-issues-box {
     background: #f8d7da;
     border-left: 4px solid var(--danger-color);
