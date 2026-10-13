@@ -37,7 +37,7 @@ Rework `main.py` so that running it with a Word document analyzes it as if it ha
 
 - [x] **TASK-01** `HtmlReportAdapter` (`ReportExportPort`) rendering the web result as a standalone page, plus `HtmlReportWiring`. New files only. RED first.
 - [x] **TASK-02** `OverridableEnvConfig` (subclass of `EnvConfig`) with the five overrides and environment restoration. RED first.
-- [ ] **TASK-03** Wiring subclass of `AnalyzeDocumentUseCaseWiring` that uses `OverridableEnvConfig`, exposing the effective model name. RED first.
+- [x] **TASK-03** Wiring subclass of `AnalyzeDocumentUseCaseWiring` that uses `OverridableEnvConfig`, exposing the effective model name. RED first.
 - [ ] **TASK-04** CLI support classes: report file name builder, document locator/validator with explicit messages, console step announcer, argument parser. RED first.
 - [ ] **TASK-05** Rework `main.py` to the agreed flow and update the tests of the removed behavior (user approval required before touching them).
 
@@ -60,4 +60,11 @@ Rework `main.py` so that running it with a Word document analyzes it as if it ha
 - RED observed by the worker (`ModuleNotFoundError`), GREEN: 11 tests OK. Mutation check by the parent: removing the environment restoration makes 3 tests fail; restored afterwards.
 - Extra step approved by the user (replaces a brittle `parents[n]` computation, and removes the private import): new package `src/infrastructure/resources/project/__init__.py` exposing public `PROJECT_ROOT_DIR`, `SETTINGS_FILE_PATH`, `VERSION_FILE_PATH` and `EDITORIAL_NORMS_FILE_PATH`, in the style of the other resource packages. Existing files modified with the user's approval: `env_config.py` (private constants removed, public ones imported), `analyze_document_use_case_wiring.py` (`_EDITORIAL_NORMS_PATH` removed), and one patch target in `test_env_config.py`. New test: `test_project_resources.py` (8 tests, RED observed as `ModuleNotFoundError`).
 - Parent verification: full suite 1903 tests OK, ruff check and format clean on the changed production files, LSP diagnostics clean on the modified files.
-- Commits: `3d1d0ce` refactor(config): centralize project file paths in a resources package; then feat(config): add OverridableEnvConfig with temporary environment overrides.
+- Commits: `3d1d0ce` refactor(config): centralize project file paths in a resources package; `a91591e` feat(config): add OverridableEnvConfig with temporary environment overrides.
+
+### TASK-03 (verified by the parent)
+
+- New files only: `src/infrastructure/wirings/overridable_analyze_document_use_case_wiring.py` (overrides only `_get_env_config()`, exposes `get_active_model_name()` delegating to the parent), `src/infrastructure/tests/test_overridable_analyze_document_use_case_wiring.py` (11 tests).
+- RED observed by the worker (`ModuleNotFoundError`), GREEN: 11 tests OK. Parent re-run: full suite 1914 tests OK, ruff clean, pyright CLI 0 errors (the LSP import warning is a stale index).
+- Findings for TASK-05: `ExportReportWiring` (`EnvConfig()` at `export_report_wiring.py:180`) and `WarmUpLanguageModelUseCaseWiring` (`warm_up_language_model_use_case_wiring.py:40`) build their own `EnvConfig()`, so they ignore the overrides. The Word report does not use any of the five overridden values. The CLI must not call the warm-up use case, or it would warm up the model from the `.env`.
+- Commit: pending the user's instruction.
