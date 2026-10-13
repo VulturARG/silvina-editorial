@@ -152,7 +152,7 @@ class TestEnvConfig(TestCase):
             version_file = Path(directory) / "version.txt"
             version_file.write_text("1.2.3\n", encoding="utf-8")
             with patch.dict(environ, self._complete_environment(), clear=True):
-                with patch("src.infrastructure.env_config._VERSION_FILE_PATH", version_file):
+                with patch("src.infrastructure.env_config.VERSION_FILE_PATH", version_file):
                     config = EnvConfig()
 
         self.assertEqual(config.silvina_version, "1.2.3")

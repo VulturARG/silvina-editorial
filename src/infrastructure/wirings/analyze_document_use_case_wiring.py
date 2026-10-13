@@ -1,5 +1,4 @@
 from os.path import join
-from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -94,6 +93,7 @@ from src.infrastructure.adapters.metrics.sqlite_analysis_metrics_adapter import 
 )
 from src.infrastructure.editorial_norms_loader import EditorialNormsLoader
 from src.infrastructure.env_config import EnvConfig
+from src.infrastructure.resources.project import EDITORIAL_NORMS_FILE_PATH
 from src.infrastructure.resources.prompts.classification import (
     PROMPTS_DIR as CLASSIFICATION_PROMPTS_DIR,
 )
@@ -105,7 +105,6 @@ from src.infrastructure.wirings.external_llm_generator_loader import (
 
 load_dotenv()
 
-_EDITORIAL_NORMS_PATH = Path(__file__).resolve().parents[3] / "editorial_norms.toml"
 _SUITABILITY_PHRASE_MAX_LENGTH = 120
 _SUITABILITY_JUSTIFICATION_MAX_LENGTH = 120
 _SUITABILITY_LINES_MAX_LENGTH = 200
@@ -171,7 +170,7 @@ class AnalyzeDocumentUseCaseWiring:
 
     def _get_editorial_norms(self) -> EditorialNormsDTO:
         if self._editorial_norms_instance is None:
-            self._editorial_norms_instance = EditorialNormsLoader(_EDITORIAL_NORMS_PATH).load()
+            self._editorial_norms_instance = EditorialNormsLoader(EDITORIAL_NORMS_FILE_PATH).load()
         return self._editorial_norms_instance
 
     def _get_document_format_inspection_port(self) -> DocumentFormatInspectionPort:
