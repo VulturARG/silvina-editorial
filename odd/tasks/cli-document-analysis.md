@@ -36,7 +36,7 @@ Rework `main.py` so that running it with a Word document analyzes it as if it ha
 ## 4. Tasks
 
 - [x] **TASK-01** `HtmlReportAdapter` (`ReportExportPort`) rendering the web result as a standalone page, plus `HtmlReportWiring`. New files only. RED first.
-- [ ] **TASK-02** `OverridableEnvConfig` (subclass of `EnvConfig`) with the five overrides and environment restoration. RED first.
+- [x] **TASK-02** `OverridableEnvConfig` (subclass of `EnvConfig`) with the five overrides and environment restoration. RED first.
 - [ ] **TASK-03** Wiring subclass of `AnalyzeDocumentUseCaseWiring` that uses `OverridableEnvConfig`, exposing the effective model name. RED first.
 - [ ] **TASK-04** CLI support classes: report file name builder, document locator/validator with explicit messages, console step announcer, argument parser. RED first.
 - [ ] **TASK-05** Rework `main.py` to the agreed flow and update the tests of the removed behavior (user approval required before touching them).
@@ -52,4 +52,12 @@ Rework `main.py` so that running it with a Word document analyzes it as if it ha
 - New files only: `html_report_adapter.py`, `templates/standalone_report.html`, `html_report_wiring.py`, `test_html_report_adapter.py` (16 tests), `test_html_report_wiring.py` (3 tests).
 - RED observed by the worker (`ModuleNotFoundError`), GREEN: 18 tests OK. Parent re-run: new tests 18 OK, full suite `unittest discover -s src` 1884 tests OK, `ruff check` clean.
 - Known limitations: the included `_results.html` still says "Descargue el informe detallado en Word" (existing file, not changed); the embedded logo adds about 670 KB to each HTML.
-- Commit: pending the user's instruction.
+- Commit: `fa8fc79` feat(report): export the analysis as a standalone HTML page.
+
+### TASK-02 (verified by the parent)
+
+- New files: `src/infrastructure/overridable_env_config.py`, `src/infrastructure/tests/test_overridable_env_config.py` (11 tests).
+- RED observed by the worker (`ModuleNotFoundError`), GREEN: 11 tests OK. Mutation check by the parent: removing the environment restoration makes 3 tests fail; restored afterwards.
+- Extra step approved by the user (replaces a brittle `parents[n]` computation, and removes the private import): new package `src/infrastructure/resources/project/__init__.py` exposing public `PROJECT_ROOT_DIR`, `SETTINGS_FILE_PATH`, `VERSION_FILE_PATH` and `EDITORIAL_NORMS_FILE_PATH`, in the style of the other resource packages. Existing files modified with the user's approval: `env_config.py` (private constants removed, public ones imported), `analyze_document_use_case_wiring.py` (`_EDITORIAL_NORMS_PATH` removed), and one patch target in `test_env_config.py`. New test: `test_project_resources.py` (8 tests, RED observed as `ModuleNotFoundError`).
+- Parent verification: full suite 1903 tests OK, ruff check and format clean on the changed production files, LSP diagnostics clean on the modified files.
+- Commits: `3d1d0ce` refactor(config): centralize project file paths in a resources package; then feat(config): add OverridableEnvConfig with temporary environment overrides.
