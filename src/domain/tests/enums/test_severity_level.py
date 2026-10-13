@@ -15,3 +15,9 @@ class TestSeverityLevel(TestCase):
 
     def test_member_count(self):
         self.assertEqual(len(SeverityLevel), 4)
+
+    def test_label_is_spanish_for_every_severity(self):
+        self.assertEqual(SeverityLevel.INFO.label, "Información")
+        self.assertEqual(SeverityLevel.WARNING.label, "Advertencia")
+        self.assertEqual(SeverityLevel.ERROR.label, "Error")
+        self.assertEqual(SeverityLevel.CRITICAL.label, "Crítico")

@@ -26,6 +26,9 @@ from src.infrastructure.adapters.report.docx_document_info_section import (
 from src.infrastructure.adapters.report.docx_editorial_suitability_section import (
     DocxEditorialSuitabilitySection,
 )
+from src.infrastructure.adapters.report.docx_eumic_violations_section import (
+    DocxEumicViolationsSection,
+)
 from src.infrastructure.adapters.report.docx_executive_summary_section import (
     DocxExecutiveSummarySection,
 )
@@ -156,6 +159,7 @@ class ReportFixtures:
             ReportFixtures.make_grammar_analysis_section(settings),
             ReportFixtures.make_apa_validation_section(settings),
             ReportFixtures.make_structure_validation_section(settings),
+            ReportFixtures.make_eumic_violations_section(settings),
             ReportFixtures.make_citations_analysis_section(settings),
             ReportFixtures.make_recommendations_section(settings),
             ReportFixtures.make_footer_section(clock, settings),
@@ -265,6 +269,16 @@ class ReportFixtures:
     ) -> DocxStructureValidationSection:
         settings = ReportFixtures._settings_or_default(docx_report_settings)
         return DocxStructureValidationSection(
+            docx_report_settings=settings,
+            section_heading_writer=DocxSectionHeadingWriter(docx_report_settings=settings),
+        )
+
+    @staticmethod
+    def make_eumic_violations_section(
+        docx_report_settings: DocxReportSettings | None = None,
+    ) -> DocxEumicViolationsSection:
+        settings = ReportFixtures._settings_or_default(docx_report_settings)
+        return DocxEumicViolationsSection(
             docx_report_settings=settings,
             section_heading_writer=DocxSectionHeadingWriter(docx_report_settings=settings),
         )

@@ -1339,6 +1339,98 @@
           "font_color_rgb": "003366",
           "font_size_pt": null,
           "italic": null,
+          "text": "📏 NORMAS EDITORIALES NO CUMPLIDAS (EUMIC)",
+          "underline": null
+        }
+      ],
+      "style_name": "Heading 1",
+      "text": "📏 NORMAS EDITORIALES NO CUMPLIDAS (EUMIC)",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": "C00000",
+          "font_size_pt": null,
+          "italic": null,
+          "text": "No se reciben trabajos que incumplan estas normas editoriales. Corrija los puntos indicados antes de reenviar el manuscrito.",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "No se reciben trabajos que incumplan estas normas editoriales. Corrija los puntos indicados antes de reenviar el manuscrito.",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "estructura",
+          "underline": null
+        }
+      ],
+      "style_name": "Normal",
+      "text": "estructura",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": true,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Advertencia: ",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "Falta sección obligatoria de conclusiones.",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "\n",
+          "underline": null
+        },
+        {
+          "bold": null,
+          "font_color_rgb": null,
+          "font_size_pt": null,
+          "italic": null,
+          "text": "La estructura debe contener la sección conclusiones según directrices editoriales.",
+          "underline": null
+        }
+      ],
+      "style_name": "List Bullet",
+      "text": "Advertencia: Falta sección obligatoria de conclusiones.\nLa estructura debe contener la sección conclusiones según directrices editoriales.",
+      "type": "paragraph"
+    },
+    {
+      "alignment": null,
+      "left_indent_pt": null,
+      "runs": [
+        {
+          "bold": null,
+          "font_color_rgb": "003366",
+          "font_size_pt": null,
+          "italic": null,
           "text": "📚 ANÁLISIS DE CITAS Y REFERENCIAS",
           "underline": null
         }
