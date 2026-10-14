@@ -47,3 +47,6 @@ data/metrics.db*
 # JVM Crash Dumps
 hs_err_pid*.log
 replay_pid*.log
+
+# Manual testing results
+sandbox/outputs/
