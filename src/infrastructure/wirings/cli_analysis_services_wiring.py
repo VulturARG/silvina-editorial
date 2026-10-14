@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+from pathlib import Path
 
 from src.application.export_report_use_case import ExportReportUseCase
 from src.infrastructure.cli.cli_analysis_services import CliAnalysisServices
@@ -13,9 +14,14 @@ from src.infrastructure.wirings.overridable_analyze_document_use_case_wiring imp
 class CliAnalysisServicesWiring:
     """Composition root for the services of one command line analysis run."""
 
-    def __init__(self, environment_overrides: Mapping[str, str | None]) -> None:
-        """Keep the overrides applied to the configuration of this run."""
+    def __init__(
+        self,
+        environment_overrides: Mapping[str, str | None],
+        prompt_file_overrides: Mapping[str, Path | None] | None = None,
+    ) -> None:
+        """Keep the overrides applied to the configuration and prompts of this run."""
         self._environment_overrides = environment_overrides
+        self._prompt_file_overrides = prompt_file_overrides
 
     def create_services(self) -> CliAnalysisServices:
         """Return the analysis and export use cases sharing one overridden configuration."""
@@ -29,7 +35,9 @@ class CliAnalysisServicesWiring:
         )
 
     def _analyze_document_use_case_wiring(self) -> OverridableAnalyzeDocumentUseCaseWiring:
-        return OverridableAnalyzeDocumentUseCaseWiring(self._environment_overrides)
+        return OverridableAnalyzeDocumentUseCaseWiring(
+            self._environment_overrides, self._prompt_file_overrides
+        )
 
     def _word_report_use_case(self) -> ExportReportUseCase:
         return ExportReportWiring().create_use_case()

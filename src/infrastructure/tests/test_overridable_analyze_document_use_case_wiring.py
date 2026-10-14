@@ -1,4 +1,6 @@
 from os import environ
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -11,6 +13,9 @@ from src.infrastructure.adapters.llm_generator.ollama_generator_adapter import (
     OllamaGeneratorAdapter,
 )
 from src.infrastructure.overridable_env_config import OverridableEnvConfig
+from src.infrastructure.resources.prompts.classification import (
+    PROMPTS_DIR as CLASSIFICATION_PROMPTS_DIR,
+)
 from src.infrastructure.tests.test_doubles.complete_test_environment import (
     CompleteTestEnvironment,
 )
@@ -170,3 +175,115 @@ class TestOverridableAnalyzeDocumentUseCaseWiring(TestCase):
             plain_active_model_name = AnalyzeDocumentUseCaseWiring()._get_active_model_name()
 
         self.assertEqual(plain_active_model_name, self.ENVIRONMENT_MODEL_NAME)
+
+    def test_read_prompt_text_returns_override_content_when_path_is_provided(self):
+        temporary_directory = TemporaryDirectory()
+        self.addCleanup(temporary_directory.cleanup)
+        prompt_path = Path(temporary_directory.name) / "s4_s5_s6_signal_prompt.txt"
+        prompt_path.write_text("custom signal prompt", encoding="utf-8")
+
+        wiring = OverridableAnalyzeDocumentUseCaseWiring(
+            {},
+            prompt_file_overrides={"s4_s5_s6_signal_prompt": prompt_path},
+        )
+        text = wiring._read_prompt_text(
+            directory="/nonexistent",
+            filename="s4_s5_s6_signal_prompt.txt",
+        )
+
+        self.assertEqual(text, "custom signal prompt")
+
+    def test_read_prompt_text_delegates_to_parent_when_override_is_none(self):
+        wiring = OverridableAnalyzeDocumentUseCaseWiring(
+            {},
+            prompt_file_overrides={"s4_s5_s6_signal_prompt": None},
+        )
+        text = wiring._read_prompt_text(
+            directory=CLASSIFICATION_PROMPTS_DIR,
+            filename="s4_s5_s6_signal_prompt.txt",
+        )
+
+        parent_text = AnalyzeDocumentUseCaseWiring()._read_prompt_text(
+            directory=CLASSIFICATION_PROMPTS_DIR,
+            filename="s4_s5_s6_signal_prompt.txt",
+        )
+        self.assertEqual(text, parent_text)
+
+    def test_read_prompt_text_supports_all_six_prompt_keys(self):
+        temporary_directory = TemporaryDirectory()
+        self.addCleanup(temporary_directory.cleanup)
+        base_directory = Path(temporary_directory.name)
+
+        keys_and_files = (
+            ("s4_s5_s6_signal_prompt", "s4_s5_s6_signal_prompt.txt"),
+            ("alignment_prompt", "alignment_prompt.txt"),
+            ("argumentation_conclusions_prompt", "argumentation_conclusions_prompt.txt"),
+            ("clarity_coherence_prompt", "clarity_coherence_prompt.txt"),
+            ("contribution_prompt", "contribution_prompt.txt"),
+            ("research_lines", "research_lines.txt"),
+        )
+        overrides: dict[str, Path | None] = {}
+        for key, filename in keys_and_files:
+            file_path = base_directory / filename
+            file_path.write_text(f"custom content for {key}", encoding="utf-8")
+            overrides[key] = file_path
+
+        wiring = OverridableAnalyzeDocumentUseCaseWiring(
+            {},
+            prompt_file_overrides=overrides,
+        )
+
+        for key, filename in keys_and_files:
+            text = wiring._read_prompt_text(directory="/nonexistent", filename=filename)
+            self.assertEqual(text, f"custom content for {key}")
+
+    def test_create_use_case_injects_overridden_prompt_templates(self):
+        temporary_directory = TemporaryDirectory()
+        self.addCleanup(temporary_directory.cleanup)
+        base_directory = Path(temporary_directory.name)
+
+        keys_and_files = (
+            ("s4_s5_s6_signal_prompt", "s4_s5_s6_signal_prompt.txt"),
+            ("alignment_prompt", "alignment_prompt.txt"),
+            ("argumentation_conclusions_prompt", "argumentation_conclusions_prompt.txt"),
+            ("clarity_coherence_prompt", "clarity_coherence_prompt.txt"),
+            ("contribution_prompt", "contribution_prompt.txt"),
+            ("research_lines", "research_lines.txt"),
+        )
+        overrides: dict[str, Path | None] = {}
+        for key, filename in keys_and_files:
+            file_path = base_directory / filename
+            file_path.write_text(f"custom content for {key}", encoding="utf-8")
+            overrides[key] = file_path
+
+        with patch.dict(environ, self._complete_environment(), clear=True):
+            use_case = OverridableAnalyzeDocumentUseCaseWiring(
+                {},
+                prompt_file_overrides=overrides,
+            ).create_use_case()
+
+        self.assertEqual(
+            use_case._article_classifier._signal_prompt_template,
+            "custom content for s4_s5_s6_signal_prompt",
+        )
+        self.assertEqual(
+            use_case._quality_analyzer._clarity_coherence_prompt_template,
+            "custom content for clarity_coherence_prompt",
+        )
+        self.assertEqual(
+            use_case._quality_analyzer._argumentation_conclusions_prompt_template,
+            "custom content for argumentation_conclusions_prompt",
+        )
+        suitability_analyzer = use_case._quality_analyzer._editorial_suitability_analyzer
+        self.assertEqual(
+            suitability_analyzer._contribution_prompt_template,
+            "custom content for contribution_prompt",
+        )
+        self.assertEqual(
+            suitability_analyzer._alignment_prompt_template,
+            "custom content for alignment_prompt",
+        )
+        self.assertEqual(
+            suitability_analyzer._research_lines,
+            "custom content for research_lines",
+        )

@@ -1,4 +1,5 @@
 from collections.abc import Callable, Mapping
+from pathlib import Path
 
 from src.infrastructure.cli.cli_analysis_services import CliAnalysisServices
 from src.infrastructure.cli.console_step_announcer import ConsoleStepAnnouncer
@@ -37,10 +38,16 @@ class DocumentAnalysisCommandWiring:
     def _console_step_announcer(self) -> ConsoleStepAnnouncer:
         return ConsoleStepAnnouncer()
 
-    def _services_factory(self) -> Callable[[Mapping[str, str | None]], CliAnalysisServices]:
+    def _services_factory(
+        self,
+    ) -> Callable[[Mapping[str, str | None], Mapping[str, Path | None]], CliAnalysisServices]:
         return self._create_services
 
     def _create_services(
-        self, environment_overrides: Mapping[str, str | None]
+        self,
+        environment_overrides: Mapping[str, str | None],
+        prompt_file_overrides: Mapping[str, Path | None],
     ) -> CliAnalysisServices:
-        return CliAnalysisServicesWiring(environment_overrides).create_services()
+        return CliAnalysisServicesWiring(
+            environment_overrides, prompt_file_overrides
+        ).create_services()
