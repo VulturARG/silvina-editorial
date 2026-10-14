@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Silvina - Asistente Editorial EUMIC</title>
+    <style>{{ stylesheet_text | safe }}</style>
+</head>
+<body>
+    <div class="container">
+        <header class="logo-container">
+            {% if logo_data_uri %}
+            <img src="{{ logo_data_uri }}" alt="Silvina Logo">
+            {% endif %}
+            <h1>Silvina - Asistente Editorial</h1>
+            <p>Sistema de revisión automatizado para manuscritos académicos EUMIC</p>
+        </header>
+
+        <main>
+            {% include "partials/_results.html" %}
+        </main>
+    </div>
+
+    <footer class="footer">
+        <p><strong>{{ app_name }} v{{ app_version }}</strong> | Desarrollado para EUMIC</p>
+    </footer>
+</body>
+</html>

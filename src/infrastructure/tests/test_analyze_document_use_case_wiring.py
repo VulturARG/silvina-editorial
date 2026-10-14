@@ -53,6 +53,9 @@ from src.infrastructure.adapters.metrics.fail_safe_analysis_metrics_adapter impo
 from src.infrastructure.adapters.metrics.sqlite_analysis_metrics_adapter import (
     SqliteAnalysisMetricsAdapter,
 )
+from src.infrastructure.resources.prompts.classification import (
+    PROMPTS_DIR as CLASSIFICATION_PROMPTS_DIR,
+)
 from src.infrastructure.tests.test_doubles.complete_test_environment import (
     CompleteTestEnvironment,
 )
@@ -750,3 +753,12 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         self.assertIsInstance(classifier_generator._generator, OllamaGeneratorAdapter)
         assert isinstance(classifier_generator._generator, OllamaGeneratorAdapter)
         mock_load.assert_not_called()
+
+    def test_read_prompt_text_reads_text_resource(self):
+        wiring = AnalyzeDocumentUseCaseWiring()
+        text = wiring._read_prompt_text(
+            directory=CLASSIFICATION_PROMPTS_DIR,
+            filename="s4_s5_s6_signal_prompt.txt",
+        )
+        self.assertIsInstance(text, str)
+        self.assertGreater(len(text), 0)

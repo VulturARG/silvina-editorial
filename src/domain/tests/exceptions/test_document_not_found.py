@@ -14,3 +14,22 @@ class TestDocumentNotFound(TestCase):
 
     def test_message_is_not_empty(self):
         self.assertGreater(len(DocumentNotFound.MESSAGE), 0)
+
+    def test_is_catchable_as_document_error_with_detail(self):
+        with self.assertRaises(DocumentError):
+            raise DocumentNotFound(detail="detail")
+
+    def test_detail_is_none_when_not_given(self):
+        self.assertIsNone(DocumentNotFound().detail)
+
+    def test_dict_without_detail_contains_only_message(self):
+        self.assertEqual(DocumentNotFound().dict(), {"error": DocumentNotFound.MESSAGE})
+
+    def test_exposes_the_detail(self):
+        self.assertEqual(DocumentNotFound(detail="detail").detail, "detail")
+
+    def test_dict_contains_message_and_detail(self):
+        self.assertEqual(
+            DocumentNotFound(detail="detail").dict(),
+            {"error": f"{DocumentNotFound.MESSAGE} detail"},
+        )

@@ -15,12 +15,10 @@ from src.domain.exceptions.settings_errors import SettingValueMissing
 from src.infrastructure.adapters.grammar.language_tool_settings import (
     LanguageToolSettings,
 )
+from src.infrastructure.resources.project import SETTINGS_FILE_PATH, VERSION_FILE_PATH
 from src.infrastructure.settings_file_loader import SettingsFileLoader
 from src.infrastructure.settings_value_resolver import SettingsValueResolver
 
-_PROJECT_ROOT_PATH = Path(__file__).resolve().parents[2]
-_VERSION_FILE_PATH = _PROJECT_ROOT_PATH / "version.txt"
-_SETTINGS_FILE_PATH = _PROJECT_ROOT_PATH / "analysis_settings.toml"
 _DURATION_PATTERN = r"-?(\d+(\.\d+)?(ms|s|m|h))+"
 
 
@@ -33,7 +31,7 @@ class EnvConfig:
     same name overrides the file.
     """
 
-    def __init__(self, settings_file_path: Path = _SETTINGS_FILE_PATH) -> None:
+    def __init__(self, settings_file_path: Path = SETTINGS_FILE_PATH) -> None:
         """Load the settings file and resolve every configuration attribute."""
         settings = SettingsValueResolver(SettingsFileLoader(settings_file_path).load())
         self.citation_max_author_name_length: int = settings.read_integer(
@@ -303,7 +301,7 @@ class EnvConfig:
         """
         if getenv("TESTING", "").lower() in ("true", "1"):
             return getenv("SILVINA_VERSION", "0.9")
-        return _VERSION_FILE_PATH.read_text().strip()
+        return VERSION_FILE_PATH.read_text().strip()
 
     def _parse_ollama_keep_alive(self) -> str:
         raw_value = self._get_required_env("OLLAMA_MODEL_KEEP_ALIVE")

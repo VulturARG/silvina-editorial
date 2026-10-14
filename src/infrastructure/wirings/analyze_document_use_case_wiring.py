@@ -1,6 +1,3 @@
-from os.path import join
-from pathlib import Path
-
 from dotenv import load_dotenv
 
 from src.application.analyze_document_use_case import AnalyzeDocumentUseCase
@@ -71,7 +68,6 @@ from src.infrastructure.adapters.document.paragraph_content_adapter import Parag
 from src.infrastructure.adapters.document.win32com_word_count_adapter import (
     Win32ComWordCountAdapter,
 )
-from src.infrastructure.adapters.gateway.file_gateway_adapter import FileGatewayAdapter
 from src.infrastructure.adapters.grammar.language_tool_adapter import LanguageToolAdapter
 from src.infrastructure.adapters.llm_generator.audited_llm_generator_adapter import (
     AuditedLlmGeneratorAdapter,
@@ -94,6 +90,7 @@ from src.infrastructure.adapters.metrics.sqlite_analysis_metrics_adapter import 
 )
 from src.infrastructure.editorial_norms_loader import EditorialNormsLoader
 from src.infrastructure.env_config import EnvConfig
+from src.infrastructure.resources.project import EDITORIAL_NORMS_FILE_PATH
 from src.infrastructure.resources.prompts.classification import (
     PROMPTS_DIR as CLASSIFICATION_PROMPTS_DIR,
 )
@@ -105,7 +102,6 @@ from src.infrastructure.wirings.external_llm_generator_loader import (
 
 load_dotenv()
 
-_EDITORIAL_NORMS_PATH = Path(__file__).resolve().parents[3] / "editorial_norms.toml"
 _SUITABILITY_PHRASE_MAX_LENGTH = 120
 _SUITABILITY_JUSTIFICATION_MAX_LENGTH = 120
 _SUITABILITY_LINES_MAX_LENGTH = 200
@@ -171,7 +167,7 @@ class AnalyzeDocumentUseCaseWiring:
 
     def _get_editorial_norms(self) -> EditorialNormsDTO:
         if self._editorial_norms_instance is None:
-            self._editorial_norms_instance = EditorialNormsLoader(_EDITORIAL_NORMS_PATH).load()
+            self._editorial_norms_instance = EditorialNormsLoader(EDITORIAL_NORMS_FILE_PATH).load()
         return self._editorial_norms_instance
 
     def _get_document_format_inspection_port(self) -> DocumentFormatInspectionPort:
@@ -230,7 +226,7 @@ class AnalyzeDocumentUseCaseWiring:
                 classification_text_sampling_settings=env_config.get_classification_text_sampling_settings()
             ),
             response_parser=ArticleClassificationResponseParser(),
-            signal_prompt_template=read_text_resource(
+            signal_prompt_template=self._read_prompt_text(
                 directory=CLASSIFICATION_PROMPTS_DIR, filename="s4_s5_s6_signal_prompt.txt"
             ),
             temperature=env_config.article_classifier_temperature,
@@ -259,10 +255,10 @@ class AnalyzeDocumentUseCaseWiring:
             llm_generator=self._get_llm_generator(purpose=AiPurpose.QUALITY_ANALYSIS),
             text_sampler=self._get_quality_text_sampler(),
             response_parser=self._get_quality_response_parser(),
-            clarity_coherence_prompt_template=read_text_resource(
+            clarity_coherence_prompt_template=self._read_prompt_text(
                 directory=QUALITY_PROMPTS_DIR, filename="clarity_coherence_prompt.txt"
             ),
-            argumentation_conclusions_prompt_template=read_text_resource(
+            argumentation_conclusions_prompt_template=self._read_prompt_text(
                 directory=QUALITY_PROMPTS_DIR, filename="argumentation_conclusions_prompt.txt"
             ),
             editorial_suitability_analyzer=self._get_editorial_suitability_analyzer(),
@@ -351,18 +347,21 @@ class AnalyzeDocumentUseCaseWiring:
         return EditorialSuitabilityAnalyzer(
             llm_generator=self._get_llm_generator(purpose=AiPurpose.EDITORIAL_SUITABILITY),
             parser=self._get_editorial_suitability_parser(),
-            contribution_prompt_template=read_text_resource(
+            contribution_prompt_template=self._read_prompt_text(
                 directory=QUALITY_PROMPTS_DIR, filename="contribution_prompt.txt"
             ),
-            alignment_prompt_template=read_text_resource(
+            alignment_prompt_template=self._read_prompt_text(
                 directory=QUALITY_PROMPTS_DIR, filename="alignment_prompt.txt"
             ),
-            research_lines=FileGatewayAdapter().read(
-                join(QUALITY_PROMPTS_DIR, "research_lines.txt")
+            research_lines=self._read_prompt_text(
+                directory=QUALITY_PROMPTS_DIR, filename="research_lines.txt"
             ),
             temperature=env_config.article_classifier_temperature,
             num_predict=env_config.article_classifier_num_predict,
         )
+
+    def _read_prompt_text(self, directory: str, filename: str) -> str:
+        return read_text_resource(directory=directory, filename=filename)
 
     def _get_quality_text_sampler(self) -> QualityTextSampler:
         return QualityTextSampler(

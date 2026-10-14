@@ -277,7 +277,39 @@ python web_main.py
 
 ### Command Line
 ```bash
-python main.py
+python main.py <document.docx>
+```
+
+The document is read from the current directory unless `--input-dir` is given. Only `.docx` files are accepted. If the document name is omitted, the console asks for it. The console shows the start and the end of each step, and the paths of the generated reports at the end.
+
+| Option | Description |
+|--------|-------------|
+| `--input-dir <dir>` | Directory where the document is read (default: current directory) |
+| `--output-dir <dir>` | Directory for the reports (default: `<document folder>/análisis`, created when missing) |
+| `--ollama-model-name <name>` | Overrides `OLLAMA_MODEL_NAME` |
+| `--use-external-llm true\|false` | Overrides `USE_EXTERNAL_LLM` |
+| `--llm-provider <name>` | Overrides `LLM_PROVIDER` |
+| `--external-llm-model-name <name>` | Overrides `EXTERNAL_LLM_MODEL_NAME` |
+| `--app-mode DEBUG\|PROD` | Overrides `APP_MODE` |
+| `--s4-s5-s6-signal-prompt <dir>` | Directory containing `s4_s5_s6_signal_prompt.txt` to override default signal prompt |
+| `--alignment-prompt <dir>` | Directory containing `alignment_prompt.txt` to override default alignment prompt |
+| `--argumentation-conclusions-prompt <dir>` | Directory containing `argumentation_conclusions_prompt.txt` to override default argumentation prompt |
+| `--clarity-coherence-prompt <dir>` | Directory containing `clarity_coherence_prompt.txt` to override default clarity and coherence prompt |
+| `--contribution-prompt <dir>` | Directory containing `contribution_prompt.txt` to override default contribution prompt |
+| `--research-lines <dir>` | Directory containing `research_lines.txt` to override default research lines |
+
+The external LLM is only used when the mode is `DEBUG`, as with the `.env` settings.
+
+Each run writes three reports, `<document>_analisis_<model>.docx`, `.json` and `.html`, overwriting any previous files with the same names.
+
+```bash
+python main.py documento.docx --input-dir C:\Trabajos --output-dir C:\Informes --app-mode PROD
+```
+
+Prompt files can be overridden individually by pointing to a directory that contains the matching `.txt` file:
+
+```bash
+python main.py documento.docx --alignment-prompt C:\mis_prompts
 ```
 
 ---
