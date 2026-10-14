@@ -30,7 +30,9 @@ class DocumentAnalysisCommand:
         source_document_locator: SourceDocumentLocator,
         report_file_paths_builder: ReportFilePathsBuilder,
         console_step_announcer: ConsoleStepAnnouncer,
-        services_factory: Callable[[Mapping[str, str | None]], CliAnalysisServices],
+        services_factory: Callable[
+            [Mapping[str, str | None], Mapping[str, Path | None]], CliAnalysisServices
+        ],
     ) -> None:
         """Keep the collaborators used by each step of the analysis run."""
         self._document_name_prompter = document_name_prompter
@@ -66,7 +68,10 @@ class DocumentAnalysisCommand:
             with self._console_step_announcer.step(
                 "Preparando la configuración y los casos de uso"
             ):
-                services = self._services_factory(arguments.environment_overrides())
+                services = self._services_factory(
+                    arguments.environment_overrides(),
+                    arguments.prompt_file_overrides(),
+                )
         except Exception as error:
             self._console_step_announcer.announce_error(self._describe_error(error))
             return self.FAILURE_STATUS

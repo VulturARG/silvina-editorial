@@ -1,6 +1,7 @@
 from contextlib import redirect_stderr
 from io import StringIO
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest import TestCase
 
 from src.infrastructure.cli.command_line_argument_parser import CommandLineArgumentParser
@@ -87,6 +88,147 @@ class TestCommandLineArgumentParser(TestCase):
 
     def test_rejects_removed_json_report_path_option(self):
         self._assert_usage_error(["--json-report-path", "report.json"])
+
+    def test_parses_s4_s5_s6_signal_prompt_as_directory_path(self):
+        temporary_directory = TemporaryDirectory()
+        self.addCleanup(temporary_directory.cleanup)
+        prompt_directory = Path(temporary_directory.name)
+        prompt_file = prompt_directory / "s4_s5_s6_signal_prompt.txt"
+        prompt_file.write_text("signal", encoding="utf-8")
+
+        arguments = self.parser.parse(["--s4-s5-s6-signal-prompt", str(prompt_directory)])
+
+        self.assertEqual(arguments.s4_s5_s6_signal_prompt, prompt_directory)
+
+    def test_parses_alignment_prompt_as_directory_path(self):
+        temporary_directory = TemporaryDirectory()
+        self.addCleanup(temporary_directory.cleanup)
+        prompt_directory = Path(temporary_directory.name)
+        prompt_file = prompt_directory / "alignment_prompt.txt"
+        prompt_file.write_text("alignment", encoding="utf-8")
+
+        arguments = self.parser.parse(["--alignment-prompt", str(prompt_directory)])
+
+        self.assertEqual(arguments.alignment_prompt, prompt_directory)
+
+    def test_parses_argumentation_conclusions_prompt_as_directory_path(self):
+        temporary_directory = TemporaryDirectory()
+        self.addCleanup(temporary_directory.cleanup)
+        prompt_directory = Path(temporary_directory.name)
+        prompt_file = prompt_directory / "argumentation_conclusions_prompt.txt"
+        prompt_file.write_text("argumentation", encoding="utf-8")
+
+        arguments = self.parser.parse(["--argumentation-conclusions-prompt", str(prompt_directory)])
+
+        self.assertEqual(arguments.argumentation_conclusions_prompt, prompt_directory)
+
+    def test_parses_clarity_coherence_prompt_as_directory_path(self):
+        temporary_directory = TemporaryDirectory()
+        self.addCleanup(temporary_directory.cleanup)
+        prompt_directory = Path(temporary_directory.name)
+        prompt_file = prompt_directory / "clarity_coherence_prompt.txt"
+        prompt_file.write_text("clarity", encoding="utf-8")
+
+        arguments = self.parser.parse(["--clarity-coherence-prompt", str(prompt_directory)])
+
+        self.assertEqual(arguments.clarity_coherence_prompt, prompt_directory)
+
+    def test_parses_contribution_prompt_as_directory_path(self):
+        temporary_directory = TemporaryDirectory()
+        self.addCleanup(temporary_directory.cleanup)
+        prompt_directory = Path(temporary_directory.name)
+        prompt_file = prompt_directory / "contribution_prompt.txt"
+        prompt_file.write_text("contribution", encoding="utf-8")
+
+        arguments = self.parser.parse(["--contribution-prompt", str(prompt_directory)])
+
+        self.assertEqual(arguments.contribution_prompt, prompt_directory)
+
+    def test_parses_research_lines_as_directory_path(self):
+        temporary_directory = TemporaryDirectory()
+        self.addCleanup(temporary_directory.cleanup)
+        prompt_directory = Path(temporary_directory.name)
+        prompt_file = prompt_directory / "research_lines.txt"
+        prompt_file.write_text("lines", encoding="utf-8")
+
+        arguments = self.parser.parse(["--research-lines", str(prompt_directory)])
+
+        self.assertEqual(arguments.research_lines, prompt_directory)
+
+    def test_rejects_prompt_directory_that_does_not_exist(self):
+        temporary_directory = TemporaryDirectory()
+        self.addCleanup(temporary_directory.cleanup)
+        nonexistent_directory = Path(temporary_directory.name) / "nonexistent"
+
+        self._assert_usage_error(["--s4-s5-s6-signal-prompt", str(nonexistent_directory)])
+
+    def test_rejects_prompt_directory_path_that_is_a_file(self):
+        temporary_directory = TemporaryDirectory()
+        self.addCleanup(temporary_directory.cleanup)
+        file_path = Path(temporary_directory.name) / "a_file.txt"
+        file_path.write_text("content", encoding="utf-8")
+
+        self._assert_usage_error(["--s4-s5-s6-signal-prompt", str(file_path)])
+
+    def test_rejects_prompt_directory_missing_expected_file(self):
+        temporary_directory = TemporaryDirectory()
+        self.addCleanup(temporary_directory.cleanup)
+        prompt_directory = Path(temporary_directory.name) / "prompts"
+        prompt_directory.mkdir()
+        (prompt_directory / "another.txt").write_text("other", encoding="utf-8")
+
+        self._assert_usage_error(["--s4-s5-s6-signal-prompt", str(prompt_directory)])
+
+    def test_rejects_prompt_directory_having_only_file_for_another_option(self):
+        temporary_directory = TemporaryDirectory()
+        self.addCleanup(temporary_directory.cleanup)
+        prompt_directory = Path(temporary_directory.name) / "prompts"
+        prompt_directory.mkdir()
+        (prompt_directory / "alignment_prompt.txt").write_text("other", encoding="utf-8")
+
+        self._assert_usage_error(["--s4-s5-s6-signal-prompt", str(prompt_directory)])
+
+    def test_parses_all_prompt_options_together(self):
+        temporary_directory = TemporaryDirectory()
+        self.addCleanup(temporary_directory.cleanup)
+        base_directory = Path(temporary_directory.name)
+        (base_directory / "s4_s5_s6_signal_prompt.txt").write_text("signal", encoding="utf-8")
+        (base_directory / "alignment_prompt.txt").write_text("alignment", encoding="utf-8")
+        (base_directory / "argumentation_conclusions_prompt.txt").write_text(
+            "argumentation", encoding="utf-8"
+        )
+        (base_directory / "clarity_coherence_prompt.txt").write_text("clarity", encoding="utf-8")
+        (base_directory / "contribution_prompt.txt").write_text("contribution", encoding="utf-8")
+        (base_directory / "research_lines.txt").write_text("lines", encoding="utf-8")
+
+        arguments = self.parser.parse(
+            [
+                "--s4-s5-s6-signal-prompt",
+                str(base_directory),
+                "--alignment-prompt",
+                str(base_directory),
+                "--argumentation-conclusions-prompt",
+                str(base_directory),
+                "--clarity-coherence-prompt",
+                str(base_directory),
+                "--contribution-prompt",
+                str(base_directory),
+                "--research-lines",
+                str(base_directory),
+            ]
+        )
+
+        self.assertEqual(
+            arguments,
+            CommandLineArguments(
+                s4_s5_s6_signal_prompt=base_directory,
+                alignment_prompt=base_directory,
+                argumentation_conclusions_prompt=base_directory,
+                clarity_coherence_prompt=base_directory,
+                contribution_prompt=base_directory,
+                research_lines=base_directory,
+            ),
+        )
 
     def test_parses_every_option_together(self):
         arguments = self.parser.parse(

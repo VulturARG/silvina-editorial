@@ -1,4 +1,5 @@
 from os import environ
+from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -81,3 +82,13 @@ class TestCliAnalysisServicesWiring(TestCase):
             CliAnalysisServicesWiring({}).create_services()
 
         warm_up_factory.assert_not_called()
+
+    def test_passes_prompt_file_overrides_to_analyze_document_use_case_wiring(self):
+        prompt_file_overrides = {
+            "s4_s5_s6_signal_prompt": Path("custom/s4_s5_s6_signal_prompt.txt")
+        }
+        with patch.dict(environ, self._complete_environment(), clear=True):
+            wiring = CliAnalysisServicesWiring({}, prompt_file_overrides=prompt_file_overrides)
+            analyze_wiring = wiring._analyze_document_use_case_wiring()
+
+        self.assertEqual(analyze_wiring._prompt_file_overrides, prompt_file_overrides)

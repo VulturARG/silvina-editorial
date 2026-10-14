@@ -153,7 +153,25 @@ class TestDocumentAnalysisCommand(TestCase):
                 "LLM_PROVIDER": None,
                 "EXTERNAL_LLM_MODEL_NAME": None,
                 "APP_MODE": "DEBUG",
-            }
+            },
+            arguments.prompt_file_overrides(),
+        )
+
+    def test_passes_prompt_file_overrides_to_services_factory(self):
+        prompt_directory = self._input_directory / "prompts"
+        prompt_directory.mkdir()
+        (prompt_directory / "s4_s5_s6_signal_prompt.txt").write_text("signal", encoding="utf-8")
+        arguments = CommandLineArguments(
+            document_name=self.DOCUMENT_NAME,
+            input_directory=self._input_directory,
+            s4_s5_s6_signal_prompt=prompt_directory,
+        )
+
+        self._run(arguments)
+
+        self._services_factory.assert_called_once_with(
+            arguments.environment_overrides(),
+            arguments.prompt_file_overrides(),
         )
 
     def test_model_name_from_services_appears_sanitized_in_report_file_names(self):

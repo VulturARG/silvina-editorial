@@ -62,3 +62,59 @@ class TestCommandLineArguments(TestCase):
                 "APP_MODE",
             },
         )
+
+    def test_prompt_file_overrides_maps_given_paths_to_field_names(self):
+        arguments = CommandLineArguments(
+            s4_s5_s6_signal_prompt=Path("prompts/signals"),
+            alignment_prompt=Path("prompts/alignment"),
+            argumentation_conclusions_prompt=Path("prompts/argumentation"),
+            clarity_coherence_prompt=Path("prompts/clarity"),
+            contribution_prompt=Path("prompts/contribution"),
+            research_lines=Path("prompts/research"),
+        )
+
+        self.assertEqual(
+            arguments.prompt_file_overrides(),
+            {
+                "s4_s5_s6_signal_prompt": Path("prompts/signals/s4_s5_s6_signal_prompt.txt"),
+                "alignment_prompt": Path("prompts/alignment/alignment_prompt.txt"),
+                "argumentation_conclusions_prompt": Path(
+                    "prompts/argumentation/argumentation_conclusions_prompt.txt"
+                ),
+                "clarity_coherence_prompt": Path("prompts/clarity/clarity_coherence_prompt.txt"),
+                "contribution_prompt": Path("prompts/contribution/contribution_prompt.txt"),
+                "research_lines": Path("prompts/research/research_lines.txt"),
+            },
+        )
+
+    def test_prompt_file_overrides_maps_omitted_values_to_none(self):
+        self.assertEqual(
+            CommandLineArguments().prompt_file_overrides(),
+            {
+                "s4_s5_s6_signal_prompt": None,
+                "alignment_prompt": None,
+                "argumentation_conclusions_prompt": None,
+                "clarity_coherence_prompt": None,
+                "contribution_prompt": None,
+                "research_lines": None,
+            },
+        )
+
+    def test_prompt_file_overrides_exposes_only_the_six_prompt_keys(self):
+        arguments = CommandLineArguments(
+            document_name="report.docx",
+            input_directory=Path("input"),
+            output_directory=Path("output"),
+        )
+
+        self.assertEqual(
+            set(arguments.prompt_file_overrides()),
+            {
+                "s4_s5_s6_signal_prompt",
+                "alignment_prompt",
+                "argumentation_conclusions_prompt",
+                "clarity_coherence_prompt",
+                "contribution_prompt",
+                "research_lines",
+            },
+        )
