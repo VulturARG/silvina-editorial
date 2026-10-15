@@ -9,7 +9,7 @@ from src.domain.quality.dimension_score_extractor import DimensionScoreExtractor
 from src.domain.quality.quality_dimension_matcher import QualityDimensionMatcher
 
 _DIMENSION_HEADER_PATTERN = compile(
-    r"(?m)(?=^[ \t]*(?:#{1,6}[ \t]+)?\*\*(?:\d+\.\s*)?(?:Claridad|Coherencia|Argumentaci[oó]n|Conclusiones))",
+    r"(?m)(?=^[ \t]*(?:(?:#{1,6}[ \t]+)?\*\*(?:\d+\.\s*)?|#{1,6}[ \t]+\d+\.[ \t]*)(?:Claridad|Coherencia|Argumentaci[oó]n|Conclusiones))",
     IGNORECASE,
 )
 

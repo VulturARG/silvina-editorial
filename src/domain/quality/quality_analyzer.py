@@ -104,7 +104,7 @@ class QualityAnalyzer:
         parsed_response: ParsedResponseDTO,
         relevant_dimensions: tuple[QualityDimension, QualityDimension],
     ) -> None:
-        if not any(
+        if not all(
             dimension in parsed_response.matched_dimensions for dimension in relevant_dimensions
         ):
             raise QualityAnalysisFailed()
