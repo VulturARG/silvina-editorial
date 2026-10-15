@@ -79,6 +79,17 @@ class TestQualityDimensionMatcher(TestCase):
 
         self.assertEqual(result, QualityDimension.CLARITY)
 
+    def test_keyword_in_the_body_text_does_not_override_the_header_dimension(self):
+        matcher = QualityDimensionMatcher()
+        block = (
+            "## **2. Coherencia** [Puntuación: 6/10]\n\n**Fortalezas:**\n\n"
+            "- Las transiciones entre secciones (Introducción → Resultados → Conclusión) siguen la estructura."
+        )
+
+        result = matcher.match(block)
+
+        self.assertEqual(result, QualityDimension.COHERENCE)
+
     def test_returns_none_when_no_dimension_keyword_present(self):
         matcher = QualityDimensionMatcher()
         block = "Texto general sin dimensiones especificadas en esta seccion."
