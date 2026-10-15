@@ -4,11 +4,19 @@ from unittest import TestCase
 from unittest.mock import MagicMock
 
 from src.application.analyze_document_use_case import AnalyzeDocumentUseCase
+from src.application.ensure_language_model_server_use_case import (
+    EnsureLanguageModelServerUseCase,
+)
 from src.application.export_report_use_case import ExportReportUseCase
+from src.application.release_language_model_server_use_case import (
+    ReleaseLanguageModelServerUseCase,
+)
+from src.application.warm_up_language_model_use_case import WarmUpLanguageModelUseCase
 from src.domain.exceptions.language_model_errors import (
     LanguageModelError,
     LanguageModelLoadFailed,
     LanguageModelNotFound,
+    LanguageModelServerStartFailed,
     LanguageModelUnavailable,
 )
 from src.infrastructure.cli.cli_analysis_services import CliAnalysisServices
@@ -34,6 +42,13 @@ class TestDocumentAnalysisCommand(TestCase):
         self._printed_lines: list[str] = []
         self._answer_function = MagicMock(return_value=self.DOCUMENT_NAME)
         self._report = MagicMock(name="report")
+        self._ensure_language_model_server_use_case = MagicMock(
+            spec=EnsureLanguageModelServerUseCase
+        )
+        self._release_language_model_server_use_case = MagicMock(
+            spec=ReleaseLanguageModelServerUseCase
+        )
+        self._warm_up_language_model_use_case = MagicMock(spec=WarmUpLanguageModelUseCase)
         self._analyze_document_use_case = MagicMock(spec=AnalyzeDocumentUseCase)
         self._analyze_document_use_case.execute.return_value = self._report
         self._word_report_use_case = self._successful_export_use_case()
@@ -59,6 +74,10 @@ class TestDocumentAnalysisCommand(TestCase):
                 "✅ Preparando la configuración y los casos de uso: terminado",
                 "⏳ Calculando las rutas de los informes...",
                 "✅ Calculando las rutas de los informes: terminado",
+                "⏳ Verificando el servidor del modelo de lenguaje...",
+                "✅ Verificando el servidor del modelo de lenguaje: terminado",
+                "⏳ Precargando el modelo de lenguaje...",
+                "✅ Precargando el modelo de lenguaje: terminado",
                 "⏳ Analizando el documento...",
                 "✅ Analizando el documento: terminado",
                 "⏳ Creando el directorio de salida...",
@@ -225,6 +244,93 @@ class TestDocumentAnalysisCommand(TestCase):
     def test_language_model_load_failed_returns_one_with_clean_message(self):
         self._assert_analysis_error_is_reported_cleanly(LanguageModelLoadFailed)
 
+    def test_checks_server_then_warms_up_then_analyzes(self):
+        execution_order: list[str] = []
+        self._ensure_language_model_server_use_case.execute.side_effect = lambda: (
+            execution_order.append("server_check")
+        )
+        self._warm_up_language_model_use_case.execute.side_effect = lambda: execution_order.append(
+            "warm_up"
+        )
+        self._analyze_document_use_case.execute.side_effect = lambda **_kwargs: (
+            execution_order.append("analyze"),
+            self._report,
+        )[1]
+
+        self._run(self._arguments())
+
+        self._ensure_language_model_server_use_case.execute.assert_called_once_with()
+        self._warm_up_language_model_use_case.execute.assert_called_once_with()
+        self.assertEqual(execution_order, ["server_check", "warm_up", "analyze"])
+        self.assertLess(
+            self._printed_lines.index("✅ Calculando las rutas de los informes: terminado"),
+            self._printed_lines.index("⏳ Verificando el servidor del modelo de lenguaje..."),
+        )
+        self.assertLess(
+            self._printed_lines.index(
+                "✅ Verificando el servidor del modelo de lenguaje: terminado"
+            ),
+            self._printed_lines.index("⏳ Precargando el modelo de lenguaje..."),
+        )
+        self.assertLess(
+            self._printed_lines.index("✅ Precargando el modelo de lenguaje: terminado"),
+            self._printed_lines.index("⏳ Analizando el documento..."),
+        )
+
+    def test_ensure_language_model_server_start_failed_returns_one_with_clean_message(self):
+        self._ensure_language_model_server_use_case.execute.side_effect = (
+            LanguageModelServerStartFailed()
+        )
+
+        status = self._run(self._arguments())
+
+        printed_text = "\n".join(self._printed_lines)
+        self.assertEqual(status, 1)
+        self.assertEqual(self._printed_lines[-1], f"❌ {LanguageModelServerStartFailed.MESSAGE}")
+        self.assertNotIn("Error inesperado", printed_text)
+        self.assertNotIn(
+            "✅ Verificando el servidor del modelo de lenguaje: terminado",
+            self._printed_lines,
+        )
+        self._warm_up_language_model_use_case.execute.assert_not_called()
+        self._analyze_document_use_case.execute.assert_not_called()
+        self._word_report_use_case.execute.assert_not_called()
+        self._json_report_use_case.execute.assert_not_called()
+        self._html_report_use_case.execute.assert_not_called()
+        self.assertFalse(self._expected_directory().exists())
+
+    def test_warms_up_language_model_after_computing_paths_and_before_analysis(self):
+        execution_order: list[str] = []
+        self._warm_up_language_model_use_case.execute.side_effect = lambda: execution_order.append(
+            "warm_up"
+        )
+        self._analyze_document_use_case.execute.side_effect = lambda **_kwargs: (
+            execution_order.append("analyze"),
+            self._report,
+        )[1]
+
+        self._run(self._arguments())
+
+        self._warm_up_language_model_use_case.execute.assert_called_once_with()
+        self.assertEqual(execution_order, ["warm_up", "analyze"])
+        self.assertLess(
+            self._printed_lines.index("✅ Calculando las rutas de los informes: terminado"),
+            self._printed_lines.index("⏳ Precargando el modelo de lenguaje..."),
+        )
+        self.assertLess(
+            self._printed_lines.index("✅ Precargando el modelo de lenguaje: terminado"),
+            self._printed_lines.index("⏳ Analizando el documento..."),
+        )
+
+    def test_warm_up_language_model_unavailable_returns_one_with_clean_message(self):
+        self._assert_warm_up_error_is_reported_cleanly(LanguageModelUnavailable)
+
+    def test_warm_up_language_model_not_found_returns_one_with_clean_message(self):
+        self._assert_warm_up_error_is_reported_cleanly(LanguageModelNotFound)
+
+    def test_warm_up_language_model_load_failed_returns_one_with_clean_message(self):
+        self._assert_warm_up_error_is_reported_cleanly(LanguageModelLoadFailed)
+
     def test_word_export_returning_false_returns_one_and_skips_other_exports(self):
         self._word_report_use_case.execute.return_value = False
 
@@ -270,6 +376,24 @@ class TestDocumentAnalysisCommand(TestCase):
         self.assertEqual(status, 0)
         self.assertEqual(self._printed_lines[-1], "❌ Análisis interrumpido por el usuario")
 
+    def _assert_warm_up_error_is_reported_cleanly(
+        self, error_class: type[LanguageModelError]
+    ) -> None:
+        self._warm_up_language_model_use_case.execute.side_effect = error_class()
+
+        status = self._run(self._arguments())
+
+        printed_text = "\n".join(self._printed_lines)
+        self.assertEqual(status, 1)
+        self.assertEqual(self._printed_lines[-1], f"❌ {error_class.MESSAGE}")
+        self.assertNotIn("Error inesperado", printed_text)
+        self.assertNotIn("✅ Precargando el modelo de lenguaje: terminado", self._printed_lines)
+        self._analyze_document_use_case.execute.assert_not_called()
+        self._word_report_use_case.execute.assert_not_called()
+        self._json_report_use_case.execute.assert_not_called()
+        self._html_report_use_case.execute.assert_not_called()
+        self.assertFalse(self._expected_directory().exists())
+
     def _assert_analysis_error_is_reported_cleanly(
         self, error_class: type[LanguageModelError]
     ) -> None:
@@ -312,14 +436,141 @@ class TestDocumentAnalysisCommand(TestCase):
     def _expected_directory(self) -> Path:
         return self._document_path.resolve().parent / "análisis"
 
-    def _build_services(self, model_name: str) -> CliAnalysisServices:
+    def _build_services(
+        self,
+        model_name: str,
+        uses_local_language_model: bool = True,
+        warms_up_language_model: bool = True,
+    ) -> CliAnalysisServices:
         return CliAnalysisServices(
             analyze_document_use_case=self._analyze_document_use_case,
             word_report_use_case=self._word_report_use_case,
             json_report_use_case=self._json_report_use_case,
             html_report_use_case=self._html_report_use_case,
+            ensure_language_model_server_use_case=self._ensure_language_model_server_use_case,
+            release_language_model_server_use_case=self._release_language_model_server_use_case,
+            warm_up_language_model_use_case=self._warm_up_language_model_use_case,
             model_name=model_name,
+            uses_local_language_model=uses_local_language_model,
+            warms_up_language_model=warms_up_language_model,
         )
+
+    def test_releases_server_after_successful_run(self):
+        self._run(self._arguments())
+
+        self._release_language_model_server_use_case.execute.assert_called_once()
+
+    def test_releases_server_after_failing_analysis(self):
+        self._analyze_document_use_case.execute.side_effect = RuntimeError("Analysis error")
+
+        status = self._run(self._arguments())
+
+        self.assertEqual(status, 1)
+        self._release_language_model_server_use_case.execute.assert_called_once()
+
+    def test_releases_server_after_failing_server_step(self):
+        self._ensure_language_model_server_use_case.execute.side_effect = (
+            LanguageModelServerStartFailed()
+        )
+
+        status = self._run(self._arguments())
+
+        self.assertEqual(status, 1)
+        self._release_language_model_server_use_case.execute.assert_called_once()
+
+    def test_releases_server_after_keyboard_interrupt(self):
+        self._analyze_document_use_case.execute.side_effect = KeyboardInterrupt()
+
+        status = self._run(self._arguments())
+
+        self.assertEqual(status, 0)
+        self._release_language_model_server_use_case.execute.assert_called_once()
+
+    def test_failing_release_does_not_alter_exit_status_on_success(self):
+        self._release_language_model_server_use_case.execute.side_effect = RuntimeError(
+            "Release failed"
+        )
+
+        status = self._run(self._arguments())
+
+        self.assertEqual(status, 0)
+        self._release_language_model_server_use_case.execute.assert_called_once()
+
+    def test_failing_release_does_not_hide_original_error(self):
+        self._analyze_document_use_case.execute.side_effect = LanguageModelUnavailable()
+        self._release_language_model_server_use_case.execute.side_effect = RuntimeError(
+            "Release failed"
+        )
+
+        status = self._run(self._arguments())
+
+        self.assertEqual(status, 1)
+        self._release_language_model_server_use_case.execute.assert_called_once()
+        self.assertIn("The language model backend is unavailable", self._printed_lines[-1])
+
+    def test_release_is_not_called_when_services_factory_fails(self):
+        self._services_factory.side_effect = RuntimeError("Services wiring failed")
+
+        status = self._run(self._arguments())
+
+        self.assertEqual(status, 1)
+        self._release_language_model_server_use_case.execute.assert_not_called()
+
+    def test_external_model_skips_server_verification_and_warm_up_steps(self):
+        services = self._build_services(
+            self.MODEL_NAME,
+            uses_local_language_model=False,
+            warms_up_language_model=False,
+        )
+        self._services_factory.return_value = services
+
+        status = self._run(self._arguments())
+
+        self.assertEqual(status, 0)
+        self._ensure_language_model_server_use_case.execute.assert_not_called()
+        self._warm_up_language_model_use_case.execute.assert_not_called()
+        self.assertNotIn(
+            "Verificando el servidor del modelo de lenguaje", "".join(self._printed_lines)
+        )
+        self.assertNotIn("Precargando el modelo de lenguaje", "".join(self._printed_lines))
+        self._release_language_model_server_use_case.execute.assert_called_once()
+
+    def test_local_model_with_warmup_disabled_runs_only_server_verification(self):
+        services = self._build_services(
+            self.MODEL_NAME,
+            uses_local_language_model=True,
+            warms_up_language_model=False,
+        )
+        self._services_factory.return_value = services
+
+        status = self._run(self._arguments())
+
+        self.assertEqual(status, 0)
+        self._ensure_language_model_server_use_case.execute.assert_called_once()
+        self._warm_up_language_model_use_case.execute.assert_not_called()
+        self.assertIn(
+            "Verificando el servidor del modelo de lenguaje", "".join(self._printed_lines)
+        )
+        self.assertNotIn("Precargando el modelo de lenguaje", "".join(self._printed_lines))
+        self._release_language_model_server_use_case.execute.assert_called_once()
+
+    def test_local_model_with_warmup_enabled_runs_both_steps_in_order(self):
+        services = self._build_services(
+            self.MODEL_NAME,
+            uses_local_language_model=True,
+            warms_up_language_model=True,
+        )
+        self._services_factory.return_value = services
+
+        status = self._run(self._arguments())
+
+        self.assertEqual(status, 0)
+        self._ensure_language_model_server_use_case.execute.assert_called_once()
+        self._warm_up_language_model_use_case.execute.assert_called_once()
+        announcements = "".join(self._printed_lines)
+        server_step_index = announcements.index("Verificando el servidor del modelo de lenguaje")
+        warmup_step_index = announcements.index("Precargando el modelo de lenguaje")
+        self.assertLess(server_step_index, warmup_step_index)
 
     @staticmethod
     def _successful_export_use_case() -> MagicMock:

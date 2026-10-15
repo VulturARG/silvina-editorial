@@ -152,3 +152,9 @@ class TestOverridableEnvConfig(TestCase):
                 config = OverridableEnvConfig({}, settings_file_path=settings_file_path)
 
         self.assertEqual(config.citation_max_author_name_length, 77)
+
+    def test_ollama_server_idle_shutdown_override_wins_over_environment_value(self):
+        with patch.dict(environ, self._complete_environment(), clear=True):
+            config = OverridableEnvConfig({"OLLAMA_SERVER_IDLE_SHUTDOWN": "10m"})
+
+        self.assertEqual(config.ollama_server_idle_shutdown_seconds, 600.0)

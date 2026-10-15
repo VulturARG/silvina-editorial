@@ -50,3 +50,4 @@ replay_pid*.log
 
 # Manual testing results
 sandbox/outputs/
+data/ollama_server_lease.json

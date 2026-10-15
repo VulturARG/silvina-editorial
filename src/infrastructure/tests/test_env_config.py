@@ -296,6 +296,51 @@ class TestEnvConfig(TestCase):
                         EnvConfig()
                     self.assertIn("OLLAMA_MODEL_KEEP_ALIVE", str(context.exception))
 
+    def test_env_var_parses_ollama_server_idle_shutdown_seconds_with_accepted_durations(self):
+        cases = [
+            ("5m", 300.0),
+            ("90s", 90.0),
+            ("1h", 3600.0),
+            ("1h30m", 5400.0),
+            ("500ms", 0.5),
+        ]
+        for raw_value, expected_seconds in cases:
+            with self.subTest(raw_value=raw_value):
+                with patch.dict(environ, {"OLLAMA_SERVER_IDLE_SHUTDOWN": raw_value}):
+                    config = EnvConfig()
+                self.assertEqual(config.ollama_server_idle_shutdown_seconds, expected_seconds)
+
+    def test_env_var_missing_ollama_server_idle_shutdown_raises_setting_value_missing(self):
+        environment = self._complete_environment()
+        environment.pop("OLLAMA_SERVER_IDLE_SHUTDOWN", None)
+        with patch.dict(environ, environment, clear=True):
+            with self.assertRaises(SettingValueMissing) as context:
+                EnvConfig()
+            self.assertIn(
+                "OLLAMA_SERVER_IDLE_SHUTDOWN",
+                context.exception.dict()["error"],
+            )
+
+    def test_env_var_blank_ollama_server_idle_shutdown_raises_setting_value_missing(self):
+        for blank_value in ["", "   ", "\t"]:
+            with self.subTest(blank_value=blank_value):
+                with patch.dict(environ, {"OLLAMA_SERVER_IDLE_SHUTDOWN": blank_value}):
+                    with self.assertRaises(SettingValueMissing) as context:
+                        EnvConfig()
+                    self.assertIn(
+                        "OLLAMA_SERVER_IDLE_SHUTDOWN",
+                        context.exception.dict()["error"],
+                    )
+
+    def test_invalid_ollama_server_idle_shutdown_raises_value_error(self):
+        rejected_values = ["0m", "-5m", "5", "abc"]
+        for rejected_value in rejected_values:
+            with self.subTest(rejected_value=rejected_value):
+                with patch.dict(environ, {"OLLAMA_SERVER_IDLE_SHUTDOWN": rejected_value}):
+                    with self.assertRaises(ValueError) as context:
+                        EnvConfig()
+                    self.assertIn("OLLAMA_SERVER_IDLE_SHUTDOWN", str(context.exception))
+
     def test_default_ollama_num_ctx_when_env_var_absent(self):
         environment = self._complete_environment()
         environment.pop("OLLAMA_NUM_CTX", None)

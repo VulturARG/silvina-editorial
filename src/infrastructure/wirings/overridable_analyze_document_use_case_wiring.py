@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 from pathlib import Path
 
+from src.domain.enums.ai_provider import AiProvider
 from src.infrastructure.env_config import EnvConfig
 from src.infrastructure.overridable_env_config import OverridableEnvConfig
 from src.infrastructure.resources.text_resource_loader import read_text_resource
@@ -27,6 +28,15 @@ class OverridableAnalyzeDocumentUseCaseWiring(AnalyzeDocumentUseCaseWiring):
     def get_active_model_name(self) -> str:
         """Return the effective model name with the overrides applied."""
         return self._get_active_model_name()
+
+    def uses_local_language_model(self) -> bool:
+        """Return True when the configured language model provider is Ollama."""
+        return self._get_env_config().llm_provider is AiProvider.OLLAMA
+
+    def warms_up_language_model(self) -> bool:
+        """Return True when using local Ollama and startup warm-up is enabled."""
+        env_config = self._get_env_config()
+        return self.uses_local_language_model() and env_config.ollama_warmup_on_startup
 
     def _get_env_config(self) -> EnvConfig:
         if self._env_config_instance is None:

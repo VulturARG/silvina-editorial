@@ -33,3 +33,21 @@ class LanguageModelBackendNotInstalled(LanguageModelError):
         "The optional language model backend is not installed. "
         "Install debug dependencies with: pip install -r requirements-debug.txt"
     )
+
+
+class LanguageModelServerStartFailed(LanguageModelError):
+    """Raised when the language model server could not be started."""
+
+    MESSAGE = (
+        "The language model server could not be started. "
+        "Check that Ollama is installed and available in the PATH."
+    )
+
+
+class LanguageModelServerExecutableNotFound(LanguageModelServerStartFailed):
+    """Raised when the Ollama server executable could not be found."""
+
+    MESSAGE = (
+        "The Ollama executable was not found in the PATH or in the usual installation folders. "
+        "Install Ollama or add its folder to the PATH."
+    )

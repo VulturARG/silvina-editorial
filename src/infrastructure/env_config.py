@@ -1,6 +1,7 @@
 from os import getenv
 from pathlib import Path
-from re import fullmatch
+from re import finditer, fullmatch
+
 
 from src.domain.dtos.classification_text_sampling_settings_dto import (
     ClassificationTextSamplingSettingsDTO,
@@ -156,6 +157,9 @@ class EnvConfig:
         self.ollama_base_url: str = self._get_required_env("OLLAMA_BASE_URL")
         self.ollama_think: bool = self._parse_boolean("OLLAMA_THINK")
         self.ollama_model_keep_alive: str = self._parse_ollama_keep_alive()
+        self.ollama_server_idle_shutdown_seconds: float = (
+            self._parse_ollama_server_idle_shutdown_seconds()
+        )
         self.ollama_num_ctx: int | None = self._parse_ollama_num_ctx()
         self.ollama_warmup_on_startup: bool = self._parse_boolean("OLLAMA_WARMUP_ON_STARTUP")
         self.external_llm_think: bool = self._parse_boolean("EXTERNAL_LLM_THINK")
@@ -311,6 +315,32 @@ class EnvConfig:
                 f"(expected a duration with a unit such as '15m', '1h' or '90s')"
             )
         return raw_value
+
+    def _parse_ollama_server_idle_shutdown_seconds(self) -> float:
+        raw_value = self._get_required_env("OLLAMA_SERVER_IDLE_SHUTDOWN")
+        if not fullmatch(_DURATION_PATTERN, raw_value) or raw_value.startswith("-"):
+            raise ValueError(
+                f"Invalid value for environment variable OLLAMA_SERVER_IDLE_SHUTDOWN: '{raw_value}' "
+                f"(expected a positive duration with a unit such as '5m', '90s' or '1h')"
+            )
+        total_seconds = 0.0
+        for match in finditer(r"(\d+(?:\.\d+)?)(ms|s|m|h)", raw_value):
+            numeric_amount = float(match.group(1))
+            unit = match.group(2)
+            if unit == "ms":
+                total_seconds += numeric_amount / 1000.0
+            elif unit == "s":
+                total_seconds += numeric_amount
+            elif unit == "m":
+                total_seconds += numeric_amount * 60.0
+            elif unit == "h":
+                total_seconds += numeric_amount * 3600.0
+        if total_seconds <= 0.0:
+            raise ValueError(
+                f"Invalid value for environment variable OLLAMA_SERVER_IDLE_SHUTDOWN: '{raw_value}' "
+                f"(expected a positive duration with a unit such as '5m', '90s' or '1h')"
+            )
+        return total_seconds
 
     def _parse_ollama_num_ctx(self) -> int | None:
         raw_value = getenv("OLLAMA_NUM_CTX")
