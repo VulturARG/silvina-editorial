@@ -19,6 +19,7 @@ from src.domain.classification.methodological_vocabulary_detector import (
 )
 from src.domain.classification.reference_signal_detector import ReferenceSignalDetector
 from src.domain.document.article_body_locator import ArticleBodyLocator
+from src.domain.document.article_length_checker import ArticleLengthChecker
 from src.domain.document.character_count_port import CharacterCountPort
 from src.domain.document.citation_extraction_port import CitationExtractionPort
 from src.domain.document.content_extraction_port import ContentExtractionPort
@@ -125,6 +126,7 @@ class AnalyzeDocumentUseCaseWiring:
     def create_use_case(self) -> AnalyzeDocumentUseCase:
         return AnalyzeDocumentUseCase(
             document_content_extractor=self._get_document_content_extractor(),
+            article_length_checker=self._get_article_length_checker(),
             citation_extractor=self._get_citation_extractor(),
             document_format_inspector=self._get_document_format_inspector(),
             grammar_checker=self._get_grammar_checker(),
@@ -184,6 +186,9 @@ class AnalyzeDocumentUseCaseWiring:
             keyword_norms=editorial_norms.keywords,
             bibliography_norms=editorial_norms.bibliography,
         )
+
+    def _get_article_length_checker(self) -> ArticleLengthChecker:
+        return ArticleLengthChecker(article_length_norms=self._get_editorial_norms().article_length)
 
     def _get_document_content_extractor(self) -> DocumentContentExtractor:
         return DocumentContentExtractor(

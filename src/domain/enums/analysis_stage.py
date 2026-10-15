@@ -5,6 +5,7 @@ class AnalysisStage(Enum):
     """Execution stages of the manuscript analysis pipeline."""
 
     EXTRACT_CONTENT = "extract_content"
+    VALIDATE_ARTICLE_LENGTH = "validate_article_length"
     EXTRACT_CITATIONS = "extract_citations"
     VALIDATE_APA = "validate_apa"
     CHECK_GRAMMAR = "check_grammar"

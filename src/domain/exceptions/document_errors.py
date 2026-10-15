@@ -61,3 +61,24 @@ class DocumentBodyNotLocated(DocumentError):
     """Raised when the repeated title that opens the article body cannot be found."""
 
     MESSAGE = "The article body could not be located: the repeated title was not found."
+
+
+class DocumentBodyTooLong(DocumentError):
+    """Raised when the article body exceeds the maximum number of characters allowed."""
+
+    MESSAGE = "No se realizó ningún análisis."
+
+    def __init__(self, body_characters: int, maximum_body_characters: int) -> None:
+        """Store the body size and the maximum that the article exceeded."""
+        super().__init__()
+        self.body_characters = body_characters
+        self.maximum_body_characters = maximum_body_characters
+
+    def dict(self) -> "dict[str, str]":
+        """Return the Spanish message stating both character counts and that nothing was analyzed."""
+        return {
+            "error": (
+                f"El cuerpo del artículo tiene {self.body_characters} caracteres "
+                f"y supera el máximo permitido de {self.maximum_body_characters}. {self.MESSAGE}"
+            )
+        }

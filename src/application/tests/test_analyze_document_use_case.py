@@ -2,6 +2,9 @@ from unittest import TestCase
 from unittest.mock import MagicMock
 
 from src.application.analyze_document_use_case import AnalyzeDocumentUseCase
+from src.domain.document.article_length_checker import ArticleLengthChecker
+from src.domain.dtos.article_body_dto import ArticleBodyDTO
+from src.domain.dtos.article_length_norms_dto import ArticleLengthNormsDTO
 from src.domain.dtos.eumic_violation_dto import EumicViolationDTO
 from src.domain.dtos.report_input_dto import ReportInputDTO
 from src.domain.dtos.structure_validation_result_dto import StructureValidationResultDTO
@@ -19,6 +22,15 @@ from src.domain.tests.metrics.fake_analysis_context_port import FakeAnalysisCont
 from src.domain.tests.metrics.fake_analysis_metrics_port import FakeAnalysisMetricsPort
 
 
+PERMISSIVE_BODY_CHARACTERS_LIMIT = 1_000_000
+
+
+def _make_permissive_article_length_checker() -> ArticleLengthChecker:
+    return ArticleLengthChecker(
+        article_length_norms=ArticleLengthNormsDTO(max_body_chars=PERMISSIVE_BODY_CHARACTERS_LIMIT)
+    )
+
+
 def _make_classification(article_type=ArticleType.POPULAR_SCIENCE, reasoning="Test"):
     m = MagicMock()
     m.article_type = article_type
@@ -31,6 +43,7 @@ def _make_content(word_count=2500, paragraphs=None):
     m = MagicMock()
     m.word_count = word_count
     m.paragraphs = paragraphs if paragraphs is not None else ["Para0", "Para1"]
+    m.body = ArticleBodyDTO(title="Title", abstract_paragraphs=(), paragraphs=tuple(m.paragraphs))
     return m
 
 
@@ -92,6 +105,7 @@ class TestAnalyzeDocumentUseCase(TestCase):
             "citation_matcher": citation_matcher,
             "recommendation_builder": recommendation_builder,
             "analysis_tracker": analysis_tracker,
+            "article_length_checker": _make_permissive_article_length_checker(),
             "fake_metrics_port": fake_metrics_port,
             "fake_context_port": fake_context_port,
             "fake_cancellation_port": fake_cancellation_port,
@@ -109,6 +123,7 @@ class TestAnalyzeDocumentUseCase(TestCase):
             citation_matcher=mocks["citation_matcher"],
             recommendation_builder=mocks["recommendation_builder"],
             analysis_tracker=mocks["analysis_tracker"],
+            article_length_checker=mocks["article_length_checker"],
         )
         return use_case, mocks
 
@@ -258,6 +273,7 @@ class TestAnalyzeDocumentUseCase(TestCase):
 
         expected_stages = [
             AnalysisStage.EXTRACT_CONTENT,
+            AnalysisStage.VALIDATE_ARTICLE_LENGTH,
             AnalysisStage.EXTRACT_CITATIONS,
             AnalysisStage.VALIDATE_APA,
             AnalysisStage.CHECK_GRAMMAR,
@@ -268,7 +284,7 @@ class TestAnalyzeDocumentUseCase(TestCase):
             AnalysisStage.INSPECT_FORMAT,
             AnalysisStage.BUILD_RECOMMENDATIONS,
         ]
-        self.assertEqual(len(fake_metrics_port.recorded_stage_durations), 10)
+        self.assertEqual(len(fake_metrics_port.recorded_stage_durations), 11)
         recorded_stages = [
             stage_event.stage_name for stage_event in fake_metrics_port.recorded_stage_durations
         ]
@@ -334,6 +350,7 @@ class TestAnalyzeDocumentUseCase(TestCase):
         ]
         expected_stages = [
             AnalysisStage.EXTRACT_CONTENT,
+            AnalysisStage.VALIDATE_ARTICLE_LENGTH,
             AnalysisStage.EXTRACT_CITATIONS,
             AnalysisStage.VALIDATE_APA,
             AnalysisStage.CHECK_GRAMMAR,

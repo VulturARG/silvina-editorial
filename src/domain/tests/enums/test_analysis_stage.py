@@ -7,6 +7,7 @@ class TestAnalysisStage(TestCase):
     def test_members_and_values(self):
         self.assertEqual(AnalysisStage.EXTRACT_CONTENT.value, "extract_content")
         self.assertEqual(AnalysisStage.EXTRACT_CITATIONS.value, "extract_citations")
+        self.assertEqual(AnalysisStage.VALIDATE_ARTICLE_LENGTH.value, "validate_article_length")
         self.assertEqual(AnalysisStage.VALIDATE_APA.value, "validate_apa")
         self.assertEqual(AnalysisStage.CHECK_GRAMMAR.value, "check_grammar")
         self.assertEqual(AnalysisStage.CLASSIFY_ARTICLE.value, "classify_article")
@@ -19,6 +20,9 @@ class TestAnalysisStage(TestCase):
     def test_lookup_by_value(self):
         self.assertIs(AnalysisStage("extract_content"), AnalysisStage.EXTRACT_CONTENT)
         self.assertIs(AnalysisStage("extract_citations"), AnalysisStage.EXTRACT_CITATIONS)
+        self.assertIs(
+            AnalysisStage("validate_article_length"), AnalysisStage.VALIDATE_ARTICLE_LENGTH
+        )
         self.assertIs(AnalysisStage("validate_apa"), AnalysisStage.VALIDATE_APA)
         self.assertIs(AnalysisStage("check_grammar"), AnalysisStage.CHECK_GRAMMAR)
         self.assertIs(AnalysisStage("classify_article"), AnalysisStage.CLASSIFY_ARTICLE)
@@ -33,7 +37,7 @@ class TestAnalysisStage(TestCase):
             AnalysisStage("invalid")
 
     def test_member_count(self):
-        self.assertEqual(len(AnalysisStage), 10)
+        self.assertEqual(len(AnalysisStage), 11)
 
     def test_importable_independently(self):
         self.assertIsNotNone(AnalysisStage)

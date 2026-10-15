@@ -4,6 +4,7 @@ from src.domain.citation.apa_validator import ApaValidator
 from src.domain.citation.citation_extractor import CitationExtractor
 from src.domain.citation.citation_matcher import CitationMatcher
 from src.domain.classification.article_classifier import ArticleClassifier
+from src.domain.document.article_length_checker import ArticleLengthChecker
 from src.domain.document.document_content_extractor import DocumentContentExtractor
 from src.domain.document.document_format_inspector import DocumentFormatInspector
 from src.domain.dtos.apa_validation_result_dto import ApaValidationResultDTO
@@ -28,6 +29,7 @@ class AnalyzeDocumentUseCase:
     def __init__(
         self,
         document_content_extractor: DocumentContentExtractor,
+        article_length_checker: ArticleLengthChecker,
         citation_extractor: CitationExtractor,
         document_format_inspector: DocumentFormatInspector,
         grammar_checker: GrammarChecker,
@@ -40,6 +42,7 @@ class AnalyzeDocumentUseCase:
         analysis_tracker: AnalysisTracker,
     ) -> None:
         self._document_content_extractor = document_content_extractor
+        self._article_length_checker = article_length_checker
         self._citation_extractor = citation_extractor
         self._document_format_inspector = document_format_inspector
         self._grammar_checker = grammar_checker
@@ -65,6 +68,11 @@ class AnalyzeDocumentUseCase:
             AnalysisStage.EXTRACT_CONTENT,
             self._document_content_extractor.extract_content,
             docx_path=document_path,
+        )
+        self._analysis_tracker.track_stage(
+            AnalysisStage.VALIDATE_ARTICLE_LENGTH,
+            self._article_length_checker.check,
+            document_content=document_content,
         )
         citations, references, section_type = self._analysis_tracker.track_stage(
             AnalysisStage.EXTRACT_CITATIONS,
