@@ -65,7 +65,6 @@ INSTITUTION_PATTERN = re.compile(
 
 SECTION_PATTERNS = {
     "title": r"^(?:TÍTULO|TITLE)[:\s]*(.*)",
-    "abstract": r"^(?:RESUMEN|ABSTRACT)[:\s]*(.*)",
     "keywords": r"^(?:PALABRAS CLAVE|KEYWORDS)[:\s]*(.*)",
     "authors": r"^(?:AUTORES|AUTOR|AUTHORS|AUTHOR)[:\s]*(.*)",
 }

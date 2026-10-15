@@ -18,6 +18,7 @@ from src.domain.classification.methodological_vocabulary_detector import (
     MethodologicalVocabularyDetector,
 )
 from src.domain.classification.reference_signal_detector import ReferenceSignalDetector
+from src.domain.document.article_body_locator import ArticleBodyLocator
 from src.domain.document.character_count_port import CharacterCountPort
 from src.domain.document.citation_extraction_port import CitationExtractionPort
 from src.domain.document.content_extraction_port import ContentExtractionPort
@@ -176,12 +177,21 @@ class AnalyzeDocumentUseCaseWiring:
             minimum_words_for_abstract_check=self._get_env_config().eumic_min_words_for_abstract_check,
         )
 
+    def _get_article_body_locator(self) -> ArticleBodyLocator:
+        editorial_norms = self._get_editorial_norms()
+        return ArticleBodyLocator(
+            abstract_norms=editorial_norms.abstract,
+            keyword_norms=editorial_norms.keywords,
+            bibliography_norms=editorial_norms.bibliography,
+        )
+
     def _get_document_content_extractor(self) -> DocumentContentExtractor:
         return DocumentContentExtractor(
             document_text_port=self._get_document_text_port(),
             content_extraction_port=self._get_content_extraction_port(),
             character_count_port=self._get_character_count_port(),
             reference_extraction_port=self._get_reference_extraction_port(),
+            article_body_locator=self._get_article_body_locator(),
         )
 
     def _get_citation_extractor(self) -> CitationExtractor:

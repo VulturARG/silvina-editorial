@@ -1,5 +1,6 @@
 from dataclasses import replace
 
+from src.domain.document.article_body_locator import ArticleBodyLocator
 from src.domain.document.character_count_port import CharacterCountPort
 from src.domain.document.content_extraction_port import ContentExtractionPort
 from src.domain.document.document_text_port import DocumentTextPort
@@ -17,18 +18,24 @@ class DocumentContentExtractor:
         content_extraction_port: ContentExtractionPort,
         character_count_port: CharacterCountPort,
         reference_extraction_port: ReferenceExtractionPort,
+        article_body_locator: ArticleBodyLocator,
     ) -> None:
         self._document_text_port = document_text_port
         self._content_extraction_port = content_extraction_port
         self._character_count_port = character_count_port
         self._reference_extraction_port = reference_extraction_port
+        self._article_body_locator = article_body_locator
 
     def extract_content(self, docx_path: str) -> DocumentContentDTO:
         """Extract document content, replacing counts with accurate values when available."""
         paragraphs = self._document_text_port.read_paragraphs(path=docx_path)
         base = self._content_extraction_port.extract(paragraphs=paragraphs, docx_path=docx_path)
         references, _ = self._reference_extraction_port.extract_references(docx_path=docx_path)
-        base = replace(base, references=references)
+        base = replace(
+            base,
+            references=references,
+            body=self._article_body_locator.locate(paragraphs=base.paragraphs),
+        )
         try:
             counts = self._character_count_port.count(docx_path=docx_path)
         except CharacterCountUnavailable:

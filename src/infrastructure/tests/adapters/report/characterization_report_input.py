@@ -44,7 +44,6 @@ class CharacterizationReportInput:
                 paragraph_count=42,
                 title="El Impacto de la Inteligencia Artificial en la Edición Científica",
                 authors="Juan Pérez, María Gómez",
-                abstract="Un resumen analítico del artículo.",
                 keywords=["inteligencia artificial", "edición científica", "publicaciones"],
             ),
             classification=ClassificationResultDTO(

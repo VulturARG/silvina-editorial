@@ -25,7 +25,6 @@ class TestDocumentContentDTO(TestCase):
         document = DocumentContentDTO(word_count=10, char_count=50)
         self.assertIsNone(document.title)
         self.assertIsNone(document.authors)
-        self.assertIsNone(document.abstract)
 
     def test_document_content_list_fields_default_to_empty(self):
         document = DocumentContentDTO(word_count=10, char_count=50)

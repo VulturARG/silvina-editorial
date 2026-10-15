@@ -47,6 +47,5 @@ class TestParagraphContentAdapter(TestCase):
     def test_valid_paragraphs_populates_structured_fields(self):
         dto = self.adapter.extract(paragraphs=VALID_PARAGRAPHS)
         self.assertIsNotNone(dto.title)
-        self.assertIsNotNone(dto.abstract)
         self.assertGreater(len(dto.keywords), 0)
         self.assertGreater(len(dto.sections), 0)
