@@ -29,14 +29,18 @@ class TestClassifyArticleParity(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.reader = DocxTextAdapter()
-        cls.article_classifier = AnalyzeDocumentUseCaseWiring()._get_article_classifier()
+        wiring = AnalyzeDocumentUseCaseWiring()
+        cls.article_classifier = wiring._get_article_classifier()
+        cls.article_body_locator = wiring._get_article_body_locator()
 
     def _run(self, filename: str):
         paragraphs = self.reader.read_paragraphs(path=str(DOCS / filename))
+        clean_paragraphs = [paragraph.strip() for paragraph in paragraphs if paragraph.strip()]
         document_content = DocumentContentDTO(
             word_count=sum(len(paragraph.split()) for paragraph in paragraphs),
             char_count=sum(len(paragraph) for paragraph in paragraphs),
             paragraphs=paragraphs,
+            body=self.article_body_locator.locate(paragraphs=clean_paragraphs),
         )
         with patch(
             "src.infrastructure.adapters.llm_generator.ollama_generator_adapter."
@@ -47,9 +51,7 @@ class TestClassifyArticleParity(TestCase):
         return result, generate
 
     def test_cientifico_classified_as_popular_science(self):
-        self._assert_classifies_as(
-            _DOCUMENTS[0], ArticleType.POPULAR_SCIENCE, ArticleSize.UNDEFINED
-        )
+        self._assert_classifies_as(_DOCUMENTS[0], ArticleType.POPULAR_SCIENCE, ArticleSize.SHORT)
 
     def test_divulgacion_classified_as_popular_science(self):
         self._assert_classifies_as(

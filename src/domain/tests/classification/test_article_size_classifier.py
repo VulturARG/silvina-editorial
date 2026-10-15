@@ -15,6 +15,7 @@ class TestArticleSizeClassifier(TestCase):
                 undefined_max_chars=35999,
                 long_min_chars=36000,
                 long_max_chars=40000,
+                extra_long_max_chars=40000,
             )
         )
 
@@ -35,6 +36,7 @@ class TestArticleSizeClassifier(TestCase):
                 undefined_max_chars=2999,
                 long_min_chars=3000,
                 long_max_chars=4000,
+                extra_long_max_chars=4000,
             )
         )
 

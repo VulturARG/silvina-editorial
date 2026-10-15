@@ -258,6 +258,7 @@ class AnalyzeDocumentUseCaseWiring:
             undefined_max_chars=env_config.article_size_undefined_max_chars,
             long_min_chars=env_config.article_size_long_min_chars,
             long_max_chars=env_config.article_size_long_max_chars,
+            extra_long_max_chars=self._get_editorial_norms().article_length.max_body_chars,
         )
 
     def _get_quality_analyzer(self) -> QualityAnalyzer:

@@ -83,6 +83,7 @@ class TestDocumentContentExtractorReferences(TestCase):
                     undefined_max_chars=35999,
                     long_min_chars=36000,
                     long_max_chars=40000,
+                    extra_long_max_chars=40000,
                 )
             ),
             text_sampler=ArticleClassificationTextSampler(

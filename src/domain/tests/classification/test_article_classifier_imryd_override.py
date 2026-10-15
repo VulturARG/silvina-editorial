@@ -14,6 +14,7 @@ from src.domain.classification.methodological_vocabulary_detector import (
     MethodologicalVocabularyDetector,
 )
 from src.domain.classification.reference_signal_detector import ReferenceSignalDetector
+from src.domain.dtos.article_body_dto import ArticleBodyDTO
 from src.domain.dtos.article_size_thresholds_dto import ArticleSizeThresholdsDTO
 from src.domain.dtos.classification_text_sampling_settings_dto import (
     ClassificationTextSamplingSettingsDTO,
@@ -83,6 +84,7 @@ class TestArticleClassifierImrydOverride(TestCase):
                     undefined_max_chars=35999,
                     long_min_chars=36000,
                     long_max_chars=40000,
+                    extra_long_max_chars=40000,
                 )
             ),
             "text_sampler": _build_default_text_sampler(),
@@ -126,6 +128,7 @@ class TestArticleClassifierImrydOverride(TestCase):
                     undefined_max_chars=35999,
                     long_min_chars=36000,
                     long_max_chars=40000,
+                    extra_long_max_chars=40000,
                 )
             ),
             text_sampler=_build_default_text_sampler(),
@@ -146,9 +149,15 @@ class TestArticleClassifierImrydOverride(TestCase):
             if imryd_paragraphs
             else ["Texto de cuerpo sin encabezados de sección reconocibles."]
         )
+        title = "Título de prueba"
         return DocumentContentDTO(
             word_count=100,
             char_count=char_count,
             paragraphs=paragraphs,
-            title="Título de prueba",
+            title=title,
+            body=ArticleBodyDTO(
+                title=title,
+                abstract_paragraphs=(),
+                paragraphs=("x" * (char_count - len(title) - 1),),
+            ),
         )

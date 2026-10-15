@@ -12,6 +12,8 @@ class ArticleSizeClassifier:
         """Classify article size based on character count with spaces."""
         if self._thresholds.long_min_chars <= char_count <= self._thresholds.long_max_chars:
             return ArticleSize.LONG
+        if self._thresholds.long_max_chars < char_count <= self._thresholds.extra_long_max_chars:
+            return ArticleSize.EXTRA_LONG
         if self._thresholds.short_min_chars <= char_count <= self._thresholds.short_max_chars:
             return ArticleSize.SHORT
         if (
