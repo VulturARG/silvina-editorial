@@ -3,6 +3,7 @@ from unittest import TestCase
 
 from src.domain.dtos.bibliography_norms_dto import BibliographyNormsDTO
 from src.domain.dtos.reference_dto import ReferenceDTO
+from src.domain.tests.document.fake_document_text_port import FakeDocumentTextPort
 from src.infrastructure.adapters.document.docx_reference_adapter import DocxReferenceAdapter
 from src.infrastructure.adapters.document.docx_text_adapter import DocxTextAdapter
 
@@ -40,3 +41,26 @@ class TestDocxReferenceAdapter(TestCase):
 
     def test_s8c_section_type_is_valid_name(self):
         self.assertIn(self.section_type, _ALLOWED_SECTION_NAMES)
+
+    def test_reads_one_reference_per_paragraph_cut_after_first_year(self):
+        adapter = DocxReferenceAdapter(
+            document_text_port=FakeDocumentTextPort(
+                paragraphs=[
+                    "Introducción del artículo.",
+                    "Referencias",
+                    "• García, J. (2021). Primer trabajo sobre el tema.",
+                    "Pérez, M. (2019, 9 de mayo). Segundo trabajo sobre el tema.",
+                ]
+            ),
+            bibliography_norms=BibliographyNormsDTO(
+                header_markers=("referencias",), header_max_length=30
+            ),
+        )
+
+        references, section_type = adapter.extract_references(docx_path="document.docx")
+
+        self.assertEqual(
+            [reference.text for reference in references],
+            ["García, J. (2021).", "Pérez, M. (2019, 9 de mayo)."],
+        )
+        self.assertEqual(section_type, "Referencias")
