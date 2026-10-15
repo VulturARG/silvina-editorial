@@ -7,7 +7,6 @@ from src.domain.exceptions.quality_errors import QualityAnalysisFailed
 from src.domain.ports.llm_generator_port import LlmGeneratorPort
 from src.domain.quality.editorial_suitability_analyzer import EditorialSuitabilityAnalyzer
 from src.domain.quality.quality_response_parser import QualityResponseParser
-from src.domain.quality.quality_text_sampler import QualityTextSampler
 
 
 class QualityAnalyzer:
@@ -16,14 +15,12 @@ class QualityAnalyzer:
     def __init__(
         self,
         llm_generator: LlmGeneratorPort,
-        text_sampler: QualityTextSampler,
         response_parser: QualityResponseParser,
         clarity_coherence_prompt_template: str,
         argumentation_conclusions_prompt_template: str,
         editorial_suitability_analyzer: EditorialSuitabilityAnalyzer,
     ) -> None:
         self._llm_generator = llm_generator
-        self._text_sampler = text_sampler
         self._response_parser = response_parser
         self._clarity_coherence_prompt_template = clarity_coherence_prompt_template
         self._argumentation_conclusions_prompt_template = argumentation_conclusions_prompt_template
@@ -31,7 +28,10 @@ class QualityAnalyzer:
 
     def analyze(self, document_content: DocumentContentDTO) -> QualityResultDTO:
         """Score document quality across Claridad, Coherencia, Argumentación and Conclusiones."""
-        text_sample = self._text_sampler.build_sample(document_content=document_content)
+        if document_content.body is None:
+            raise QualityAnalysisFailed()
+
+        text_sample = document_content.body.text
 
         clarity_coherence_prompt = self._render_prompt(
             template=self._clarity_coherence_prompt_template, text_sample=text_sample

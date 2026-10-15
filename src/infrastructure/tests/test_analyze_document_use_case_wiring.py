@@ -8,9 +8,6 @@ from unittest import TestCase
 from unittest.mock import patch
 
 from src.application.analyze_document_use_case import AnalyzeDocumentUseCase
-from src.domain.dtos.quality_text_sampling_settings_dto import (
-    QualityTextSamplingSettingsDTO,
-)
 from src.domain.dtos.recommendation_settings_dto import RecommendationSettingsDTO
 from src.domain.enums.ai_provider import AiProvider
 from src.domain.enums.ai_purpose import AiPurpose
@@ -435,68 +432,6 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         self.assertEqual(port._language_tool_settings.max_paragraphs, 30)
         self.assertEqual(port._language_tool_settings.max_chars, 8000)
         self.assertEqual(port._language_tool_settings.max_errors, 15)
-
-    def test_default_quality_text_sampler_parameters_when_env_vars_absent(self):
-        expected = CompleteTestSettings.expected_values()
-        result = self._create_use_case_from_test_settings()
-        sampler = result._quality_analyzer._text_sampler
-        settings = sampler._quality_text_sampling_settings
-        self.assertIsInstance(settings, QualityTextSamplingSettingsDTO)
-        self.assertEqual(settings.min_sample_word_count, expected["quality_min_sample_word_count"])
-        self.assertEqual(
-            settings.text_sample_character_limit,
-            expected["quality_text_sample_character_limit"],
-        )
-        self.assertEqual(
-            settings.reference_line_prefix_length,
-            expected["quality_text_sample_reference_line_prefix_length"],
-        )
-        self.assertEqual(
-            settings.introduction_paragraph_count,
-            expected["quality_text_sample_introduction_paragraph_count"],
-        )
-        self.assertEqual(
-            settings.middle_paragraph_count,
-            expected["quality_text_sample_middle_paragraph_count"],
-        )
-        self.assertEqual(
-            settings.conclusion_paragraph_limit,
-            expected["quality_text_sample_conclusion_paragraph_limit"],
-        )
-        self.assertEqual(
-            settings.fallback_tail_paragraph_count,
-            expected["quality_text_sample_fallback_tail_paragraph_count"],
-        )
-        self.assertEqual(
-            settings.conclusion_header_marker,
-            expected["quality_text_sample_conclusion_header_marker"],
-        )
-
-    def test_env_vars_override_quality_text_sampler_parameters(self):
-        overrides = {
-            "QUALITY_MIN_SAMPLE_WORD_COUNT": "500",
-            "QUALITY_TEXT_SAMPLE_CHARACTER_LIMIT": "9000",
-            "QUALITY_TEXT_SAMPLE_REFERENCE_LINE_PREFIX_LENGTH": "90",
-            "QUALITY_TEXT_SAMPLE_INTRODUCTION_PARAGRAPH_COUNT": "4",
-            "QUALITY_TEXT_SAMPLE_MIDDLE_PARAGRAPH_COUNT": "3",
-            "QUALITY_TEXT_SAMPLE_CONCLUSION_PARAGRAPH_LIMIT": "5",
-            "QUALITY_TEXT_SAMPLE_FALLBACK_TAIL_PARAGRAPH_COUNT": "3",
-            "QUALITY_TEXT_SAMPLE_CONCLUSION_HEADER_MARKER": "cierre",
-        }
-        with patch.dict(environ, overrides):
-            result = AnalyzeDocumentUseCaseWiring().create_use_case()
-        sampler = result._quality_analyzer._text_sampler
-        self.assertIsInstance(
-            sampler._quality_text_sampling_settings, QualityTextSamplingSettingsDTO
-        )
-        self.assertEqual(sampler._quality_text_sampling_settings.min_sample_word_count, 500)
-        self.assertEqual(sampler._quality_text_sampling_settings.text_sample_character_limit, 9000)
-        self.assertEqual(sampler._quality_text_sampling_settings.reference_line_prefix_length, 90)
-        self.assertEqual(sampler._quality_text_sampling_settings.introduction_paragraph_count, 4)
-        self.assertEqual(sampler._quality_text_sampling_settings.middle_paragraph_count, 3)
-        self.assertEqual(sampler._quality_text_sampling_settings.conclusion_paragraph_limit, 5)
-        self.assertEqual(sampler._quality_text_sampling_settings.fallback_tail_paragraph_count, 3)
-        self.assertEqual(sampler._quality_text_sampling_settings.conclusion_header_marker, "cierre")
 
     def test_missing_ollama_think_raises_setting_value_missing(self):
         env_without = {k: v for k, v in environ.items() if k != "OLLAMA_THINK"}

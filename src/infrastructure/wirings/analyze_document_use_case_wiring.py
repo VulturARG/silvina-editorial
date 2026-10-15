@@ -53,7 +53,6 @@ from src.domain.quality.first_sentence_extractor import FirstSentenceExtractor
 from src.domain.quality.quality_analyzer import QualityAnalyzer
 from src.domain.quality.quality_dimension_matcher import QualityDimensionMatcher
 from src.domain.quality.quality_response_parser import QualityResponseParser
-from src.domain.quality.quality_text_sampler import QualityTextSampler
 from src.domain.quality.suitability_field_extractor import SuitabilityFieldExtractor
 from src.domain.quality.suitability_field_truncator import SuitabilityFieldTruncator
 from src.domain.quality.suitability_verdict_matcher import SuitabilityVerdictMatcher
@@ -263,7 +262,6 @@ class AnalyzeDocumentUseCaseWiring:
     def _get_quality_analyzer(self) -> QualityAnalyzer:
         return QualityAnalyzer(
             llm_generator=self._get_llm_generator(purpose=AiPurpose.QUALITY_ANALYSIS),
-            text_sampler=self._get_quality_text_sampler(),
             response_parser=self._get_quality_response_parser(),
             clarity_coherence_prompt_template=self._read_prompt_text(
                 directory=QUALITY_PROMPTS_DIR, filename="clarity_coherence_prompt.txt"
@@ -372,11 +370,6 @@ class AnalyzeDocumentUseCaseWiring:
 
     def _read_prompt_text(self, directory: str, filename: str) -> str:
         return read_text_resource(directory=directory, filename=filename)
-
-    def _get_quality_text_sampler(self) -> QualityTextSampler:
-        return QualityTextSampler(
-            quality_text_sampling_settings=self._get_env_config().get_quality_text_sampling_settings()
-        )
 
     def _get_ollama_generator(self) -> LlmGeneratorPort:
         if self._ollama_generator_instance is None:
