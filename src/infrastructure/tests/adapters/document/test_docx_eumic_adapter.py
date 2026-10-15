@@ -4,15 +4,9 @@ from unittest.mock import MagicMock, patch
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Cm
 
-from src.domain.dtos.abstract_norms_dto import AbstractNormsDTO
-from src.domain.dtos.caption_norms_dto import CaptionNormsDTO
-from src.domain.dtos.document_format_norms_dto import DocumentFormatNormsDTO
-from src.domain.dtos.editorial_norms_dto import EditorialNormsDTO
-from src.domain.dtos.keyword_norms_dto import KeywordNormsDTO
-from src.domain.dtos.structure_norms_dto import StructureNormsDTO
 from src.domain.enums.severity_level import SeverityLevel
-from src.domain.tests.structure.structure_norms_builder_for_test import (
-    build_structure_norms_for_test,
+from src.domain.tests.dtos.editorial_norms_builder_for_test import (
+    build_editorial_norms_for_test,
 )
 from src.infrastructure.tests.adapters.document.docx_eumic_adapter_builder_for_test import (
     DocxEumicAdapterBuilderForTest,
@@ -88,53 +82,6 @@ def _make_compliant_doc() -> MagicMock:
     doc.tables = []
     doc.part.rels = {}
     return doc
-
-
-def _make_editorial_norms(
-    margin_cm: float = 2.5,
-    margin_tolerance_cm: float = 0.3,
-    font_size_pt: float = 12.0,
-    font_size_tolerance_pt: float = 1.0,
-    allowed_fonts: tuple[str, ...] = ("Times New Roman", "Arial", "Calibri"),
-    max_unjustified_paragraph_ratio: float = 0.3,
-    figure_caption_prefixes: tuple[str, ...] = ("figura", "fig.", "figure"),
-    table_caption_prefixes: tuple[str, ...] = ("tabla", "table", "cuadro"),
-    abstract_section_keywords: tuple[str, ...] = ("resumen", "abstract", "síntesis", "sumario"),
-    abstract_min_word_count: int = 100,
-    abstract_max_word_count: int = 300,
-    keyword_section_markers: tuple[str, ...] = (
-        "palabras clave",
-        "keywords",
-        "key words",
-        "descriptores",
-    ),
-    keyword_min_count: int = 3,
-    keyword_max_count: int = 5,
-    structure: StructureNormsDTO | None = None,
-) -> EditorialNormsDTO:
-    return EditorialNormsDTO(
-        document_format=DocumentFormatNormsDTO(
-            margin_cm=margin_cm,
-            margin_tolerance_cm=margin_tolerance_cm,
-            font_size_pt=font_size_pt,
-            font_size_tolerance_pt=font_size_tolerance_pt,
-            allowed_fonts=allowed_fonts,
-            max_unjustified_paragraph_ratio=max_unjustified_paragraph_ratio,
-        ),
-        figure_captions=CaptionNormsDTO(caption_prefixes=figure_caption_prefixes),
-        table_captions=CaptionNormsDTO(caption_prefixes=table_caption_prefixes),
-        abstract=AbstractNormsDTO(
-            section_keywords=abstract_section_keywords,
-            min_word_count=abstract_min_word_count,
-            max_word_count=abstract_max_word_count,
-        ),
-        keywords=KeywordNormsDTO(
-            section_markers=keyword_section_markers,
-            min_count=keyword_min_count,
-            max_count=keyword_max_count,
-        ),
-        structure=structure or build_structure_norms_for_test(),
-    )
 
 
 class TestDocxEumicAdapterFullyCompliantDocument(TestCase):
@@ -565,7 +512,7 @@ class TestDocxEumicAdapterAbstractKeywordCheck(TestCase):
 class TestDocxEumicAdapterCustomNorms(TestCase):
     @patch("src.infrastructure.adapters.document.docx_eumic_adapter.Document")
     def test_inspect_evaluates_margins_using_custom_norms(self, mock_document_class):
-        norms = _make_editorial_norms(margin_cm=3.0, margin_tolerance_cm=0.2)
+        norms = build_editorial_norms_for_test(margin_cm=3.0, margin_tolerance_cm=0.2)
         adapter = DocxEumicAdapterBuilderForTest().build(norms=norms)
         doc = _make_compliant_doc()
         doc.sections = [_make_mock_section(2.5)]
@@ -577,7 +524,7 @@ class TestDocxEumicAdapterCustomNorms(TestCase):
 
     @patch("src.infrastructure.adapters.document.docx_eumic_adapter.Document")
     def test_inspect_evaluates_allowed_fonts_using_custom_norms(self, mock_document_class):
-        norms = _make_editorial_norms(allowed_fonts=("Courier New",))
+        norms = build_editorial_norms_for_test(allowed_fonts=("Courier New",))
         adapter = DocxEumicAdapterBuilderForTest().build(norms=norms)
         doc = _make_compliant_doc()
         run = _make_run(font_name="Times New Roman")
@@ -593,7 +540,7 @@ class TestDocxEumicAdapterCustomNorms(TestCase):
 
     @patch("src.infrastructure.adapters.document.docx_eumic_adapter.Document")
     def test_inspect_evaluates_font_size_using_custom_norms(self, mock_document_class):
-        norms = _make_editorial_norms(font_size_pt=14.0, font_size_tolerance_pt=0.5)
+        norms = build_editorial_norms_for_test(font_size_pt=14.0, font_size_tolerance_pt=0.5)
         adapter = DocxEumicAdapterBuilderForTest().build(norms=norms)
         doc = _make_compliant_doc()
         run = _make_run(font_name="Times New Roman", font_size_pt=12.0)
@@ -608,7 +555,7 @@ class TestDocxEumicAdapterCustomNorms(TestCase):
 
     @patch("src.infrastructure.adapters.document.docx_eumic_adapter.Document")
     def test_inspect_evaluates_justified_ratio_using_custom_norms(self, mock_document_class):
-        norms = _make_editorial_norms(max_unjustified_paragraph_ratio=0.8)
+        norms = build_editorial_norms_for_test(max_unjustified_paragraph_ratio=0.8)
         adapter = DocxEumicAdapterBuilderForTest().build(norms=norms)
         doc = _make_compliant_doc()
         doc.paragraphs = [
@@ -626,7 +573,7 @@ class TestDocxEumicAdapterCustomNorms(TestCase):
 
     @patch("src.infrastructure.adapters.document.docx_eumic_adapter.Document")
     def test_inspect_evaluates_figure_captions_using_custom_prefixes(self, mock_document_class):
-        norms = _make_editorial_norms(figure_caption_prefixes=("grafico",))
+        norms = build_editorial_norms_for_test(figure_caption_prefixes=("grafico",))
         adapter = DocxEumicAdapterBuilderForTest().build(norms=norms)
         doc = _make_compliant_doc()
         doc.part.rels = {"rId1": _make_image_rel()}
@@ -640,7 +587,7 @@ class TestDocxEumicAdapterCustomNorms(TestCase):
 
     @patch("src.infrastructure.adapters.document.docx_eumic_adapter.Document")
     def test_inspect_evaluates_table_captions_using_custom_prefixes(self, mock_document_class):
-        norms = _make_editorial_norms(table_caption_prefixes=("matriz",))
+        norms = build_editorial_norms_for_test(table_caption_prefixes=("matriz",))
         adapter = DocxEumicAdapterBuilderForTest().build(norms=norms)
         doc = _make_compliant_doc()
         doc.tables = [MagicMock()]
@@ -654,7 +601,9 @@ class TestDocxEumicAdapterCustomNorms(TestCase):
 
     @patch("src.infrastructure.adapters.document.docx_eumic_adapter.Document")
     def test_inspect_evaluates_abstract_length_using_custom_range(self, mock_document_class):
-        norms = _make_editorial_norms(abstract_min_word_count=20, abstract_max_word_count=50)
+        norms = build_editorial_norms_for_test(
+            abstract_min_word_count=20, abstract_max_word_count=50
+        )
         adapter = DocxEumicAdapterBuilderForTest().build(norms=norms)
         doc = _make_compliant_doc()
         doc.paragraphs = [
@@ -671,7 +620,7 @@ class TestDocxEumicAdapterCustomNorms(TestCase):
 
     @patch("src.infrastructure.adapters.document.docx_eumic_adapter.Document")
     def test_inspect_evaluates_keyword_count_using_custom_range(self, mock_document_class):
-        norms = _make_editorial_norms(keyword_min_count=1, keyword_max_count=2)
+        norms = build_editorial_norms_for_test(keyword_min_count=1, keyword_max_count=2)
         adapter = DocxEumicAdapterBuilderForTest().build(norms=norms)
         doc = _make_compliant_doc()
         doc.paragraphs = [

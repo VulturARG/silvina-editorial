@@ -5,7 +5,7 @@
 [grammar]
 max_replacements = 3
 max_paragraphs = 20
-max_chars = 5000
+max_chars = 75000
 max_errors = 10
 
 [structure]
@@ -19,7 +19,7 @@ temperature = 0.1
 num_predict = 300
 
 [article_classification]
-sample_introduction_character_limit = 32000
+sample_introduction_character_limit = 75000
 sample_conclusion_character_limit = 2500
 sample_fallback_character_limit = 6000
 bibliography_header_max_length = 30
@@ -36,7 +36,7 @@ long_max_chars = 40000
 min_sample_word_count = 10000
 
 [quality_text_sample]
-character_limit = 32000
+character_limit = 75000
 reference_line_prefix_length = 80
 introduction_paragraph_count = 3
 middle_paragraph_count = 2
