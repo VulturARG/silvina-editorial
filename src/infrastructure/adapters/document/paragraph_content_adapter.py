@@ -34,7 +34,6 @@ class ParagraphContentAdapter(ContentExtractionPort):
             paragraph_count=len(clean),
             title=title,
             authors=self._extract_authors(paragraphs=clean, title_lines=title_lines),
-            abstract=self._extract_abstract(paragraphs=clean),
             keywords=self._extract_keywords(paragraphs=clean),
             references=[],
             paragraphs=clean,
@@ -152,26 +151,6 @@ class ParagraphContentAdapter(ContentExtractionPort):
             and ";" in text
             and not self._is_blacklisted(text=text)
         )
-
-    def _extract_abstract(self, paragraphs: list[str]) -> str | None:
-        start = next(
-            (
-                i
-                for i, p in enumerate(paragraphs)
-                if re.match(r"^(?:RESUMEN|ABSTRACT)\s*$", p, re.IGNORECASE)
-            ),
-            None,
-        )
-        if start is None:
-            return None
-        lines: list[str] = []
-        for para in paragraphs[start + 1 :]:
-            if re.match(r"^[A-Z\sÁÉÍÓÚÑ]{3,}$", para):
-                break
-            lines.append(para)
-            if len(" ".join(lines).split()) > 300:
-                break
-        return " ".join(lines) if lines else None
 
     def _extract_keywords(self, paragraphs: list[str]) -> list[str]:
         for para in paragraphs:

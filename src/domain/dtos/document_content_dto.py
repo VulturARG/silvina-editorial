@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 
+from src.domain.dtos.article_body_dto import ArticleBodyDTO
 from src.domain.dtos.base_dto import BaseDTO
 from src.domain.dtos.reference_dto import ReferenceDTO
 from src.domain.enums.extraction_fallback import ExtractionFallback
@@ -14,10 +15,10 @@ class DocumentContentDTO(BaseDTO):
     paragraph_count: int = 0
     title: str | None = None
     authors: str | None = None
-    abstract: str | None = None
     keywords: list[str] = field(default_factory=list)
     references: list[ReferenceDTO] = field(default_factory=list)
     paragraphs: list[str] = field(default_factory=list)
+    body: ArticleBodyDTO | None = None
     sections: dict[str, str] = field(default_factory=dict)
 
     @property

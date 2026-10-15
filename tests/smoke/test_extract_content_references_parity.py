@@ -13,9 +13,11 @@ from pathlib import Path
 from unittest import TestCase
 
 from src.domain.classification.reference_signal_detector import ReferenceSignalDetector
+from src.domain.document.article_body_locator import ArticleBodyLocator
 from src.domain.document.document_content_extractor import DocumentContentExtractor
 from src.domain.dtos.document_content_dto import DocumentContentDTO
 from src.domain.tests.document.fake_character_count_port import FakeCharacterCountPort
+from src.domain.tests.dtos.editorial_norms_builder_for_test import build_editorial_norms_for_test
 from src.infrastructure.adapters.document.docx_reference_adapter import DocxReferenceAdapter
 from src.infrastructure.adapters.document.docx_text_adapter import DocxTextAdapter
 from src.infrastructure.adapters.document.paragraph_content_adapter import ParagraphContentAdapter
@@ -30,12 +32,18 @@ class TestExtractContentReferencesParity(TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         document_text_adapter = DocxTextAdapter()
+        editorial_norms = build_editorial_norms_for_test()
         cls.extractor = DocumentContentExtractor(
             document_text_port=document_text_adapter,
             content_extraction_port=ParagraphContentAdapter(),
             character_count_port=FakeCharacterCountPort(result=None),
             reference_extraction_port=DocxReferenceAdapter(
                 document_text_port=document_text_adapter
+            ),
+            article_body_locator=ArticleBodyLocator(
+                abstract_norms=editorial_norms.abstract,
+                keyword_norms=editorial_norms.keywords,
+                bibliography_norms=editorial_norms.bibliography,
             ),
         )
         cls.signal_detector = ReferenceSignalDetector()

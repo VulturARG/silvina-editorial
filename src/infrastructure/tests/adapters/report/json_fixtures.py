@@ -39,7 +39,6 @@ class JsonReportFixtures:
                 paragraph_count=42,
                 title="El Impacto de la Inteligencia Artificial",
                 authors="Juan Perez, Maria Gomez",
-                abstract="Un resumen del articulo.",
                 keywords=["inteligencia artificial", "editorial"],
             ),
             "classification": ClassificationResultDTO(

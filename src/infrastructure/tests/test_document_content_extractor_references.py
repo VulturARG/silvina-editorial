@@ -15,6 +15,7 @@ from src.domain.classification.methodological_vocabulary_detector import (
     MethodologicalVocabularyDetector,
 )
 from src.domain.classification.reference_signal_detector import ReferenceSignalDetector
+from src.domain.document.article_body_locator import ArticleBodyLocator
 from src.domain.document.document_content_extractor import DocumentContentExtractor
 from src.domain.dtos.article_size_thresholds_dto import ArticleSizeThresholdsDTO
 from src.domain.dtos.classification_text_sampling_settings_dto import (
@@ -23,6 +24,7 @@ from src.domain.dtos.classification_text_sampling_settings_dto import (
 from src.domain.enums.article_type import ArticleType
 from src.domain.tests.classification.fake_llm_generator_adapter import FakeLlmGeneratorAdapter
 from src.domain.tests.document.fake_character_count_port import FakeCharacterCountPort
+from src.domain.tests.dtos.editorial_norms_builder_for_test import build_editorial_norms_for_test
 from src.infrastructure.adapters.document.docx_reference_adapter import DocxReferenceAdapter
 from src.infrastructure.adapters.document.docx_text_adapter import DocxTextAdapter
 from src.infrastructure.adapters.document.paragraph_content_adapter import ParagraphContentAdapter
@@ -44,12 +46,18 @@ class TestDocumentContentExtractorReferences(TestCase):
         paragraph_content_adapter = ParagraphContentAdapter()
         docx_reference_adapter = DocxReferenceAdapter(document_text_port=docx_text_adapter)
         fake_character_count_port = FakeCharacterCountPort(result=None)
+        editorial_norms = build_editorial_norms_for_test()
 
         document_content_extractor = DocumentContentExtractor(
             document_text_port=docx_text_adapter,
             content_extraction_port=paragraph_content_adapter,
             character_count_port=fake_character_count_port,
             reference_extraction_port=docx_reference_adapter,
+            article_body_locator=ArticleBodyLocator(
+                abstract_norms=editorial_norms.abstract,
+                keyword_norms=editorial_norms.keywords,
+                bibliography_norms=editorial_norms.bibliography,
+            ),
         )
         document_content = document_content_extractor.extract_content(docx_path=str(fixture_path))
 
