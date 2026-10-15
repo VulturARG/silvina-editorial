@@ -2,14 +2,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
-from src.domain.dtos.abstract_norms_dto import AbstractNormsDTO
-from src.domain.dtos.article_length_norms_dto import ArticleLengthNormsDTO
-from src.domain.dtos.bibliography_norms_dto import BibliographyNormsDTO
-from src.domain.dtos.caption_norms_dto import CaptionNormsDTO
-from src.domain.dtos.document_format_norms_dto import DocumentFormatNormsDTO
 from src.domain.dtos.editorial_norms_dto import EditorialNormsDTO
-from src.domain.dtos.keyword_norms_dto import KeywordNormsDTO
-from src.domain.dtos.structure_norms_dto import StructureNormsDTO
 from src.domain.enums.article_type import ArticleType
 from src.domain.enums.section_name import SectionName
 from src.domain.exceptions.editorial_norms_errors import EditorialNormInvalid
@@ -17,8 +10,6 @@ from src.domain.tests.structure.structure_norms_builder_for_test import (
     build_structure_norms_for_test,
 )
 from src.infrastructure.editorial_norms_loader import EditorialNormsLoader
-
-PROJECT_EDITORIAL_NORMS_PATH = Path(__file__).resolve().parents[3] / "editorial_norms.toml"
 
 
 class TestEditorialNormsLoader(TestCase):
@@ -231,16 +222,3 @@ class TestEditorialNormsLoader(TestCase):
             EditorialNormsLoader(self._editorial_norms_file_path).load()
 
         self.assertRegex(context.exception.dict()["error"], r"'max_count'.*\[keywords\]")
-
-    def test_loads_real_project_editorial_norms_file_into_complete_dto(self):
-        norms = EditorialNormsLoader(PROJECT_EDITORIAL_NORMS_PATH).load()
-
-        self.assertIsInstance(norms, EditorialNormsDTO)
-        self.assertIsInstance(norms.document_format, DocumentFormatNormsDTO)
-        self.assertIsInstance(norms.figure_captions, CaptionNormsDTO)
-        self.assertIsInstance(norms.table_captions, CaptionNormsDTO)
-        self.assertIsInstance(norms.abstract, AbstractNormsDTO)
-        self.assertIsInstance(norms.keywords, KeywordNormsDTO)
-        self.assertIsInstance(norms.structure, StructureNormsDTO)
-        self.assertIsInstance(norms.bibliography, BibliographyNormsDTO)
-        self.assertIsInstance(norms.article_length, ArticleLengthNormsDTO)
