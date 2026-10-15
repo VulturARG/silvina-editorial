@@ -27,6 +27,15 @@ section_markers = ["palabras clave", "keywords", "key words", "descriptores"]
 min_count = 3
 max_count = 5
 
+# The article body ends before a short header that matches one of these markers.
+[bibliography]
+header_markers = ["referencias", "bibliografía", "bibliography", "fuentes bibliográficas"]
+header_max_length = 30
+
+# Maximum article body size in characters; larger articles are rejected before analysis.
+[article_length]
+max_body_chars = 75000
+
 # The keys of [required_sections] are article type labels.
 # The keys of [section_aliases] are canonical section labels.
 # Aliases are compared with the lowercased header text.
