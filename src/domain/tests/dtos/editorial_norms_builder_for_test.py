@@ -1,4 +1,6 @@
 from src.domain.dtos.abstract_norms_dto import AbstractNormsDTO
+from src.domain.dtos.article_length_norms_dto import ArticleLengthNormsDTO
+from src.domain.dtos.bibliography_norms_dto import BibliographyNormsDTO
 from src.domain.dtos.caption_norms_dto import CaptionNormsDTO
 from src.domain.dtos.document_format_norms_dto import DocumentFormatNormsDTO
 from src.domain.dtos.editorial_norms_dto import EditorialNormsDTO
@@ -30,6 +32,9 @@ def build_editorial_norms_for_test(
     keyword_min_count: int = 3,
     keyword_max_count: int = 5,
     structure: StructureNormsDTO | None = None,
+    bibliography_header_markers: tuple[str, ...] = ("refs", "biblio"),
+    bibliography_header_max_length: int = 21,
+    maximum_body_characters: int = 1234,
 ) -> EditorialNormsDTO:
     """Build an EditorialNormsDTO with test-owned values; any field can be overridden."""
     return EditorialNormsDTO(
@@ -53,5 +58,10 @@ def build_editorial_norms_for_test(
             min_count=keyword_min_count,
             max_count=keyword_max_count,
         ),
+        bibliography=BibliographyNormsDTO(
+            header_markers=bibliography_header_markers,
+            header_max_length=bibliography_header_max_length,
+        ),
+        article_length=ArticleLengthNormsDTO(max_body_chars=maximum_body_characters),
         structure=structure or build_structure_norms_for_test(),
     )

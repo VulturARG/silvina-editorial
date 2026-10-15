@@ -3,6 +3,8 @@ from tempfile import TemporaryDirectory
 from unittest import TestCase
 
 from src.domain.dtos.abstract_norms_dto import AbstractNormsDTO
+from src.domain.dtos.article_length_norms_dto import ArticleLengthNormsDTO
+from src.domain.dtos.bibliography_norms_dto import BibliographyNormsDTO
 from src.domain.dtos.caption_norms_dto import CaptionNormsDTO
 from src.domain.dtos.document_format_norms_dto import DocumentFormatNormsDTO
 from src.domain.dtos.editorial_norms_dto import EditorialNormsDTO
@@ -52,6 +54,13 @@ class TestEditorialNormsLoader(TestCase):
             'section_markers = ["palabras clave", "keywords", "key words", "descriptores"]\n'
             "min_count = 3\n"
             "max_count = 5\n"
+            "\n"
+            "[bibliography]\n"
+            'header_markers = ["refs", "biblio"]\n'
+            "header_max_length = 21\n"
+            "\n"
+            "[article_length]\n"
+            "max_body_chars = 1234\n"
             "\n"
             "[required_sections]\n"
             '"científico" = ["Resumen", "Introducción", "Metodología", "Resultados", "Discusión", "Conclusiones", "Referencias"]\n'
@@ -233,3 +242,5 @@ class TestEditorialNormsLoader(TestCase):
         self.assertIsInstance(norms.abstract, AbstractNormsDTO)
         self.assertIsInstance(norms.keywords, KeywordNormsDTO)
         self.assertIsInstance(norms.structure, StructureNormsDTO)
+        self.assertIsInstance(norms.bibliography, BibliographyNormsDTO)
+        self.assertIsInstance(norms.article_length, ArticleLengthNormsDTO)

@@ -1,6 +1,8 @@
 from pathlib import Path
 
 from src.domain.dtos.abstract_norms_dto import AbstractNormsDTO
+from src.domain.dtos.article_length_norms_dto import ArticleLengthNormsDTO
+from src.domain.dtos.bibliography_norms_dto import BibliographyNormsDTO
 from src.domain.dtos.caption_norms_dto import CaptionNormsDTO
 from src.domain.dtos.document_format_norms_dto import DocumentFormatNormsDTO
 from src.domain.dtos.editorial_norms_dto import EditorialNormsDTO
@@ -59,6 +61,9 @@ class EditorialNormsLoader:
             max_count=keyword_max_count,
         )
 
+        bibliography = self._load_bibliography_norms(resolver)
+        article_length = self._load_article_length_norms(resolver)
+
         structure = StructureNormsLoader(resolver).load()
 
         return EditorialNormsDTO(
@@ -82,6 +87,8 @@ class EditorialNormsLoader:
                 min_count=keyword_min_count,
                 max_count=keyword_max_count,
             ),
+            bibliography=bibliography,
+            article_length=article_length,
             structure=structure,
         )
 
@@ -128,4 +135,42 @@ class EditorialNormsLoader:
         if min_count > max_count:
             raise EditorialNormInvalid(
                 "'max_count' in section [keywords] must be greater than or equal to 'min_count'."
+            )
+
+    def _load_bibliography_norms(
+        self, resolver: EditorialNormsValueResolver
+    ) -> BibliographyNormsDTO:
+        raw_header_markers = resolver.read_string_list("bibliography", "header_markers")
+        header_max_length = resolver.read_integer("bibliography", "header_max_length")
+        self._validate_bibliography_header_max_length(header_max_length=header_max_length)
+        return BibliographyNormsDTO(
+            header_markers=self._normalize_header_markers(raw_header_markers),
+            header_max_length=header_max_length,
+        )
+
+    def _load_article_length_norms(
+        self, resolver: EditorialNormsValueResolver
+    ) -> ArticleLengthNormsDTO:
+        max_body_chars = resolver.read_integer("article_length", "max_body_chars")
+        self._validate_max_body_chars(max_body_chars=max_body_chars)
+        return ArticleLengthNormsDTO(max_body_chars=max_body_chars)
+
+    def _normalize_header_markers(self, header_markers: tuple[str, ...]) -> tuple[str, ...]:
+        cleaned_markers: list[str] = []
+        for header_marker in header_markers:
+            normalized_marker = header_marker.strip().lower()
+            if normalized_marker not in cleaned_markers:
+                cleaned_markers.append(normalized_marker)
+        return tuple(cleaned_markers)
+
+    def _validate_bibliography_header_max_length(self, header_max_length: int) -> None:
+        if header_max_length < 1:
+            raise EditorialNormInvalid(
+                "'header_max_length' in section [bibliography] must be at least 1."
+            )
+
+    def _validate_max_body_chars(self, max_body_chars: int) -> None:
+        if max_body_chars < 1:
+            raise EditorialNormInvalid(
+                "'max_body_chars' in section [article_length] must be at least 1."
             )
