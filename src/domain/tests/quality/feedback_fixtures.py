@@ -247,3 +247,35 @@ El texto tiene una estructura argumentativa clara. Plantea tres preguntas de inv
 - **Debilidad metodológica de la revisión sistemática.** Se mencionan las bases de datos pero faltan criterios de inclusión.
 - **Falta de contraste entre hipótesis.** Las tres explicaciones se presentan como alternativas sin contrastarlas.
 """
+
+FIXTURE_N_UNBOLDED_NUMBERED_HEADINGS_STORED_HAIKU = """# Análisis Editorial: Prospectiva de Ciberseguridad Nacional Colombia 2030
+
+## 1. Claridad del argumento [Puntuación: 7/10]
+
+**Fortalezas:**
+- El propósito central está bien definido: analizar tendencias en ciberseguridad colombiana hacia 2030.
+- La estructura de presentación es clara y facilita la navegación mental del lector.
+
+**Debilidades:**
+- La introducción es excesivamente larga, lo que difumina el argumento principal.
+
+---
+
+## 2. Coherencia [Puntuación: 6/10]
+
+**Fortalezas:**
+- El orden Pestel es convencional y predecible, lo que favorece la orientación del lector.
+- Dentro de cada sección, las tres tendencias presentan una progresión temática clara.
+
+**Debilidades significativas:**
+
+1. **Desconexión entre secciones del marco Pestel:** No hay transiciones explícitas entre las secciones.
+
+## Observaciones adicionales sobre coherencia argumentativa:
+
+- **Pregunta metodológica sin respuesta:** La Tabla 1 promete preguntas clave que nunca aparecen.
+
+## Síntesis evaluativa:
+
+El documento es funcionalmente claro en estructura pero débil en conexión argumentativa.
+"""
