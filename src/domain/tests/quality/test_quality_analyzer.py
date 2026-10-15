@@ -114,6 +114,14 @@ Los argumentos presentados son solidos y estan bien fundamentados.
 Las conclusiones se desprenden claramente del contenido desarrollado.
 """
 
+CLARITY_ONLY_RESPONSE = """**1. Claridad del argumento** [Puntuación: 8/10]
+El argumento central es claro y facil de seguir en todo el texto.
+"""
+
+ARGUMENTATION_ONLY_RESPONSE = """**1. Argumentación** [Puntuación: 8/10]
+Los argumentos presentados son solidos y estan bien fundamentados.
+"""
+
 
 class TestQualityAnalyzer(TestCase):
     def setUp(self):
@@ -224,6 +232,20 @@ Este bloque de claridad nunca deberia usarse porque viene de la llamada dos.
             "Este texto no contiene ningun encabezado de dimension reconocible."
         )
         fake_adapter = FakeLlmGeneratorAdapter([response_one_without_headers, VALID_RESPONSE_TWO])
+        analyzer = build_analyzer(fake_adapter)
+
+        with self.assertRaises(QualityAnalysisFailed):
+            analyzer.analyze(self.document_content)
+
+    def test_call_one_with_only_claridad_raises_quality_analysis_failed(self):
+        fake_adapter = FakeLlmGeneratorAdapter([CLARITY_ONLY_RESPONSE, VALID_RESPONSE_TWO])
+        analyzer = build_analyzer(fake_adapter)
+
+        with self.assertRaises(QualityAnalysisFailed):
+            analyzer.analyze(self.document_content)
+
+    def test_call_two_with_only_argumentacion_raises_quality_analysis_failed(self):
+        fake_adapter = FakeLlmGeneratorAdapter([VALID_RESPONSE_ONE, ARGUMENTATION_ONLY_RESPONSE])
         analyzer = build_analyzer(fake_adapter)
 
         with self.assertRaises(QualityAnalysisFailed):

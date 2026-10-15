@@ -19,6 +19,7 @@ from src.domain.tests.quality.feedback_fixtures import (
     FIXTURE_K_GEMMA_STYLE_PLAIN_WEAKNESS_TITLE,
     FIXTURE_L_PLAIN_FORTALEZAS_DEBILIDADES_TITLES,
     FIXTURE_M_OPUS_ID_70_PARAGRAPH_FLUSH_BULLETS_WITH_SUB_BULLETS,
+    FIXTURE_N_UNBOLDED_NUMBERED_HEADINGS_STORED_HAIKU,
 )
 
 VALID_RESPONSE_TWO = """**1. Argumentación** [Puntuación: 8/10]
@@ -27,6 +28,12 @@ Los argumentos presentados son solidos y estan bien fundamentados.
 **2. Conclusiones** [Puntuación: 8/10]
 Las conclusiones se desprenden claramente del contenido desarrollado.
 """
+CLARITY_LEAD_PARAGRAPH = (
+    "El propósito central del manuscrito está bien definido desde su introducción y se expone "
+    "con suficiente precisión para que cualquier lector comprenda qué problema aborda, qué "
+    "preguntas guían el análisis y qué alcance tienen las hipótesis planteadas en el marco "
+    "teórico que sostiene todo el desarrollo posterior."
+)
 
 
 class TestQualityResponseParser(TestCase):
@@ -657,3 +664,74 @@ Evaluación del cierre presentado.
             b.text for b in argumentation.feedback_blocks if b.kind == FeedbackBlockKind.TITLE
         ]
         self.assertEqual(titles, ["Fortalezas", "Debilidades"])
+
+    def test_unbolded_numbered_headings_from_stored_haiku_response_split_both_dimensions(self):
+        parser = QualityResponseParserBuilderForTest().build()
+
+        result = parser.parse(FIXTURE_N_UNBOLDED_NUMBERED_HEADINGS_STORED_HAIKU)
+
+        clarity = result.scores[QualityDimension.CLARITY]
+        coherence = result.scores[QualityDimension.COHERENCE]
+        self.assertEqual(clarity.score, 7.0)
+        self.assertEqual(coherence.score, 6.0)
+        self.assertEqual(
+            result.matched_dimensions,
+            frozenset({QualityDimension.CLARITY, QualityDimension.COHERENCE}),
+        )
+        self.assertNotEqual(coherence.feedback, "No disponible")
+        self.assertIn("Desconexión entre secciones del marco Pestel", coherence.feedback)
+        self.assertNotIn("[Puntuación", coherence.feedback)
+
+    def test_unbolded_numbered_heading_splits_at_every_heading_level(self):
+        parser = QualityResponseParserBuilderForTest().build()
+
+        for marker in ("#", "##", "###", "####", "#####", "######"):
+            with self.subTest(marker=marker):
+                response = f"""{marker} 1. Argumentación [Puntuación: 8/10]
+Los argumentos presentados son solidos y estan bien fundamentados.
+
+{marker} 2. Conclusiones [Puntuación: 9/10]
+Las conclusiones se desprenden claramente del contenido desarrollado.
+"""
+
+                result = parser.parse(response)
+
+                self.assertEqual(result.scores[QualityDimension.ARGUMENTATION].score, 8.0)
+                self.assertEqual(result.scores[QualityDimension.CONCLUSIONS].score, 9.0)
+
+    def test_unnumbered_unbolded_heading_inside_claridad_block_does_not_create_conclusions_match(
+        self,
+    ):
+        response = f"""## 1. Claridad del argumento [Puntuación: 7/10]
+{CLARITY_LEAD_PARAGRAPH}
+
+### Conclusiones parciales
+Las conclusiones parciales aún no cierran la argumentación del texto analizado.
+"""
+        parser = QualityResponseParserBuilderForTest().build()
+
+        result = parser.parse(response)
+
+        self.assertEqual(
+            result.matched_dimensions,
+            frozenset({QualityDimension.CLARITY}),
+        )
+        self.assertEqual(result.scores[QualityDimension.CLARITY].score, 7.0)
+        self.assertIn(
+            "aún no cierran la argumentación",
+            result.scores[QualityDimension.CLARITY].feedback,
+        )
+
+    def test_numbered_list_item_without_heading_marker_does_not_split_block(self):
+        response = f"""## 1. Claridad del argumento [Puntuación: 7/10]
+{CLARITY_LEAD_PARAGRAPH}
+1. Coherencia intra-seccional débil entre los párrafos del desarrollo principal.
+"""
+        parser = QualityResponseParserBuilderForTest().build()
+
+        result = parser.parse(response)
+
+        self.assertEqual(
+            result.matched_dimensions,
+            frozenset({QualityDimension.CLARITY}),
+        )
