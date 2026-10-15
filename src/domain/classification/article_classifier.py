@@ -52,11 +52,11 @@ class ArticleClassifier:
 
     def classify(self, document_content: DocumentContentDTO) -> ClassificationResultDTO:
         """Classify a document into an ArticleType with confidence and reasoning."""
-        if not document_content.paragraphs:
+        if document_content.body is None or not document_content.paragraphs:
             raise ClassificationFailed()
 
         article_size = self._article_size_classifier.classify(
-            char_count=document_content.char_count
+            char_count=document_content.body.char_count
         )
 
         imryd_signals = self._signal_detector.detect(document_content=document_content)

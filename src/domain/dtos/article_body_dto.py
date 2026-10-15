@@ -10,3 +10,8 @@ class ArticleBodyDTO(BaseDTO):
     title: str
     abstract_paragraphs: tuple[str, ...]
     paragraphs: tuple[str, ...]
+
+    @property
+    def char_count(self) -> int:
+        """Return the length of the title and body paragraphs joined with a single space."""
+        return len(" ".join((self.title, *self.paragraphs)))

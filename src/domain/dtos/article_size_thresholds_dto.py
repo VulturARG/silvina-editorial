@@ -13,3 +13,4 @@ class ArticleSizeThresholdsDTO(BaseDTO):
     undefined_max_chars: int
     long_min_chars: int
     long_max_chars: int
+    extra_long_max_chars: int
