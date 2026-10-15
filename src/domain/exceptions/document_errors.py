@@ -55,3 +55,9 @@ class DocumentTooLarge(DocumentError):
     """Raised when an uploaded document exceeds the maximum allowed size."""
 
     MESSAGE = "The document file exceeds the maximum allowed size."
+
+
+class DocumentBodyNotLocated(DocumentError):
+    """Raised when the repeated title that opens the article body cannot be found."""
+
+    MESSAGE = "The article body could not be located: the repeated title was not found."
