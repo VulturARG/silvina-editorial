@@ -270,6 +270,7 @@ class AnalyzeDocumentUseCaseWiring:
                 directory=QUALITY_PROMPTS_DIR, filename="argumentation_conclusions_prompt.txt"
             ),
             editorial_suitability_analyzer=self._get_editorial_suitability_analyzer(),
+            quality_level_thresholds=self._get_env_config().get_quality_level_thresholds(),
         )
 
     def _get_quality_response_parser(self) -> QualityResponseParser:

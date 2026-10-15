@@ -2,6 +2,7 @@ from os import getenv
 from pathlib import Path
 from re import finditer, fullmatch
 
+from src.domain.dtos.quality_level_thresholds_dto import QualityLevelThresholdsDTO
 from src.domain.dtos.recommendation_settings_dto import RecommendationSettingsDTO
 from src.domain.enums.ai_provider import AiProvider
 from src.domain.enums.app_mode import AppMode
@@ -176,6 +177,15 @@ class EnvConfig:
             classification_confidence_threshold=self.classification_confidence_threshold,
             critical_quality_threshold=self.critical_quality_threshold,
             critical_grammar_threshold=self.critical_grammar_threshold,
+        )
+
+    def get_quality_level_thresholds(self) -> QualityLevelThresholdsDTO:
+        """Builds QualityLevelThresholdsDTO from cached configuration values."""
+        return QualityLevelThresholdsDTO(
+            excellent_threshold=self.quality_level_excellent_threshold,
+            good_threshold=self.quality_level_good_threshold,
+            acceptable_threshold=self.quality_level_acceptable_threshold,
+            needs_improvement_threshold=self.quality_level_needs_improvement_threshold,
         )
 
     def get_language_tool_settings(self) -> LanguageToolSettings:
