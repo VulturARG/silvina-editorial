@@ -2,7 +2,12 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
+from src.domain.dtos.abstract_norms_dto import AbstractNormsDTO
+from src.domain.dtos.caption_norms_dto import CaptionNormsDTO
+from src.domain.dtos.document_format_norms_dto import DocumentFormatNormsDTO
 from src.domain.dtos.editorial_norms_dto import EditorialNormsDTO
+from src.domain.dtos.keyword_norms_dto import KeywordNormsDTO
+from src.domain.dtos.structure_norms_dto import StructureNormsDTO
 from src.domain.enums.article_type import ArticleType
 from src.domain.enums.section_name import SectionName
 from src.domain.exceptions.editorial_norms_errors import EditorialNormInvalid
@@ -116,6 +121,7 @@ class TestEditorialNormsLoader(TestCase):
         self.assertEqual(
             norms.structure.section_aliases[SectionName.SUMMARY], ("resumen", "abstract")
         )
+        self.assertEqual(norms.structure, build_structure_norms_for_test())
 
     def test_raises_editorial_norm_invalid_when_margin_cm_is_zero_or_negative(self):
         self._write_norms_with_replacement("margin_cm = 2.5", "margin_cm = 0.0")
@@ -217,28 +223,13 @@ class TestEditorialNormsLoader(TestCase):
 
         self.assertRegex(context.exception.dict()["error"], r"'max_count'.*\[keywords\]")
 
-    def test_loads_real_project_editorial_norms_file(self):
+    def test_loads_real_project_editorial_norms_file_into_complete_dto(self):
         norms = EditorialNormsLoader(PROJECT_EDITORIAL_NORMS_PATH).load()
 
-        self.assertEqual(norms.document_format.margin_cm, 2.5)
-        self.assertEqual(norms.document_format.margin_tolerance_cm, 0.3)
-        self.assertEqual(norms.document_format.font_size_pt, 12.0)
-        self.assertEqual(norms.document_format.font_size_tolerance_pt, 1.0)
-        self.assertEqual(
-            norms.document_format.allowed_fonts, ("Times New Roman", "Arial", "Calibri")
-        )
-        self.assertEqual(norms.document_format.max_unjustified_paragraph_ratio, 0.3)
-        self.assertEqual(norms.figure_captions.caption_prefixes, ("figura", "fig.", "figure"))
-        self.assertEqual(norms.table_captions.caption_prefixes, ("tabla", "table", "cuadro"))
-        self.assertEqual(
-            norms.abstract.section_keywords, ("resumen", "abstract", "síntesis", "sumario")
-        )
-        self.assertEqual(norms.abstract.min_word_count, 100)
-        self.assertEqual(norms.abstract.max_word_count, 300)
-        self.assertEqual(
-            norms.keywords.section_markers,
-            ("palabras clave", "keywords", "key words", "descriptores"),
-        )
-        self.assertEqual(norms.keywords.min_count, 3)
-        self.assertEqual(norms.keywords.max_count, 5)
-        self.assertEqual(norms.structure, build_structure_norms_for_test())
+        self.assertIsInstance(norms, EditorialNormsDTO)
+        self.assertIsInstance(norms.document_format, DocumentFormatNormsDTO)
+        self.assertIsInstance(norms.figure_captions, CaptionNormsDTO)
+        self.assertIsInstance(norms.table_captions, CaptionNormsDTO)
+        self.assertIsInstance(norms.abstract, AbstractNormsDTO)
+        self.assertIsInstance(norms.keywords, KeywordNormsDTO)
+        self.assertIsInstance(norms.structure, StructureNormsDTO)

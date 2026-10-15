@@ -11,8 +11,9 @@ from src.infrastructure.overridable_env_config import OverridableEnvConfig
 from src.infrastructure.tests.test_doubles.complete_test_environment import (
     CompleteTestEnvironment,
 )
-
-PROJECT_SETTINGS_FILE_PATH = Path(__file__).resolve().parents[3] / "analysis_settings.toml"
+from src.infrastructure.tests.test_doubles.complete_test_settings import (
+    CompleteTestSettings,
+)
 
 
 class TestOverridableEnvConfig(TestCase):
@@ -140,12 +141,9 @@ class TestOverridableEnvConfig(TestCase):
 
     def test_settings_file_path_is_forwarded_to_env_config(self):
         with TemporaryDirectory() as directory:
-            settings_file_path = Path(directory) / "analysis_settings.toml"
-            project_settings = PROJECT_SETTINGS_FILE_PATH.read_text(encoding="utf-8")
-            original_line = "max_author_name_length = 100"
-            self.assertIn(original_line, project_settings)
+            settings_file_path = Path(directory) / "settings.toml"
             settings_file_path.write_text(
-                project_settings.replace(original_line, "max_author_name_length = 77"),
+                CompleteTestSettings.toml_text({"citation_max_author_name_length": 77}),
                 encoding="utf-8",
             )
             with patch.dict(environ, self._complete_environment(), clear=True):
