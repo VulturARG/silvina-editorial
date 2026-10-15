@@ -2,6 +2,7 @@ from unittest import TestCase
 
 from src.domain.dtos.article_body_dto import ArticleBodyDTO
 from src.domain.dtos.document_content_dto import DocumentContentDTO
+from src.domain.dtos.quality_level_thresholds_dto import QualityLevelThresholdsDTO
 from src.domain.exceptions.quality_errors import QualityAnalysisFailed
 from src.domain.quality.editorial_suitability_analyzer import EditorialSuitabilityAnalyzer
 from src.domain.quality.quality_analyzer import QualityAnalyzer
@@ -65,6 +66,12 @@ def build_analyzer(
         clarity_coherence_prompt_template=CLARITY_COHERENCE_PROMPT_TEMPLATE,
         argumentation_conclusions_prompt_template=ARGUMENTATION_CONCLUSIONS_PROMPT_TEMPLATE,
         editorial_suitability_analyzer=editorial_suitability_analyzer,
+        quality_level_thresholds=QualityLevelThresholdsDTO(
+            excellent_threshold=9.0,
+            good_threshold=7.0,
+            acceptable_threshold=5.0,
+            needs_improvement_threshold=3.0,
+        ),
     )
 
 

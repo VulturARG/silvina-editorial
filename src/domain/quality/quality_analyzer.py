@@ -1,5 +1,6 @@
 from src.domain.dtos.document_content_dto import DocumentContentDTO
 from src.domain.dtos.parsed_response_dto import ParsedResponseDTO
+from src.domain.dtos.quality_level_thresholds_dto import QualityLevelThresholdsDTO
 from src.domain.dtos.quality_result_dto import QualityResultDTO
 from src.domain.enums.quality_dimension import QualityDimension
 from src.domain.enums.quality_level import QualityLevel
@@ -19,12 +20,14 @@ class QualityAnalyzer:
         clarity_coherence_prompt_template: str,
         argumentation_conclusions_prompt_template: str,
         editorial_suitability_analyzer: EditorialSuitabilityAnalyzer,
+        quality_level_thresholds: QualityLevelThresholdsDTO,
     ) -> None:
         self._llm_generator = llm_generator
         self._response_parser = response_parser
         self._clarity_coherence_prompt_template = clarity_coherence_prompt_template
         self._argumentation_conclusions_prompt_template = argumentation_conclusions_prompt_template
         self._editorial_suitability_analyzer = editorial_suitability_analyzer
+        self._quality_level_thresholds = quality_level_thresholds
 
     def analyze(self, document_content: DocumentContentDTO) -> QualityResultDTO:
         """Score document quality across Claridad, Coherencia, Argumentación and Conclusiones."""
@@ -71,7 +74,7 @@ class QualityAnalyzer:
         }
 
         overall_score = sum(d.score for d in dimension_scores.values()) / len(dimension_scores)
-        quality_level = QualityLevel.from_score(overall_score)
+        quality_level = QualityLevel.from_score(overall_score, self._quality_level_thresholds)
 
         editorial_suitability = self._editorial_suitability_analyzer.analyze(
             text_sample=text_sample
