@@ -27,7 +27,7 @@ class LanguageToolAdapter(GrammarCheckPort):
         self._initialize_tool_if_needed()
         if self._tool is None:
             raise GrammarCheckUnavailable()
-        text = self._build_sample_text(paragraphs=paragraphs)
+        text = "\n".join(paragraphs)
         try:
             raw_matches = self._tool.check(text)
         except Exception as exc:
@@ -35,15 +35,7 @@ class LanguageToolAdapter(GrammarCheckPort):
         grammar_matches = [match for match in raw_matches if match.rule_issue_type != "misspelling"]
         return [
             self._map_to_dto(number=index + 1, match=match)
-            for index, match in enumerate(
-                grammar_matches[: self._language_tool_settings.max_errors]
-            )
-        ]
-
-    def _build_sample_text(self, paragraphs: list[str]) -> str:
-        """Return a text sample truncated to the configured limits."""
-        return "\n".join(paragraphs[: self._language_tool_settings.max_paragraphs])[
-            : self._language_tool_settings.max_chars
+            for index, match in enumerate(grammar_matches)
         ]
 
     def _initialize_tool_if_needed(self) -> None:

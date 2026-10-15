@@ -93,9 +93,6 @@ class TestEnvConfigSettingsFile(TestCase):
 
         self.assertIsInstance(settings, LanguageToolSettings)
         self.assertEqual(settings.max_replacements, expected["grammar_max_replacements"])
-        self.assertEqual(settings.max_paragraphs, expected["grammar_max_paragraphs"])
-        self.assertEqual(settings.max_chars, expected["grammar_max_chars"])
-        self.assertEqual(settings.max_errors, expected["grammar_max_errors"])
 
     def test_float_value_comes_from_the_given_settings_file(self):
         self._write_settings({"article_classifier_temperature": 0.4})
@@ -162,28 +159,28 @@ class TestEnvConfigSettingsFile(TestCase):
         self.assertEqual(config.report_words_per_page, 275)
 
     def test_value_comes_from_the_given_settings_file(self):
-        self._write_settings({"grammar_max_paragraphs": 7})
+        self._write_settings({"grammar_max_replacements": 7})
 
         with patch.dict(environ, self._complete_environment(), clear=True):
             config = EnvConfig(settings_file_path=self._settings_file_path)
 
-        self.assertEqual(config.grammar_max_paragraphs, 7)
+        self.assertEqual(config.grammar_max_replacements, 7)
 
     def test_environment_variable_overrides_the_settings_file(self):
-        environment = self._complete_environment({"GRAMMAR_MAX_PARAGRAPHS": "42"})
+        environment = self._complete_environment({"GRAMMAR_MAX_REPLACEMENTS": "42"})
 
         with patch.dict(environ, environment, clear=True):
             config = EnvConfig(settings_file_path=self._settings_file_path)
 
-        self.assertEqual(config.grammar_max_paragraphs, 42)
+        self.assertEqual(config.grammar_max_replacements, 42)
 
     def test_raises_setting_value_missing_naming_the_missing_key(self):
-        self._write_settings({"grammar_max_paragraphs": None})
+        self._write_settings({"grammar_max_replacements": None})
 
         with patch.dict(environ, self._complete_environment(), clear=True):
             with self.assertRaises(SettingValueMissing) as context:
                 EnvConfig(settings_file_path=self._settings_file_path)
-            self.assertRegex(context.exception.dict()["error"], "max_paragraphs")
+            self.assertRegex(context.exception.dict()["error"], "max_replacements")
 
     def test_raises_settings_file_not_found_when_the_settings_file_does_not_exist(self):
         missing_settings_file_path = Path(self._temporary_directory.name) / "missing.toml"

@@ -10,7 +10,7 @@ class TestSettingsValueResolver(TestCase):
     def setUp(self):
         settings = {
             "grammar": {
-                "max_errors": 10,
+                "max_replacements": 10,
                 "threshold": 0.5,
                 "whole_threshold": 7,
                 "marker": "conclusi",
@@ -22,24 +22,30 @@ class TestSettingsValueResolver(TestCase):
 
     def test_reads_integer_from_settings_when_environment_variable_is_absent(self):
         with patch.dict(environ, {}, clear=True):
-            value = self._resolver.read_integer("GRAMMAR_MAX_ERRORS", "grammar", "max_errors")
+            value = self._resolver.read_integer(
+                "GRAMMAR_MAX_REPLACEMENTS", "grammar", "max_replacements"
+            )
 
         self.assertEqual(value, 10)
         self.assertIsInstance(value, int)
 
     def test_environment_variable_overrides_integer_from_settings(self):
-        with patch.dict(environ, {"GRAMMAR_MAX_ERRORS": "25"}, clear=True):
-            value = self._resolver.read_integer("GRAMMAR_MAX_ERRORS", "grammar", "max_errors")
+        with patch.dict(environ, {"GRAMMAR_MAX_REPLACEMENTS": "25"}, clear=True):
+            value = self._resolver.read_integer(
+                "GRAMMAR_MAX_REPLACEMENTS", "grammar", "max_replacements"
+            )
 
         self.assertEqual(value, 25)
 
     def test_raises_setting_value_invalid_naming_variable_when_integer_environment_variable_is_invalid(
         self,
     ):
-        with patch.dict(environ, {"GRAMMAR_MAX_ERRORS": "many"}, clear=True):
+        with patch.dict(environ, {"GRAMMAR_MAX_REPLACEMENTS": "many"}, clear=True):
             with self.assertRaises(SettingValueInvalid) as context:
-                self._resolver.read_integer("GRAMMAR_MAX_ERRORS", "grammar", "max_errors")
-            self.assertRegex(context.exception.dict()["error"], "GRAMMAR_MAX_ERRORS")
+                self._resolver.read_integer(
+                    "GRAMMAR_MAX_REPLACEMENTS", "grammar", "max_replacements"
+                )
+            self.assertRegex(context.exception.dict()["error"], "GRAMMAR_MAX_REPLACEMENTS")
 
     def test_raises_setting_value_invalid_when_integer_setting_is_not_an_integer(self):
         with patch.dict(environ, {}, clear=True):
@@ -109,8 +115,10 @@ class TestSettingsValueResolver(TestCase):
     def test_raises_setting_value_invalid_when_string_setting_is_not_text(self):
         with patch.dict(environ, {}, clear=True):
             with self.assertRaises(SettingValueInvalid) as context:
-                self._resolver.read_string("GRAMMAR_MAX_ERRORS", "grammar", "max_errors")
-            self.assertRegex(context.exception.dict()["error"], r"'max_errors'.*\[grammar\]")
+                self._resolver.read_string(
+                    "GRAMMAR_MAX_REPLACEMENTS", "grammar", "max_replacements"
+                )
+            self.assertRegex(context.exception.dict()["error"], r"'max_replacements'.*\[grammar\]")
 
     def test_raises_setting_value_invalid_naming_section_key_and_variable_when_setting_is_missing(
         self,

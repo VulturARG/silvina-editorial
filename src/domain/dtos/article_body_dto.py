@@ -12,6 +12,11 @@ class ArticleBodyDTO(BaseDTO):
     paragraphs: tuple[str, ...]
 
     @property
+    def abstract_and_body_paragraphs(self) -> list[str]:
+        """Return the abstract paragraphs, the repeated title and the body paragraphs in order."""
+        return [*self.abstract_paragraphs, self.title, *self.paragraphs]
+
+    @property
     def text(self) -> str:
         """Return the title and body paragraphs joined with a single space."""
         return " ".join((self.title, *self.paragraphs))
