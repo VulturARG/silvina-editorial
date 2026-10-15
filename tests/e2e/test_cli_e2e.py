@@ -49,6 +49,7 @@ def _make_ollama_client_mock(
     classification (S4/S5/S6) and quality (per-dimension) response parsers."""
     mock_client = MagicMock()
     mock_client.generate.return_value = {"response": response}
+    mock_client.list.return_value = {"models": []}
     return mock_client
 
 
@@ -121,14 +122,69 @@ class TestDocumentAnalysisCommandE2E(TestCase):
         for extension in REPORT_EXTENSIONS:
             self.assertTrue(self._report_path("override-model", extension).is_file())
 
-    def _run_command(self, arguments: CommandLineArguments) -> int:
+    def test_warms_up_language_model_before_analyzing_document(self):
         mock_client = _make_ollama_client_mock()
+        mock_lt = MagicMock()
+        mock_lt.check.return_value = []
+        captured_output = StringIO()
         with (
             patch("ollama.Client", return_value=mock_client),
+            patch(
+                "src.infrastructure.adapters.llm_generator.ollama_server_adapter.Client",
+                return_value=mock_client,
+            ),
             patch(
                 "src.infrastructure.adapters.document.win32com_word_count_adapter."
                 "WIN32COM_AVAILABLE",
                 False,
+            ),
+            patch(
+                "src.infrastructure.adapters.grammar.language_tool_adapter.language_tool_python.LanguageTool",
+                return_value=mock_lt,
+            ),
+            redirect_stdout(captured_output),
+        ):
+            status = (
+                DocumentAnalysisCommandWiring()
+                .create_command()
+                .run(
+                    CommandLineArguments(
+                        document_name=FIXTURE_PATH,
+                        output_directory=self._output_directory,
+                        ollama_model_name="warmup-test-model",
+                    )
+                )
+            )
+
+        self.assertEqual(status, 0)
+        output_text = captured_output.getvalue()
+        self.assertIn("Verificando el servidor del modelo de lenguaje", output_text)
+        self.assertIn("Precargando el modelo de lenguaje", output_text)
+        mock_client.list.assert_called_once()
+        warmup_calls = [
+            call for call in mock_client.generate.call_args_list if call.kwargs.get("prompt") == ""
+        ]
+        self.assertEqual(len(warmup_calls), 1)
+        self.assertEqual(warmup_calls[0].kwargs.get("model"), "warmup-test-model")
+
+    def _run_command(self, arguments: CommandLineArguments) -> int:
+        mock_client = _make_ollama_client_mock()
+        mock_lt = MagicMock()
+        mock_lt.check.return_value = []
+        with (
+            patch("ollama.Client", return_value=mock_client),
+            patch(
+                "src.infrastructure.adapters.llm_generator.ollama_server_adapter.Client",
+                return_value=mock_client,
+            ),
+            patch(
+                "src.infrastructure.adapters.document.win32com_word_count_adapter."
+                "WIN32COM_AVAILABLE",
+                False,
+            ),
+            patch(
+                "src.infrastructure.adapters.grammar.language_tool_adapter.language_tool_python.LanguageTool",
+                return_value=mock_lt,
             ),
             redirect_stdout(StringIO()),
         ):

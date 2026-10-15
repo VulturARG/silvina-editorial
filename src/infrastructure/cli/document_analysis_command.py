@@ -76,13 +76,16 @@ class DocumentAnalysisCommand:
             self._console_step_announcer.announce_error(self._describe_error(error))
             return self.FAILURE_STATUS
         try:
-            return self._analyze_and_export(services, document_path, arguments.output_directory)
-        except BaseSrcError as error:
-            self._console_step_announcer.announce_error(error.dict()["error"])
-            return self.FAILURE_STATUS
-        except Exception as error:
-            self._console_step_announcer.announce_error(f"Error inesperado: {error}")
-            return self.FAILURE_STATUS
+            try:
+                return self._analyze_and_export(services, document_path, arguments.output_directory)
+            except BaseSrcError as error:
+                self._console_step_announcer.announce_error(error.dict()["error"])
+                return self.FAILURE_STATUS
+            except Exception as error:
+                self._console_step_announcer.announce_error(f"Error inesperado: {error}")
+                return self.FAILURE_STATUS
+        finally:
+            self._release_language_model_server(services)
 
     def _resolve_document_name(self, arguments: CommandLineArguments) -> str:
         if arguments.document_name is not None:
@@ -105,6 +108,14 @@ class DocumentAnalysisCommand:
         report_file_paths = self._build_report_file_paths(
             document_path, output_directory, services.model_name
         )
+        if services.uses_local_language_model:
+            with self._console_step_announcer.step(
+                "Verificando el servidor del modelo de lenguaje"
+            ):
+                services.ensure_language_model_server_use_case.execute()
+        if services.warms_up_language_model:
+            with self._console_step_announcer.step("Precargando el modelo de lenguaje"):
+                services.warm_up_language_model_use_case.execute()
         with self._console_step_announcer.step("Analizando el documento"):
             report = services.analyze_document_use_case.execute(
                 document_path=str(document_path),
@@ -164,6 +175,13 @@ class DocumentAnalysisCommand:
         if was_exported:
             self._console_step_announcer.announce_finish(step_description)
         return was_exported
+
+    @staticmethod
+    def _release_language_model_server(services: CliAnalysisServices) -> None:
+        try:
+            services.release_language_model_server_use_case.execute()
+        except Exception:
+            pass
 
     @staticmethod
     def _describe_error(error: Exception) -> str:

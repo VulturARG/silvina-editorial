@@ -49,4 +49,6 @@ hs_err_pid*.log
 replay_pid*.log
 
 # Manual testing results
-sandbox/outputs/
+sandbox/*/outputs/
+~$*
+data/ollama_server_lease.json

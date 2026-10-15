@@ -19,6 +19,7 @@ class TestCompleteTestEnvironment(TestCase):
             "OLLAMA_THINK": "false",
             "OLLAMA_MODEL_KEEP_ALIVE": "15m",
             "OLLAMA_WARMUP_ON_STARTUP": "true",
+            "OLLAMA_SERVER_IDLE_SHUTDOWN": "5m",
             "USE_EXTERNAL_LLM": "false",
             "EXTERNAL_LLM_THINK": "false",
         }

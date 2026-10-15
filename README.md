@@ -243,8 +243,9 @@ When the web server starts (`launch_silvina.bat` or `python web_main.py`) and Ol
 |----------|---------|---------|
 | `OLLAMA_WARMUP_ON_STARTUP` | `true` | `true` or `false`. Loads the model when the server starts |
 | `OLLAMA_MODEL_KEEP_ALIVE` | `15m` | How long the model stays loaded after each request. A duration with a unit (`15m`, `1h`, `90s`); a negative one such as `-1m` keeps it loaded indefinitely |
+| `OLLAMA_SERVER_IDLE_SHUTDOWN` | `5m` | Inactivity duration before closing a server started by the CLI. A strictly positive duration with a unit (`5m`, `90s`, `1h`) |
 
-The warm-up is skipped when the external LLM (Claude, `APP_MODE=DEBUG` only) is in use, and it applies only to the web interface, not to the command line. While loaded, the 26B model holds about 14 GB of VRAM: if the same GPU is shared with other applications, lower `OLLAMA_MODEL_KEEP_ALIVE` or set `OLLAMA_WARMUP_ON_STARTUP=false`. `OLLAMA_MODEL_KEEP_ALIVE` is Silvina's setting and is independent from the `OLLAMA_KEEP_ALIVE` variable of the Ollama server.
+The warm-up is skipped when the external LLM (Claude, `APP_MODE=DEBUG` only) is in use; when a local Ollama model is used, the warm-up runs in the web interface on startup and also in the command line as its own announced step. While loaded, the 26B model holds about 14 GB of VRAM: if the same GPU is shared with other applications, lower `OLLAMA_MODEL_KEEP_ALIVE` or set `OLLAMA_WARMUP_ON_STARTUP=false`. `OLLAMA_MODEL_KEEP_ALIVE` is Silvina's setting and is independent from the `OLLAMA_KEEP_ALIVE` variable of the Ollama server.
 
 ### Optional: external LLM for debugging (Claude)
 
@@ -299,6 +300,8 @@ The document is read from the current directory unless `--input-dir` is given. O
 | `--research-lines <dir>` | Directory containing `research_lines.txt` to override default research lines |
 
 The external LLM is only used when the mode is `DEBUG`, as with the `.env` settings.
+
+When a local Ollama model is used, the CLI verifies that the language model server is reachable in its own announced step (`Verificando el servidor del modelo de lenguaje`). If the local Ollama server is not running, the CLI starts the system `ollama serve` process and waits up to the timeout limit. The executable is looked up in the PATH, then in the system-wide persistent PATH, then in `%LOCALAPPDATA%\Programs\Ollama`, so a terminal opened before installing Ollama still works. A server started by the CLI is closed after 5 minutes without use by a background watcher process (configurable through `OLLAMA_SERVER_IDLE_SHUTDOWN`), while a server that was already running is never touched; a second CLI run within the window restarts the count. Next, when warm-up is enabled (`OLLAMA_WARMUP_ON_STARTUP=true`), the model is preloaded before the analysis in its own announced step (`Precargando el modelo de lenguaje`). When using an external model, both server check and warm-up steps are skipped.
 
 Each run writes three reports, `<document>_analisis_<model>.docx`, `.json` and `.html`, overwriting any previous files with the same names.
 

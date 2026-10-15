@@ -287,3 +287,41 @@ class TestOverridableAnalyzeDocumentUseCaseWiring(TestCase):
             suitability_analyzer._research_lines,
             "custom content for research_lines",
         )
+
+    def test_uses_local_language_model_returns_true_for_ollama(self):
+        with patch.dict(environ, self._complete_environment(), clear=True):
+            wiring = OverridableAnalyzeDocumentUseCaseWiring({})
+            self.assertTrue(wiring.uses_local_language_model())
+
+    def test_uses_local_language_model_returns_false_for_external_provider(self):
+        overrides = {
+            "APP_MODE": "DEBUG",
+            "USE_EXTERNAL_LLM": "true",
+            "LLM_PROVIDER": "claude",
+            "EXTERNAL_LLM_MODEL_NAME": "claude-3-7-sonnet",
+        }
+        with patch.dict(environ, self._complete_environment(), clear=True):
+            wiring = OverridableAnalyzeDocumentUseCaseWiring(overrides)
+            self.assertFalse(wiring.uses_local_language_model())
+
+    def test_warms_up_language_model_returns_true_when_local_and_enabled(self):
+        with patch.dict(environ, self._complete_environment(), clear=True):
+            wiring = OverridableAnalyzeDocumentUseCaseWiring({"OLLAMA_WARMUP_ON_STARTUP": "true"})
+            self.assertTrue(wiring.warms_up_language_model())
+
+    def test_warms_up_language_model_returns_false_when_startup_warmup_disabled(self):
+        with patch.dict(environ, self._complete_environment(), clear=True):
+            wiring = OverridableAnalyzeDocumentUseCaseWiring({"OLLAMA_WARMUP_ON_STARTUP": "false"})
+            self.assertFalse(wiring.warms_up_language_model())
+
+    def test_warms_up_language_model_returns_false_for_external_provider(self):
+        overrides = {
+            "APP_MODE": "DEBUG",
+            "USE_EXTERNAL_LLM": "true",
+            "LLM_PROVIDER": "claude",
+            "EXTERNAL_LLM_MODEL_NAME": "claude-3-7-sonnet",
+            "OLLAMA_WARMUP_ON_STARTUP": "true",
+        }
+        with patch.dict(environ, self._complete_environment(), clear=True):
+            wiring = OverridableAnalyzeDocumentUseCaseWiring(overrides)
+            self.assertFalse(wiring.warms_up_language_model())
