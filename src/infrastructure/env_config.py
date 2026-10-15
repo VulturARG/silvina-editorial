@@ -34,15 +34,6 @@ class EnvConfig:
         self.grammar_max_replacements: int = settings.read_integer(
             "GRAMMAR_MAX_REPLACEMENTS", "grammar", "max_replacements"
         )
-        self.grammar_max_paragraphs: int = settings.read_integer(
-            "GRAMMAR_MAX_PARAGRAPHS", "grammar", "max_paragraphs"
-        )
-        self.grammar_max_chars: int = settings.read_integer(
-            "GRAMMAR_MAX_CHARS", "grammar", "max_chars"
-        )
-        self.grammar_max_errors: int = settings.read_integer(
-            "GRAMMAR_MAX_ERRORS", "grammar", "max_errors"
-        )
         self.structure_max_header_length: int = settings.read_integer(
             "STRUCTURE_MAX_HEADER_LENGTH", "structure", "max_header_length"
         )
@@ -189,12 +180,7 @@ class EnvConfig:
 
     def get_language_tool_settings(self) -> LanguageToolSettings:
         """Builds LanguageToolSettings from cached configuration values."""
-        return LanguageToolSettings(
-            max_replacements=self.grammar_max_replacements,
-            max_paragraphs=self.grammar_max_paragraphs,
-            max_chars=self.grammar_max_chars,
-            max_errors=self.grammar_max_errors,
-        )
+        return LanguageToolSettings(max_replacements=self.grammar_max_replacements)
 
     def _get_required_env(self, name: str) -> str:
         value = getenv(name, "").strip()

@@ -409,29 +409,15 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         self.assertEqual(
             port._language_tool_settings.max_replacements, expected["grammar_max_replacements"]
         )
-        self.assertEqual(
-            port._language_tool_settings.max_paragraphs, expected["grammar_max_paragraphs"]
-        )
-        self.assertEqual(port._language_tool_settings.max_chars, expected["grammar_max_chars"])
-        self.assertEqual(port._language_tool_settings.max_errors, expected["grammar_max_errors"])
 
     def test_env_vars_override_grammar_adapter_parameters(self):
-        overrides = {
-            "GRAMMAR_MAX_REPLACEMENTS": "5",
-            "GRAMMAR_MAX_PARAGRAPHS": "30",
-            "GRAMMAR_MAX_CHARS": "8000",
-            "GRAMMAR_MAX_ERRORS": "15",
-        }
-        with patch.dict(environ, overrides):
+        with patch.dict(environ, {"GRAMMAR_MAX_REPLACEMENTS": "5"}):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
         port = result._grammar_checker._grammar_check_port
         self.assertIsInstance(port, LanguageToolAdapter)
         assert isinstance(port, LanguageToolAdapter)
         self.assertIsInstance(port._language_tool_settings, LanguageToolSettings)
         self.assertEqual(port._language_tool_settings.max_replacements, 5)
-        self.assertEqual(port._language_tool_settings.max_paragraphs, 30)
-        self.assertEqual(port._language_tool_settings.max_chars, 8000)
-        self.assertEqual(port._language_tool_settings.max_errors, 15)
 
     def test_missing_ollama_think_raises_setting_value_missing(self):
         env_without = {k: v for k, v in environ.items() if k != "OLLAMA_THINK"}

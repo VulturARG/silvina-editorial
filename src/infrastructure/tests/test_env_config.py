@@ -108,21 +108,6 @@ class TestEnvConfig(TestCase):
             config = EnvConfig()
         self.assertEqual(config.grammar_max_replacements, 7)
 
-    def test_env_var_overrides_grammar_max_paragraphs(self):
-        with patch.dict(environ, {"GRAMMAR_MAX_PARAGRAPHS": "25"}):
-            config = EnvConfig()
-        self.assertEqual(config.grammar_max_paragraphs, 25)
-
-    def test_env_var_overrides_grammar_max_chars(self):
-        with patch.dict(environ, {"GRAMMAR_MAX_CHARS": "6000"}):
-            config = EnvConfig()
-        self.assertEqual(config.grammar_max_chars, 6000)
-
-    def test_env_var_overrides_grammar_max_errors(self):
-        with patch.dict(environ, {"GRAMMAR_MAX_ERRORS": "15"}):
-            config = EnvConfig()
-        self.assertEqual(config.grammar_max_errors, 15)
-
     def test_env_var_overrides_structure_max_header_length(self):
         with patch.dict(environ, {"STRUCTURE_MAX_HEADER_LENGTH": "42"}):
             config = EnvConfig()
@@ -400,19 +385,10 @@ class TestEnvConfig(TestCase):
         self.assertEqual(settings.citation_count_threshold, 20)
 
     def test_get_language_tool_settings_reflects_env_overrides(self):
-        overrides = {
-            "GRAMMAR_MAX_REPLACEMENTS": "5",
-            "GRAMMAR_MAX_PARAGRAPHS": "30",
-            "GRAMMAR_MAX_CHARS": "8000",
-            "GRAMMAR_MAX_ERRORS": "15",
-        }
-        with patch.dict(environ, overrides):
+        with patch.dict(environ, {"GRAMMAR_MAX_REPLACEMENTS": "5"}):
             settings = EnvConfig().get_language_tool_settings()
 
         self.assertEqual(settings.max_replacements, 5)
-        self.assertEqual(settings.max_paragraphs, 30)
-        self.assertEqual(settings.max_chars, 8000)
-        self.assertEqual(settings.max_errors, 15)
 
     def test_env_var_overrides_app_mode_to_debug(self):
         with patch.dict(environ, {"APP_MODE": "DEBUG"}):

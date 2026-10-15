@@ -14,7 +14,7 @@ class TestSettingsFileLoader(TestCase):
 
     def test_loads_sections_with_typed_values(self):
         self._settings_file_path.write_text(
-            '[grammar]\nmax_errors = 10\nthreshold = 0.5\nenabled = true\nname = "text"\n',
+            '[grammar]\nmax_replacements = 10\nthreshold = 0.5\nenabled = true\nname = "text"\n',
             encoding="utf-8",
         )
 
@@ -22,7 +22,14 @@ class TestSettingsFileLoader(TestCase):
 
         self.assertEqual(
             settings,
-            {"grammar": {"max_errors": 10, "threshold": 0.5, "enabled": True, "name": "text"}},
+            {
+                "grammar": {
+                    "max_replacements": 10,
+                    "threshold": 0.5,
+                    "enabled": True,
+                    "name": "text",
+                }
+            },
         )
 
     def test_loads_utf8_content(self):
@@ -41,7 +48,7 @@ class TestSettingsFileLoader(TestCase):
         self.assertIn(str(self._settings_file_path), context.exception.dict()["error"])
 
     def test_raises_settings_file_invalid_naming_the_path_when_toml_is_invalid(self):
-        self._settings_file_path.write_text("[grammar\nmax_errors = ", encoding="utf-8")
+        self._settings_file_path.write_text("[grammar\nmax_replacements = ", encoding="utf-8")
         loader = SettingsFileLoader(self._settings_file_path)
 
         with self.assertRaises(SettingsFileInvalid) as context:

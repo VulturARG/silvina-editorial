@@ -88,7 +88,7 @@ class AnalyzeDocumentUseCase:
         grammar = self._analysis_tracker.track_stage(
             AnalysisStage.CHECK_GRAMMAR,
             self._grammar_checker.check_grammar,
-            paragraphs=document_content.paragraphs,
+            document_content=document_content,
         )
         classification = self._analysis_tracker.track_stage(
             AnalysisStage.CLASSIFY_ARTICLE,

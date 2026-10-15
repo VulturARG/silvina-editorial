@@ -6,9 +6,6 @@ class CompleteTestSettings:
 
     _ENTRIES: tuple[tuple[str, str, str, int | float | str], ...] = (
         ("grammar", "max_replacements", "grammar_max_replacements", 211),
-        ("grammar", "max_paragraphs", "grammar_max_paragraphs", 223),
-        ("grammar", "max_chars", "grammar_max_chars", 4321),
-        ("grammar", "max_errors", "grammar_max_errors", 239),
         ("structure", "max_header_length", "structure_max_header_length", 149),
         ("citation", "max_author_name_length", "citation_max_author_name_length", 137),
         ("article_classifier", "temperature", "article_classifier_temperature", 0.37),

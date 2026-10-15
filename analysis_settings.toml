@@ -4,9 +4,6 @@
 
 [grammar]
 max_replacements = 3
-max_paragraphs = 20
-max_chars = 75000
-max_errors = 10
 
 [structure]
 max_header_length = 100
