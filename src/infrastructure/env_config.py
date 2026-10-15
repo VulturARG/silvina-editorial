@@ -3,9 +3,6 @@ from pathlib import Path
 from re import finditer, fullmatch
 
 
-from src.domain.dtos.classification_text_sampling_settings_dto import (
-    ClassificationTextSamplingSettingsDTO,
-)
 from src.domain.dtos.quality_text_sampling_settings_dto import (
     QualityTextSamplingSettingsDTO,
 )
@@ -59,28 +56,6 @@ class EnvConfig:
         )
         self.article_classifier_num_predict: int = settings.read_integer(
             "ARTICLE_CLASSIFIER_NUM_PREDICT", "article_classifier", "num_predict"
-        )
-        self.article_classification_sample_introduction_character_limit: int = (
-            settings.read_integer(
-                "ARTICLE_CLASSIFICATION_SAMPLE_INTRODUCTION_CHARACTER_LIMIT",
-                "article_classification",
-                "sample_introduction_character_limit",
-            )
-        )
-        self.article_classification_sample_conclusion_character_limit: int = settings.read_integer(
-            "ARTICLE_CLASSIFICATION_SAMPLE_CONCLUSION_CHARACTER_LIMIT",
-            "article_classification",
-            "sample_conclusion_character_limit",
-        )
-        self.article_classification_sample_fallback_character_limit: int = settings.read_integer(
-            "ARTICLE_CLASSIFICATION_SAMPLE_FALLBACK_CHARACTER_LIMIT",
-            "article_classification",
-            "sample_fallback_character_limit",
-        )
-        self.article_classification_bibliography_header_max_length: int = settings.read_integer(
-            "ARTICLE_CLASSIFICATION_BIBLIOGRAPHY_HEADER_MAX_LENGTH",
-            "article_classification",
-            "bibliography_header_max_length",
         )
 
         self.article_size_short_min_chars: int = settings.read_integer(
@@ -264,17 +239,6 @@ class EnvConfig:
             conclusion_paragraph_limit=self.quality_text_sample_conclusion_paragraph_limit,
             fallback_tail_paragraph_count=self.quality_text_sample_fallback_tail_paragraph_count,
             conclusion_header_marker=self.quality_text_sample_conclusion_header_marker,
-        )
-
-    def get_classification_text_sampling_settings(
-        self,
-    ) -> ClassificationTextSamplingSettingsDTO:
-        """Builds ClassificationTextSamplingSettingsDTO from cached configuration values."""
-        return ClassificationTextSamplingSettingsDTO(
-            introduction_character_limit=self.article_classification_sample_introduction_character_limit,
-            conclusion_character_limit=self.article_classification_sample_conclusion_character_limit,
-            fallback_character_limit=self.article_classification_sample_fallback_character_limit,
-            bibliography_header_max_length=self.article_classification_bibliography_header_max_length,
         )
 
     def get_language_tool_settings(self) -> LanguageToolSettings:

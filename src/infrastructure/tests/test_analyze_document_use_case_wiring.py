@@ -8,9 +8,6 @@ from unittest import TestCase
 from unittest.mock import patch
 
 from src.application.analyze_document_use_case import AnalyzeDocumentUseCase
-from src.domain.dtos.classification_text_sampling_settings_dto import (
-    ClassificationTextSamplingSettingsDTO,
-)
 from src.domain.dtos.quality_text_sampling_settings_dto import (
     QualityTextSamplingSettingsDTO,
 )
@@ -500,55 +497,6 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         self.assertEqual(sampler._quality_text_sampling_settings.conclusion_paragraph_limit, 5)
         self.assertEqual(sampler._quality_text_sampling_settings.fallback_tail_paragraph_count, 3)
         self.assertEqual(sampler._quality_text_sampling_settings.conclusion_header_marker, "cierre")
-
-    def test_default_article_classification_text_sampler_parameters_when_env_vars_absent(self):
-        expected = CompleteTestSettings.expected_values()
-        result = self._create_use_case_from_test_settings()
-        sampler = result._article_classifier._text_sampler
-        settings = sampler._classification_text_sampling_settings
-        self.assertIsInstance(settings, ClassificationTextSamplingSettingsDTO)
-        self.assertEqual(
-            settings.introduction_character_limit,
-            expected["article_classification_sample_introduction_character_limit"],
-        )
-        self.assertEqual(
-            settings.conclusion_character_limit,
-            expected["article_classification_sample_conclusion_character_limit"],
-        )
-        self.assertEqual(
-            settings.fallback_character_limit,
-            expected["article_classification_sample_fallback_character_limit"],
-        )
-        self.assertEqual(
-            settings.bibliography_header_max_length,
-            expected["article_classification_bibliography_header_max_length"],
-        )
-
-    def test_env_vars_override_article_classification_text_sampler_parameters(self):
-        overrides = {
-            "ARTICLE_CLASSIFICATION_SAMPLE_INTRODUCTION_CHARACTER_LIMIT": "4000",
-            "ARTICLE_CLASSIFICATION_SAMPLE_CONCLUSION_CHARACTER_LIMIT": "3000",
-            "ARTICLE_CLASSIFICATION_SAMPLE_FALLBACK_CHARACTER_LIMIT": "7000",
-            "ARTICLE_CLASSIFICATION_BIBLIOGRAPHY_HEADER_MAX_LENGTH": "40",
-        }
-        with patch.dict(environ, overrides):
-            result = AnalyzeDocumentUseCaseWiring().create_use_case()
-        sampler = result._article_classifier._text_sampler
-        self.assertIsInstance(
-            sampler._classification_text_sampling_settings, ClassificationTextSamplingSettingsDTO
-        )
-        self.assertEqual(
-            sampler._classification_text_sampling_settings.introduction_character_limit, 4000
-        )
-        self.assertEqual(
-            sampler._classification_text_sampling_settings.conclusion_character_limit, 3000
-        )
-        self.assertEqual(
-            sampler._classification_text_sampling_settings.fallback_character_limit, 7000
-        )
-        self.assertEqual(
-            sampler._classification_text_sampling_settings.bibliography_header_max_length, 40
-        )
 
     def test_missing_ollama_think_raises_setting_value_missing(self):
         env_without = {k: v for k, v in environ.items() if k != "OLLAMA_THINK"}
