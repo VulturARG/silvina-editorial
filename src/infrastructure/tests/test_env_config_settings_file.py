@@ -4,9 +4,6 @@ from tempfile import TemporaryDirectory
 from unittest import TestCase
 from unittest.mock import patch
 
-from src.domain.dtos.quality_text_sampling_settings_dto import (
-    QualityTextSamplingSettingsDTO,
-)
 from src.domain.dtos.recommendation_settings_dto import RecommendationSettingsDTO
 from src.domain.exceptions.settings_errors import SettingsFileNotFound, SettingValueMissing
 from src.infrastructure.adapters.grammar.language_tool_settings import (
@@ -88,43 +85,6 @@ class TestEnvConfigSettingsFile(TestCase):
             settings.critical_grammar_threshold, expected["critical_grammar_threshold"]
         )
 
-    def test_get_quality_text_sampling_settings_maps_every_field_from_the_settings_file(self):
-        expected = CompleteTestSettings.expected_values()
-        with patch.dict(environ, self._complete_environment(), clear=True):
-            config = EnvConfig(settings_file_path=self._settings_file_path)
-            settings = config.get_quality_text_sampling_settings()
-
-        self.assertIsInstance(settings, QualityTextSamplingSettingsDTO)
-        self.assertEqual(settings.min_sample_word_count, expected["quality_min_sample_word_count"])
-        self.assertEqual(
-            settings.text_sample_character_limit,
-            expected["quality_text_sample_character_limit"],
-        )
-        self.assertEqual(
-            settings.reference_line_prefix_length,
-            expected["quality_text_sample_reference_line_prefix_length"],
-        )
-        self.assertEqual(
-            settings.introduction_paragraph_count,
-            expected["quality_text_sample_introduction_paragraph_count"],
-        )
-        self.assertEqual(
-            settings.middle_paragraph_count,
-            expected["quality_text_sample_middle_paragraph_count"],
-        )
-        self.assertEqual(
-            settings.conclusion_paragraph_limit,
-            expected["quality_text_sample_conclusion_paragraph_limit"],
-        )
-        self.assertEqual(
-            settings.fallback_tail_paragraph_count,
-            expected["quality_text_sample_fallback_tail_paragraph_count"],
-        )
-        self.assertEqual(
-            settings.conclusion_header_marker,
-            expected["quality_text_sample_conclusion_header_marker"],
-        )
-
     def test_get_language_tool_settings_maps_every_field_from_the_settings_file(self):
         expected = CompleteTestSettings.expected_values()
         with patch.dict(environ, self._complete_environment(), clear=True):
@@ -152,14 +112,6 @@ class TestEnvConfigSettingsFile(TestCase):
             config = EnvConfig(settings_file_path=self._settings_file_path)
 
         self.assertEqual(config.article_size_long_max_chars, 45000)
-
-    def test_string_value_comes_from_the_given_settings_file(self):
-        self._write_settings({"quality_text_sample_conclusion_header_marker": "cierre"})
-
-        with patch.dict(environ, self._complete_environment(), clear=True):
-            config = EnvConfig(settings_file_path=self._settings_file_path)
-
-        self.assertEqual(config.quality_text_sample_conclusion_header_marker, "cierre")
 
     def test_environment_variable_overrides_the_quality_level_threshold(self):
         environment = self._complete_environment({"QUALITY_LEVEL_GOOD_THRESHOLD": "8.0"})

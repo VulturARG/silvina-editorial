@@ -26,11 +26,11 @@ class TestSettingsFileLoader(TestCase):
         )
 
     def test_loads_utf8_content(self):
-        self._settings_file_path.write_text('[quality]\nmarker = "conclusión"\n', encoding="utf-8")
+        self._settings_file_path.write_text('[grammar]\nmarker = "conclusión"\n', encoding="utf-8")
 
         settings = SettingsFileLoader(self._settings_file_path).load()
 
-        self.assertEqual(settings["quality"]["marker"], "conclusión")
+        self.assertEqual(settings["grammar"]["marker"], "conclusión")
 
     def test_raises_settings_file_not_found_naming_the_path_when_file_is_missing(self):
         loader = SettingsFileLoader(self._settings_file_path)

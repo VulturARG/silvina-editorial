@@ -159,7 +159,7 @@ src/infrastructure/ # Adapters (docx, ollama, win32com, language_tool), wiring, 
 
 **Architecture:** Single combined LLM call per dimension pair (Call 1: Claridad + Coherencia / Call 2: Argumentación + Conclusiones). Score inference from narrative when LLM omits score format.
 
-**Text sampling:** First 3500 chars (intro) + last 2500 chars (conclusions), bibliography excluded via paragraph-level header detection.
+**Full body analysis:** the quality and editorial suitability prompts receive the whole article body (title and body paragraphs), with no sampling or truncation.
 
 ---
 
@@ -220,7 +220,7 @@ The base GGUF tag is published by a third party and can change upstream, so a mo
 
 Silvina reads its configuration from three places:
 
-- `analysis_settings.toml` (project root, versioned): the tuning parameters, grouped by section (`[grammar]`, `[article_size]`, `[quality_text_sample]`, `[recommendation]`, `[report]`, `[upload]`, and others). Edit it to adjust thresholds, sampling limits and size bands.
+- `analysis_settings.toml` (project root, versioned): the tuning parameters, grouped by section (`[grammar]`, `[article_size]`, `[recommendation]`, `[report]`, `[upload]`, and others). Edit it to adjust thresholds and size bands.
 - `editorial_norms.toml` (project root, versioned): the editorial norms that Silvina checks documents against: the document format (`[document_format]`: margins, font size, allowed fonts and the unjustified paragraph ratio), the caption prefixes for figures and tables (`[figures]`, `[tables]`), the abstract and keyword limits (`[abstract]`, `[keywords]`), and the sections required by each article type with their aliases (`[required_sections]`, `[section_aliases]`).
 - `.env` (not versioned, see `.env.example`): the values that depend on the machine or the deployment, such as `APP_MODE`, `METRICS_DATABASE_PATH`, `LOG_FILE_PATH` and the Ollama connection.
 

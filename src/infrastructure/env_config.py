@@ -2,10 +2,6 @@ from os import getenv
 from pathlib import Path
 from re import finditer, fullmatch
 
-
-from src.domain.dtos.quality_text_sampling_settings_dto import (
-    QualityTextSamplingSettingsDTO,
-)
 from src.domain.dtos.recommendation_settings_dto import RecommendationSettingsDTO
 from src.domain.enums.ai_provider import AiProvider
 from src.domain.enums.app_mode import AppMode
@@ -91,43 +87,6 @@ class EnvConfig:
             "quality_level",
             "needs_improvement_threshold",
         )
-        self.quality_min_sample_word_count: int = settings.read_integer(
-            "QUALITY_MIN_SAMPLE_WORD_COUNT", "quality", "min_sample_word_count"
-        )
-        self.quality_text_sample_character_limit: int = settings.read_integer(
-            "QUALITY_TEXT_SAMPLE_CHARACTER_LIMIT", "quality_text_sample", "character_limit"
-        )
-        self.quality_text_sample_reference_line_prefix_length: int = settings.read_integer(
-            "QUALITY_TEXT_SAMPLE_REFERENCE_LINE_PREFIX_LENGTH",
-            "quality_text_sample",
-            "reference_line_prefix_length",
-        )
-        self.quality_text_sample_introduction_paragraph_count: int = settings.read_integer(
-            "QUALITY_TEXT_SAMPLE_INTRODUCTION_PARAGRAPH_COUNT",
-            "quality_text_sample",
-            "introduction_paragraph_count",
-        )
-        self.quality_text_sample_middle_paragraph_count: int = settings.read_integer(
-            "QUALITY_TEXT_SAMPLE_MIDDLE_PARAGRAPH_COUNT",
-            "quality_text_sample",
-            "middle_paragraph_count",
-        )
-        self.quality_text_sample_conclusion_paragraph_limit: int = settings.read_integer(
-            "QUALITY_TEXT_SAMPLE_CONCLUSION_PARAGRAPH_LIMIT",
-            "quality_text_sample",
-            "conclusion_paragraph_limit",
-        )
-        self.quality_text_sample_fallback_tail_paragraph_count: int = settings.read_integer(
-            "QUALITY_TEXT_SAMPLE_FALLBACK_TAIL_PARAGRAPH_COUNT",
-            "quality_text_sample",
-            "fallback_tail_paragraph_count",
-        )
-        self.quality_text_sample_conclusion_header_marker: str = settings.read_string(
-            "QUALITY_TEXT_SAMPLE_CONCLUSION_HEADER_MARKER",
-            "quality_text_sample",
-            "conclusion_header_marker",
-        )
-
         self.ollama_model_name: str = self._get_required_env("OLLAMA_MODEL_NAME")
         self.ollama_base_url: str = self._get_required_env("OLLAMA_BASE_URL")
         self.ollama_think: bool = self._parse_boolean("OLLAMA_THINK")
@@ -226,19 +185,6 @@ class EnvConfig:
             classification_confidence_threshold=self.classification_confidence_threshold,
             critical_quality_threshold=self.critical_quality_threshold,
             critical_grammar_threshold=self.critical_grammar_threshold,
-        )
-
-    def get_quality_text_sampling_settings(self) -> QualityTextSamplingSettingsDTO:
-        """Builds QualityTextSamplingSettingsDTO from cached configuration values."""
-        return QualityTextSamplingSettingsDTO(
-            min_sample_word_count=self.quality_min_sample_word_count,
-            text_sample_character_limit=self.quality_text_sample_character_limit,
-            reference_line_prefix_length=self.quality_text_sample_reference_line_prefix_length,
-            introduction_paragraph_count=self.quality_text_sample_introduction_paragraph_count,
-            middle_paragraph_count=self.quality_text_sample_middle_paragraph_count,
-            conclusion_paragraph_limit=self.quality_text_sample_conclusion_paragraph_limit,
-            fallback_tail_paragraph_count=self.quality_text_sample_fallback_tail_paragraph_count,
-            conclusion_header_marker=self.quality_text_sample_conclusion_header_marker,
         )
 
     def get_language_tool_settings(self) -> LanguageToolSettings:

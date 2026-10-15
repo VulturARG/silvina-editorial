@@ -1,10 +1,8 @@
 from unittest import TestCase
 
+from src.domain.dtos.article_body_dto import ArticleBodyDTO
 from src.domain.dtos.document_content_dto import DocumentContentDTO
 from src.domain.dtos.editorial_suitability_dto import EditorialSuitabilityDTO
-from src.domain.dtos.quality_text_sampling_settings_dto import (
-    QualityTextSamplingSettingsDTO,
-)
 from src.domain.enums.quality_level import QualityLevel
 from src.domain.exceptions.quality_errors import QualityAnalysisFailed
 from src.domain.quality.editorial_suitability_analyzer import EditorialSuitabilityAnalyzer
@@ -15,20 +13,19 @@ from src.domain.tests.quality.editorial_suitability_parser_builder_for_test impo
 from src.domain.tests.quality.quality_response_parser_builder_for_test import (
     QualityResponseParserBuilderForTest,
 )
-from src.domain.quality.quality_text_sampler import QualityTextSampler
 from src.domain.tests.quality.fake_llm_generator_adapter import FakeLlmGeneratorAdapter
 
 
-def build_document_content(
-    paragraphs: list[str], title: str | None = "Title"
-) -> DocumentContentDTO:
+def build_document_content(paragraphs: list[str], title: str = "Title") -> DocumentContentDTO:
     full_text = " ".join(paragraphs)
+    body = ArticleBodyDTO(title=title, abstract_paragraphs=(), paragraphs=tuple(paragraphs))
     return DocumentContentDTO(
         word_count=len(full_text.split()),
         char_count=len(full_text),
         paragraph_count=len(paragraphs),
         title=title,
         paragraphs=paragraphs,
+        body=body,
     )
 
 
@@ -63,20 +60,6 @@ SUITABILITY_ALIGNMENT_RESPONSE = (
 )
 
 
-def build_quality_text_sampler() -> QualityTextSampler:
-    quality_text_sampling_settings = QualityTextSamplingSettingsDTO(
-        min_sample_word_count=400,
-        text_sample_character_limit=8000,
-        reference_line_prefix_length=80,
-        introduction_paragraph_count=3,
-        middle_paragraph_count=2,
-        conclusion_paragraph_limit=3,
-        fallback_tail_paragraph_count=2,
-        conclusion_header_marker="conclusi",
-    )
-    return QualityTextSampler(quality_text_sampling_settings=quality_text_sampling_settings)
-
-
 def build_analyzer(fake_adapter: FakeLlmGeneratorAdapter) -> QualityAnalyzer:
     suitability_adapter = FakeLlmGeneratorAdapter(
         [SUITABILITY_CONTRIBUTION_RESPONSE, SUITABILITY_ALIGNMENT_RESPONSE]
@@ -92,7 +75,6 @@ def build_analyzer(fake_adapter: FakeLlmGeneratorAdapter) -> QualityAnalyzer:
     )
     return QualityAnalyzer(
         llm_generator=fake_adapter,
-        text_sampler=build_quality_text_sampler(),
         response_parser=QualityResponseParserBuilderForTest().build(),
         clarity_coherence_prompt_template=CLARITY_COHERENCE_PROMPT_TEMPLATE,
         argumentation_conclusions_prompt_template=ARGUMENTATION_CONCLUSIONS_PROMPT_TEMPLATE,
@@ -257,11 +239,10 @@ Este bloque de claridad nunca deberia usarse porque viene de la llamada dos.
 
         analyzer.analyze(self.document_content)
 
-        text_sample = build_quality_text_sampler().build_sample(self.document_content)
         self.assertIn(
             "Eres un revisor editorial académico experto.", fake_adapter.received_prompts[0]
         )
-        self.assertIn(text_sample, fake_adapter.received_prompts[0])
+        self.assertIn("Title Parrafo uno. Parrafo dos.", fake_adapter.received_prompts[0])
 
     def test_result_includes_editorial_suitability_dto_from_analyzer(self):
         fake_adapter = FakeLlmGeneratorAdapter([VALID_RESPONSE_ONE, VALID_RESPONSE_TWO])

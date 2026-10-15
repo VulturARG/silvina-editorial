@@ -12,6 +12,11 @@ class ArticleBodyDTO(BaseDTO):
     paragraphs: tuple[str, ...]
 
     @property
+    def text(self) -> str:
+        """Return the title and body paragraphs joined with a single space."""
+        return " ".join((self.title, *self.paragraphs))
+
+    @property
     def char_count(self) -> int:
         """Return the length of the title and body paragraphs joined with a single space."""
-        return len(" ".join((self.title, *self.paragraphs)))
+        return len(self.text)

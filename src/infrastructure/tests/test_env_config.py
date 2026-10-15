@@ -345,36 +345,6 @@ class TestEnvConfig(TestCase):
             config = EnvConfig()
         self.assertTrue(config.external_llm_think)
 
-    def test_env_var_overrides_quality_text_sample_reference_line_prefix_length(self):
-        with patch.dict(environ, {"QUALITY_TEXT_SAMPLE_REFERENCE_LINE_PREFIX_LENGTH": "120"}):
-            config = EnvConfig()
-        self.assertEqual(config.quality_text_sample_reference_line_prefix_length, 120)
-
-    def test_env_var_overrides_quality_text_sample_introduction_paragraph_count(self):
-        with patch.dict(environ, {"QUALITY_TEXT_SAMPLE_INTRODUCTION_PARAGRAPH_COUNT": "5"}):
-            config = EnvConfig()
-        self.assertEqual(config.quality_text_sample_introduction_paragraph_count, 5)
-
-    def test_env_var_overrides_quality_text_sample_middle_paragraph_count(self):
-        with patch.dict(environ, {"QUALITY_TEXT_SAMPLE_MIDDLE_PARAGRAPH_COUNT": "4"}):
-            config = EnvConfig()
-        self.assertEqual(config.quality_text_sample_middle_paragraph_count, 4)
-
-    def test_env_var_overrides_quality_text_sample_conclusion_paragraph_limit(self):
-        with patch.dict(environ, {"QUALITY_TEXT_SAMPLE_CONCLUSION_PARAGRAPH_LIMIT": "6"}):
-            config = EnvConfig()
-        self.assertEqual(config.quality_text_sample_conclusion_paragraph_limit, 6)
-
-    def test_env_var_overrides_quality_text_sample_fallback_tail_paragraph_count(self):
-        with patch.dict(environ, {"QUALITY_TEXT_SAMPLE_FALLBACK_TAIL_PARAGRAPH_COUNT": "4"}):
-            config = EnvConfig()
-        self.assertEqual(config.quality_text_sample_fallback_tail_paragraph_count, 4)
-
-    def test_env_var_overrides_quality_text_sample_conclusion_header_marker(self):
-        with patch.dict(environ, {"QUALITY_TEXT_SAMPLE_CONCLUSION_HEADER_MARKER": "cierre"}):
-            config = EnvConfig()
-        self.assertEqual(config.quality_text_sample_conclusion_header_marker, "cierre")
-
     def test_env_var_overrides_quality_threshold(self):
         with patch.dict(environ, {"QUALITY_THRESHOLD": "6.5"}):
             config = EnvConfig()
@@ -428,29 +398,6 @@ class TestEnvConfig(TestCase):
 
         self.assertAlmostEqual(settings.publish_threshold, 8.0)
         self.assertEqual(settings.citation_count_threshold, 20)
-
-    def test_get_quality_text_sampling_settings_reflects_env_overrides(self):
-        overrides = {
-            "QUALITY_MIN_SAMPLE_WORD_COUNT": "500",
-            "QUALITY_TEXT_SAMPLE_CHARACTER_LIMIT": "9000",
-            "QUALITY_TEXT_SAMPLE_REFERENCE_LINE_PREFIX_LENGTH": "90",
-            "QUALITY_TEXT_SAMPLE_INTRODUCTION_PARAGRAPH_COUNT": "4",
-            "QUALITY_TEXT_SAMPLE_MIDDLE_PARAGRAPH_COUNT": "3",
-            "QUALITY_TEXT_SAMPLE_CONCLUSION_PARAGRAPH_LIMIT": "5",
-            "QUALITY_TEXT_SAMPLE_FALLBACK_TAIL_PARAGRAPH_COUNT": "3",
-            "QUALITY_TEXT_SAMPLE_CONCLUSION_HEADER_MARKER": "cierre",
-        }
-        with patch.dict(environ, overrides):
-            settings = EnvConfig().get_quality_text_sampling_settings()
-
-        self.assertEqual(settings.min_sample_word_count, 500)
-        self.assertEqual(settings.text_sample_character_limit, 9000)
-        self.assertEqual(settings.reference_line_prefix_length, 90)
-        self.assertEqual(settings.introduction_paragraph_count, 4)
-        self.assertEqual(settings.middle_paragraph_count, 3)
-        self.assertEqual(settings.conclusion_paragraph_limit, 5)
-        self.assertEqual(settings.fallback_tail_paragraph_count, 3)
-        self.assertEqual(settings.conclusion_header_marker, "cierre")
 
     def test_get_language_tool_settings_reflects_env_overrides(self):
         overrides = {
