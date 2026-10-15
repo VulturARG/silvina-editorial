@@ -3,9 +3,6 @@ from unittest import TestCase
 from src.domain.classification.article_classification_response_parser import (
     ArticleClassificationResponseParser,
 )
-from src.domain.classification.article_classification_text_sampler import (
-    ArticleClassificationTextSampler,
-)
 from src.domain.classification.article_classifier import ArticleClassifier
 from src.domain.classification.article_size_classifier import ArticleSizeClassifier
 from src.domain.classification.classification_rule_table import ClassificationRuleTable
@@ -16,9 +13,6 @@ from src.domain.classification.methodological_vocabulary_detector import (
 from src.domain.classification.reference_signal_detector import ReferenceSignalDetector
 from src.domain.dtos.article_body_dto import ArticleBodyDTO
 from src.domain.dtos.article_size_thresholds_dto import ArticleSizeThresholdsDTO
-from src.domain.dtos.classification_text_sampling_settings_dto import (
-    ClassificationTextSamplingSettingsDTO,
-)
 from src.domain.dtos.document_content_dto import DocumentContentDTO
 from src.domain.enums.article_size import ArticleSize
 from src.domain.enums.article_type import ArticleType
@@ -44,14 +38,6 @@ class TestArticleClassifierBodySize(TestCase):
                     long_min_chars=36000,
                     long_max_chars=40000,
                     extra_long_max_chars=75000,
-                )
-            ),
-            text_sampler=ArticleClassificationTextSampler(
-                classification_text_sampling_settings=ClassificationTextSamplingSettingsDTO(
-                    introduction_character_limit=3500,
-                    conclusion_character_limit=2500,
-                    fallback_character_limit=6000,
-                    bibliography_header_max_length=30,
                 )
             ),
             response_parser=ArticleClassificationResponseParser(),

@@ -133,32 +133,6 @@ class TestEnvConfig(TestCase):
             config = EnvConfig()
         self.assertAlmostEqual(config.article_classifier_temperature, 0.5)
 
-    def test_env_var_overrides_article_classification_sample_introduction_character_limit(self):
-        with patch.dict(
-            environ, {"ARTICLE_CLASSIFICATION_SAMPLE_INTRODUCTION_CHARACTER_LIMIT": "4000"}
-        ):
-            config = EnvConfig()
-        self.assertEqual(config.article_classification_sample_introduction_character_limit, 4000)
-
-    def test_env_var_overrides_article_classification_sample_conclusion_character_limit(self):
-        with patch.dict(
-            environ, {"ARTICLE_CLASSIFICATION_SAMPLE_CONCLUSION_CHARACTER_LIMIT": "3000"}
-        ):
-            config = EnvConfig()
-        self.assertEqual(config.article_classification_sample_conclusion_character_limit, 3000)
-
-    def test_env_var_overrides_article_classification_sample_fallback_character_limit(self):
-        with patch.dict(
-            environ, {"ARTICLE_CLASSIFICATION_SAMPLE_FALLBACK_CHARACTER_LIMIT": "7000"}
-        ):
-            config = EnvConfig()
-        self.assertEqual(config.article_classification_sample_fallback_character_limit, 7000)
-
-    def test_env_var_overrides_article_classification_bibliography_header_max_length(self):
-        with patch.dict(environ, {"ARTICLE_CLASSIFICATION_BIBLIOGRAPHY_HEADER_MAX_LENGTH": "40"}):
-            config = EnvConfig()
-        self.assertEqual(config.article_classification_bibliography_header_max_length, 40)
-
     def test_env_var_overrides_ollama_model_name(self):
         with patch.dict(environ, {"OLLAMA_MODEL_NAME": "custom-model"}):
             config = EnvConfig()
@@ -477,21 +451,6 @@ class TestEnvConfig(TestCase):
         self.assertEqual(settings.conclusion_paragraph_limit, 5)
         self.assertEqual(settings.fallback_tail_paragraph_count, 3)
         self.assertEqual(settings.conclusion_header_marker, "cierre")
-
-    def test_get_classification_text_sampling_settings_reflects_env_overrides(self):
-        overrides = {
-            "ARTICLE_CLASSIFICATION_SAMPLE_INTRODUCTION_CHARACTER_LIMIT": "4000",
-            "ARTICLE_CLASSIFICATION_SAMPLE_CONCLUSION_CHARACTER_LIMIT": "3000",
-            "ARTICLE_CLASSIFICATION_SAMPLE_FALLBACK_CHARACTER_LIMIT": "7000",
-            "ARTICLE_CLASSIFICATION_BIBLIOGRAPHY_HEADER_MAX_LENGTH": "40",
-        }
-        with patch.dict(environ, overrides):
-            settings = EnvConfig().get_classification_text_sampling_settings()
-
-        self.assertEqual(settings.introduction_character_limit, 4000)
-        self.assertEqual(settings.conclusion_character_limit, 3000)
-        self.assertEqual(settings.fallback_character_limit, 7000)
-        self.assertEqual(settings.bibliography_header_max_length, 40)
 
     def test_get_language_tool_settings_reflects_env_overrides(self):
         overrides = {

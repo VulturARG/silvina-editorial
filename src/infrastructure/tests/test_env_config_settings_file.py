@@ -4,9 +4,6 @@ from tempfile import TemporaryDirectory
 from unittest import TestCase
 from unittest.mock import patch
 
-from src.domain.dtos.classification_text_sampling_settings_dto import (
-    ClassificationTextSamplingSettingsDTO,
-)
 from src.domain.dtos.quality_text_sampling_settings_dto import (
     QualityTextSamplingSettingsDTO,
 )
@@ -126,32 +123,6 @@ class TestEnvConfigSettingsFile(TestCase):
         self.assertEqual(
             settings.conclusion_header_marker,
             expected["quality_text_sample_conclusion_header_marker"],
-        )
-
-    def test_get_classification_text_sampling_settings_maps_every_field_from_the_settings_file(
-        self,
-    ):
-        expected = CompleteTestSettings.expected_values()
-        with patch.dict(environ, self._complete_environment(), clear=True):
-            config = EnvConfig(settings_file_path=self._settings_file_path)
-            settings = config.get_classification_text_sampling_settings()
-
-        self.assertIsInstance(settings, ClassificationTextSamplingSettingsDTO)
-        self.assertEqual(
-            settings.introduction_character_limit,
-            expected["article_classification_sample_introduction_character_limit"],
-        )
-        self.assertEqual(
-            settings.conclusion_character_limit,
-            expected["article_classification_sample_conclusion_character_limit"],
-        )
-        self.assertEqual(
-            settings.fallback_character_limit,
-            expected["article_classification_sample_fallback_character_limit"],
-        )
-        self.assertEqual(
-            settings.bibliography_header_max_length,
-            expected["article_classification_bibliography_header_max_length"],
         )
 
     def test_get_language_tool_settings_maps_every_field_from_the_settings_file(self):

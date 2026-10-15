@@ -3,9 +3,6 @@ from unittest import TestCase
 from src.domain.classification.article_classification_response_parser import (
     ArticleClassificationResponseParser,
 )
-from src.domain.classification.article_classification_text_sampler import (
-    ArticleClassificationTextSampler,
-)
 from src.domain.classification.article_classifier import ArticleClassifier
 from src.domain.classification.article_size_classifier import ArticleSizeClassifier
 from src.domain.classification.classification_rule_table import ClassificationRuleTable
@@ -16,26 +13,11 @@ from src.domain.classification.methodological_vocabulary_detector import (
 from src.domain.classification.reference_signal_detector import ReferenceSignalDetector
 from src.domain.dtos.article_body_dto import ArticleBodyDTO
 from src.domain.dtos.article_size_thresholds_dto import ArticleSizeThresholdsDTO
-from src.domain.dtos.classification_text_sampling_settings_dto import (
-    ClassificationTextSamplingSettingsDTO,
-)
 from src.domain.dtos.document_content_dto import DocumentContentDTO
 from src.domain.enums.article_type import ArticleType
 from src.domain.enums.classification_confidence import ClassificationConfidence
 from src.domain.exceptions.classification_errors import ClassificationFailed
 from src.domain.tests.classification.fake_llm_generator_adapter import FakeLlmGeneratorAdapter
-
-
-def _build_default_text_sampler() -> ArticleClassificationTextSampler:
-    classification_text_sampling_settings = ClassificationTextSamplingSettingsDTO(
-        introduction_character_limit=3500,
-        conclusion_character_limit=2500,
-        fallback_character_limit=6000,
-        bibliography_header_max_length=30,
-    )
-    return ArticleClassificationTextSampler(
-        classification_text_sampling_settings=classification_text_sampling_settings
-    )
 
 
 class TestArticleClassifierImrydOverride(TestCase):
@@ -87,7 +69,6 @@ class TestArticleClassifierImrydOverride(TestCase):
                     extra_long_max_chars=40000,
                 )
             ),
-            "text_sampler": _build_default_text_sampler(),
             "response_parser": ArticleClassificationResponseParser(),
             "signal_prompt_template": "TEXTO: {text_sample}",
             "methodological_vocabulary_detector": MethodologicalVocabularyDetector(),
@@ -131,7 +112,6 @@ class TestArticleClassifierImrydOverride(TestCase):
                     extra_long_max_chars=40000,
                 )
             ),
-            text_sampler=_build_default_text_sampler(),
             response_parser=ArticleClassificationResponseParser(),
             signal_prompt_template="TITULO: {title}\nTEXTO: {text_sample}",
             temperature=temperature,

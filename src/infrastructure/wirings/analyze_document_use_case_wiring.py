@@ -7,9 +7,6 @@ from src.domain.citation.citation_matcher import CitationMatcher
 from src.domain.classification.article_classification_response_parser import (
     ArticleClassificationResponseParser,
 )
-from src.domain.classification.article_classification_text_sampler import (
-    ArticleClassificationTextSampler,
-)
 from src.domain.classification.article_classifier import ArticleClassifier
 from src.domain.classification.article_size_classifier import ArticleSizeClassifier
 from src.domain.classification.classification_rule_table import ClassificationRuleTable
@@ -237,9 +234,6 @@ class AnalyzeDocumentUseCaseWiring:
             llm_generator=self._get_llm_generator(purpose=AiPurpose.ARTICLE_CLASSIFICATION),
             signal_detector=ImrydSignalDetector(),
             article_size_classifier=self._get_article_size_classifier(),
-            text_sampler=ArticleClassificationTextSampler(
-                classification_text_sampling_settings=env_config.get_classification_text_sampling_settings()
-            ),
             response_parser=ArticleClassificationResponseParser(),
             signal_prompt_template=self._read_prompt_text(
                 directory=CLASSIFICATION_PROMPTS_DIR, filename="s4_s5_s6_signal_prompt.txt"

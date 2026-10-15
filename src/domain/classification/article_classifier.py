@@ -1,9 +1,6 @@
 from src.domain.classification.article_classification_response_parser import (
     ArticleClassificationResponseParser,
 )
-from src.domain.classification.article_classification_text_sampler import (
-    ArticleClassificationTextSampler,
-)
 from src.domain.classification.article_size_classifier import ArticleSizeClassifier
 from src.domain.classification.classification_rule_table import ClassificationRuleTable
 from src.domain.classification.imryd_signal_detector import ImrydSignalDetector
@@ -29,7 +26,6 @@ class ArticleClassifier:
         llm_generator: LlmGeneratorPort,
         signal_detector: ImrydSignalDetector,
         article_size_classifier: ArticleSizeClassifier,
-        text_sampler: ArticleClassificationTextSampler,
         response_parser: ArticleClassificationResponseParser,
         signal_prompt_template: str,
         temperature: float,
@@ -41,7 +37,6 @@ class ArticleClassifier:
         self._llm_generator = llm_generator
         self._signal_detector = signal_detector
         self._article_size_classifier = article_size_classifier
-        self._text_sampler = text_sampler
         self._response_parser = response_parser
         self._signal_prompt_template = signal_prompt_template
         self._temperature = temperature
@@ -68,10 +63,10 @@ class ArticleClassifier:
                 reasoning="Estructura IMRyD completa detectada (override determinístico).",
             )
 
-        text_sample = self._text_sampler.build_sample(document_content=document_content)
         has_research_intent, has_evidence_based_contribution, has_theoretical_justification = (
             self._detect_research_intent_signals(
-                text_sample=text_sample, title=document_content.title
+                text_sample=" ".join(document_content.body.paragraphs),
+                title=document_content.body.title,
             )
         )
         signals = ClassificationSignalsDTO(
@@ -123,7 +118,7 @@ class ArticleClassifier:
         return " ".join(parts)
 
     def _detect_research_intent_signals(
-        self, text_sample: str, title: str | None
+        self, text_sample: str, title: str
     ) -> tuple[bool, bool, bool]:
         prompt = self._signal_prompt_template.format(title=title, text_sample=text_sample)
         response = self._llm_generator.generate(
