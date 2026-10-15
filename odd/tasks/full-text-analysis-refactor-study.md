@@ -20,6 +20,8 @@ Study how to refactor the analyzers so that each LLM and grammar stage reads the
 - Raising `OLLAMA_NUM_CTX` to 24576 is required for ~60 000 chars (about 16 000 tokens); the sampling limits are independent knobs that must stay consistent with it.
 - `QualityResponseParser` fills a missing dimension with the "No disponible / 7.0" placeholder, and `QualityAnalyzer._ensure_call_produced_usable_content` only requires one of the two dimensions of a call. Haiku answered `## 2. Coherencia [Puntuación: 6/10]` (no `**`), the header pattern did not match, and the real score was replaced by 7.0 (3 of 18 Haiku 4.5 quality calls so far).
 
+> **Update 2026-10-15**: the figures in this section were measured before PR #85. `[quality_text_sample].character_limit` and `[grammar].max_chars` are now 75000. See `docs/full-text-refactor/02-text-limits-inventory.md` for the current behavior.
+
 ## 3. Questions the study must answer
 
 1. Which limits exist today for the same concern (sampling, truncation, context)? List them with owner, default and where each is read.
@@ -32,8 +34,8 @@ Study how to refactor the analyzers so that each LLM and grammar stage reads the
 
 ## 4. Tasks
 
-- [ ] **TASK-01: Inventory of text limits and sampling paths** (read-only; settings, wiring, samplers, grammar adapter, docs)
-- [ ] **TASK-02: Measure token and latency cost of full-text input** (Gemma local and Haiku/Sonnet, using `data/metrics.db` plus one controlled run)
-- [ ] **TASK-03: Design options with trade-offs and a recommendation** (single full-body default, context-derived limit, overflow policy, shared bibliography stripping)
-- [ ] **TASK-04: Parser robustness proposal** (dimension header tolerance, fail on missing dimension)
-- [ ] **TASK-05: Present the design to the user and wait for approval before any implementation**
+- [x] **TASK-01: Inventory of text limits and sampling paths** (read-only; settings, wiring, samplers, grammar adapter, docs). Result: `docs/full-text-refactor/02-text-limits-inventory.md`; baseline of code vs LLM: `docs/full-text-refactor/01-pipeline-baseline.md`. Not committed yet.
+- [x] **TASK-02: Measure token and latency cost of full-text input** (Gemma local and Haiku/Sonnet, using `data/metrics.db` plus one controlled run). Result: `docs/full-text-refactor/03-full-text-cost-measurement.md`. The controlled run was skipped by the user on 2026-10-15 (not relevant for the planned refactor); latency stays unmeasured. Not committed yet.
+- [x] **TASK-03: Design options with trade-offs and a recommendation** (single full-body default, context-derived limit, overflow policy, shared bibliography stripping). Result: `docs/full-text-refactor/04-design-options-and-task-plan.md` (decisions D1 to D7 taken by the user on 2026-10-15; 8-task plan pending final approval in TASK-05). Not committed yet.
+- [x] **TASK-04: Parser robustness proposal** (dimension header tolerance, fail on missing dimension). Already delivered in PR #84 (see section 6 of `docs/full-text-refactor/04-design-options-and-task-plan.md`); nothing further planned.
+- [x] **TASK-05: Present the design to the user and wait for approval before any implementation**. Approved by the user on 2026-10-15. Implementation tracked in `odd/tasks/full-text-body-refactor.md`.
