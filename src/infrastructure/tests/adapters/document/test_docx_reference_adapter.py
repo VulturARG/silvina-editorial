@@ -1,6 +1,7 @@
 from pathlib import Path
 from unittest import TestCase
 
+from src.domain.dtos.bibliography_norms_dto import BibliographyNormsDTO
 from src.domain.dtos.reference_dto import ReferenceDTO
 from src.infrastructure.adapters.document.docx_reference_adapter import DocxReferenceAdapter
 from src.infrastructure.adapters.document.docx_text_adapter import DocxTextAdapter
@@ -17,7 +18,12 @@ _ALLOWED_SECTION_NAMES = {"Bibliografía", "Referencias", "Fuentes bibliográfic
 
 class TestDocxReferenceAdapter(TestCase):
     def setUp(self):
-        self.adapter = DocxReferenceAdapter(document_text_port=DocxTextAdapter())
+        self.adapter = DocxReferenceAdapter(
+            document_text_port=DocxTextAdapter(),
+            bibliography_norms=BibliographyNormsDTO(
+                header_markers=("referencias", "bibliografía"), header_max_length=30
+            ),
+        )
         self.references, self.section_type = self.adapter.extract_references(
             docx_path=str(SAMPLE_DOCUMENT)
         )
