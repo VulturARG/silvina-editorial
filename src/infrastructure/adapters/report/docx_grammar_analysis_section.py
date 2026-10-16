@@ -51,6 +51,10 @@ class DocxGrammarAnalysisSection(DocxReportSection):
             document.add_paragraph().add_run("Errores Detectados:").bold = True
 
             max_errors = self._docx_report_settings.max_errors_displayed
+            if len(grammar.errors) > max_errors:
+                document.add_paragraph(
+                    f"Solo se muestran los primeros {max_errors} errores detectados."
+                )
             context_limit = self._docx_report_settings.context_truncation_limit
             for grammar_error in grammar.errors[:max_errors]:
                 document.add_paragraph(grammar_error.message, style="List Number")
