@@ -10,6 +10,7 @@ from src.domain.document.document_format_inspector import DocumentFormatInspecto
 from src.domain.dtos.apa_validation_result_dto import ApaValidationResultDTO
 from src.domain.dtos.citation_dto import CitationDTO
 from src.domain.dtos.document_content_dto import DocumentContentDTO
+from src.domain.dtos.reference_dto import ReferenceDTO
 from src.domain.dtos.report_input_dto import ReportInputDTO
 from src.domain.dtos.structure_validation_result_dto import StructureValidationResultDTO
 from src.domain.enums.analysis_stage import AnalysisStage
@@ -84,6 +85,7 @@ class AnalyzeDocumentUseCase:
             self._validate_apa,
             citations=citations,
             paragraphs=document_content.paragraphs,
+            references=references,
         )
         grammar = self._analysis_tracker.track_stage(
             AnalysisStage.CHECK_GRAMMAR,
@@ -155,10 +157,13 @@ class AnalyzeDocumentUseCase:
         )
 
     def _validate_apa(
-        self, citations: list[CitationDTO], paragraphs: list[str]
+        self,
+        citations: list[CitationDTO],
+        paragraphs: list[str],
+        references: list[ReferenceDTO],
     ) -> ApaValidationResultDTO:
         violations = self._apa_validator.validate_all_citations(
-            citations=citations, paragraphs=paragraphs
+            citations=citations, paragraphs=paragraphs, references=references
         )
         count = len(violations)
         return ApaValidationResultDTO(

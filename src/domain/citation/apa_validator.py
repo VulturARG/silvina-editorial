@@ -2,6 +2,7 @@ import re
 
 from src.domain.dtos.apa_violation_dto import ApaViolationDTO
 from src.domain.dtos.citation_dto import CitationDTO
+from src.domain.dtos.reference_dto import ReferenceDTO
 from src.domain.enums.apa_error_type import ApaErrorType
 from src.domain.enums.citation_type import CitationType
 
@@ -20,19 +21,31 @@ class ApaValidator:
     ]
 
     def validate_citation(
-        self, citation_text: str, paragraph_index: int, paragraph_text: str = ""
+        self,
+        citation_text: str,
+        paragraph_index: int,
+        paragraph_text: str = "",
+        corporate_author_names: frozenset[str] = frozenset(),
     ) -> list[ApaViolationDTO]:
         """Validate a single citation and return all APA violations found."""
         is_parenthetical = citation_text.startswith("(") and citation_text.endswith(")")
         preview = paragraph_text[:30] + "..." if len(paragraph_text) > 30 else paragraph_text
         if is_parenthetical:
-            return self._validate_parenthetical(citation_text, paragraph_index, preview)
-        return self._validate_narrative(citation_text, paragraph_index, preview)
+            return self._validate_parenthetical(
+                citation_text, paragraph_index, preview, corporate_author_names
+            )
+        return self._validate_narrative(
+            citation_text, paragraph_index, preview, corporate_author_names
+        )
 
     def validate_all_citations(
-        self, citations: list[CitationDTO], paragraphs: list[str]
+        self,
+        citations: list[CitationDTO],
+        paragraphs: list[str],
+        references: list[ReferenceDTO] | None = None,
     ) -> list[ApaViolationDTO]:
         """Filter AUTHOR_YEAR citations and validate each against its paragraph text."""
+        corporate_author_names = self._build_corporate_author_names(references or [])
         all_violations = []
         for citation in citations:
             if citation.citation_type != CitationType.AUTHOR_YEAR:
@@ -41,16 +54,49 @@ class ApaValidator:
                 paragraphs[citation.location] if 0 <= citation.location < len(paragraphs) else ""
             )
             all_violations.extend(
-                self.validate_citation(citation.text, citation.location, paragraph_text)
+                self.validate_citation(
+                    citation.text, citation.location, paragraph_text, corporate_author_names
+                )
             )
         return all_violations
 
+    def _build_corporate_author_names(self, references: list[ReferenceDTO]) -> frozenset[str]:
+        author_parts = [self._reference_author_part(reference.text) for reference in references]
+        return frozenset(
+            self._normalize_author_name(author_part)
+            for author_part in author_parts
+            if " & " in author_part and "," not in author_part
+        )
+
+    def _reference_author_part(self, reference_text: str) -> str:
+        return reference_text.split("(", 1)[0].strip().removesuffix(".").strip()
+
+    def _parenthetical_author_part(self, inner: str) -> str:
+        return re.split(r",?\s*\d{4}[a-z]?", inner, maxsplit=1)[0].strip()
+
+    def _is_corporate_author(
+        self, author_part: str, corporate_author_names: frozenset[str]
+    ) -> bool:
+        return self._normalize_author_name(author_part) in corporate_author_names
+
+    def _normalize_author_name(self, author_part: str) -> str:
+        return " ".join(author_part.lower().split())
+
     def _validate_parenthetical(
-        self, citation: str, location: int, preview: str = ""
+        self,
+        citation: str,
+        location: int,
+        preview: str = "",
+        corporate_author_names: frozenset[str] = frozenset(),
     ) -> list[ApaViolationDTO]:
         inner = citation[1:-1].strip()
+        author_part = self._parenthetical_author_part(inner)
 
-        pre_skip = [self._check_conjunction(citation, inner, location, preview)]
+        pre_skip = (
+            []
+            if self._is_corporate_author(author_part, corporate_author_names)
+            else [self._check_conjunction(citation, inner, location, preview)]
+        )
 
         if self._is_non_author_citation(citation):
             return [v for v in pre_skip if v]
@@ -68,22 +114,27 @@ class ApaValidator:
         return [v for v in pre_skip + post_skip if v]
 
     def _validate_narrative(
-        self, citation: str, location: int, preview: str = ""
+        self,
+        citation: str,
+        location: int,
+        preview: str = "",
+        corporate_author_names: frozenset[str] = frozenset(),
     ) -> list[ApaViolationDTO]:
         pattern = r"([A-ZÁÉÍÓÚÑ][a-záéíóúñA-ZÁÉÍÓÚÑ\-\s&.]+?)[\s]*\((\d{4}[a-z]?)\)"
         match = re.match(pattern, citation)
         if not match:
             return []
         author_part = match.group(1).strip()
-        return [
-            v
-            for v in [
-                self._check_narrative_conjunction(citation, author_part, location, preview),
-                self._check_narrative_et_al(citation, author_part, location, preview),
-                self._check_narrative_spacing(citation, author_part, location, preview),
-            ]
-            if v
+        conjunction_violations = (
+            []
+            if self._is_corporate_author(author_part, corporate_author_names)
+            else [self._check_narrative_conjunction(citation, author_part, location, preview)]
+        )
+        other_violations = [
+            self._check_narrative_et_al(citation, author_part, location, preview),
+            self._check_narrative_spacing(citation, author_part, location, preview),
         ]
+        return [v for v in conjunction_violations + other_violations if v]
 
     def _check_conjunction(
         self, citation: str, inner: str, location: int, preview: str
