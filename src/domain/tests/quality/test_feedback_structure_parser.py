@@ -848,3 +848,70 @@ class TestFeedbackStructureParser(TestCase):
         self.assertEqual(blocks[5].kind, FeedbackBlockKind.ITEM)
         self.assertEqual(blocks[5].text, "Tercera línea explicativa")
         self.assertEqual(blocks[5].level, 0)
+
+    def test_empty_markdown_heading_with_two_titled_sections_is_kept_as_group_title(self):
+        lines = [
+            "### Fortalezas",
+            "",
+            "**Estructura argumentativa sólida:**",
+            "El documento construye sus argumentos sobre tres pilares.",
+            "",
+            "**Uso estratégico de evidencia:**",
+            "Los datos se presentan con su contexto.",
+            "",
+            "### Debilidades críticas",
+            "",
+            "**Saltos de escala no justificados:**",
+            "Las conclusiones generalizan más allá de la muestra.",
+            "",
+            "**Falta de jerarquización de riesgos:**",
+            "Todos los riesgos se presentan con igual peso.",
+        ]
+        parser = FeedbackStructureParserBuilderForTest().build()
+        blocks = parser.parse(lines=lines, dimension_heading_level=0)
+
+        self.assertEqual(
+            [(block.kind, block.text) for block in blocks],
+            [
+                (FeedbackBlockKind.TITLE, "Fortalezas"),
+                (FeedbackBlockKind.TITLE, "Estructura argumentativa sólida"),
+                (
+                    FeedbackBlockKind.TEXT,
+                    "El documento construye sus argumentos sobre tres pilares.",
+                ),
+                (FeedbackBlockKind.TITLE, "Uso estratégico de evidencia"),
+                (FeedbackBlockKind.TEXT, "Los datos se presentan con su contexto."),
+                (FeedbackBlockKind.TITLE, "Debilidades críticas"),
+                (FeedbackBlockKind.TITLE, "Saltos de escala no justificados"),
+                (FeedbackBlockKind.TEXT, "Las conclusiones generalizan más allá de la muestra."),
+                (FeedbackBlockKind.TITLE, "Falta de jerarquización de riesgos"),
+                (FeedbackBlockKind.TEXT, "Todos los riesgos se presentan con igual peso."),
+            ],
+        )
+
+    def test_empty_markdown_heading_scope_ends_at_higher_heading_and_drops_its_own_sub_titles(self):
+        lines = [
+            "### Fortalezas",
+            "**Única fortaleza destacada:**",
+            "Descripción de la fortaleza.",
+            "## Debilidades",
+            "**Primera debilidad:**",
+            "Descripción de la primera debilidad.",
+            "**Segunda debilidad:**",
+            "Descripción de la segunda debilidad.",
+        ]
+        parser = FeedbackStructureParserBuilderForTest().build()
+        blocks = parser.parse(lines=lines, dimension_heading_level=0)
+
+        self.assertEqual(
+            [(block.kind, block.text) for block in blocks],
+            [
+                (FeedbackBlockKind.TITLE, "Única fortaleza destacada"),
+                (FeedbackBlockKind.TEXT, "Descripción de la fortaleza."),
+                (FeedbackBlockKind.TITLE, "Debilidades"),
+                (FeedbackBlockKind.TITLE, "Primera debilidad"),
+                (FeedbackBlockKind.TEXT, "Descripción de la primera debilidad."),
+                (FeedbackBlockKind.TITLE, "Segunda debilidad"),
+                (FeedbackBlockKind.TEXT, "Descripción de la segunda debilidad."),
+            ],
+        )

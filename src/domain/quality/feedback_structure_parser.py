@@ -68,6 +68,7 @@ class FeedbackStructureParser:
         self,
         raw_text: str,
         state: FeedbackParsingState,
+        heading_level: int = 0,
     ) -> None:
         state.hierarchy_tracker.reset()
         title_block = FeedbackBlockDTO(
@@ -76,14 +77,14 @@ class FeedbackStructureParser:
             level=0,
             marker="",
         )
-        state.accumulator.open_title(title_block)
+        state.accumulator.open_title(title_block, heading_level)
 
     def _handle_heading(
         self,
         line: ClassifiedFeedbackLineDTO,
         state: FeedbackParsingState,
     ) -> None:
-        self._open_title(line.title_text, state)
+        self._open_title(line.title_text, state, line.heading_level)
         state.accumulator.set_previous_line_counts_as_blank(True)
 
     def _handle_bold_title(
