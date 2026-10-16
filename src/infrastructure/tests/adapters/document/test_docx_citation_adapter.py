@@ -85,3 +85,11 @@ class TestDocxCitationAdapter(TestCase):
                 ("Boyes", "2015", "(Boyes, 2015)"),
             ],
         )
+
+    def test_parentheses_with_dates_or_document_codes_are_not_citations(self):
+        full_text = (
+            "El periodo (marzo de 2021-febrero de 2022) y (enero a junio de 2017), "
+            "la fecha (14/10/2021) y el informe (LC/TS.2021/89) no son citas, pero (Bravo, 2019) sí."
+        )
+        citations = self.adapter._extract_citations(full_text=full_text)
+        self.assertEqual([citation.text for citation in citations], ["(Bravo, 2019)"])
