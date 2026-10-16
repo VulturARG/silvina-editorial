@@ -208,3 +208,46 @@ class TestCitationMatcher(TestCase):
         second_reference = ReferenceDTO(text="Smith, J. (2020). Title.")
         second_result = self.matcher.find_orphaned_citations([second_citation], [second_reference])
         self.assertEqual(second_result, [])
+
+    def test_s31_citation_with_acronym_declared_in_reference_author_part_is_not_orphaned(self):
+        citation = CitationDTO(
+            text="(SMRA, 2021)", citation_type=CitationType.AUTHOR_YEAR, location=0, author="SMRA"
+        )
+        reference = ReferenceDTO(
+            text=(
+                "SECRETARÍA DE MINERÍA DE LA REPÚBLICA ARGENTINA (SMRA) (2021). "
+                "Informe Litio. Octubre 2021. Recuperado de: https://example.gob.ar/litio"
+            )
+        )
+        self.assertEqual(self.matcher.find_orphaned_citations([citation], [reference]), [])
+
+    def test_s32_reference_with_acronym_declared_in_author_part_is_cited_by_acronym(self):
+        citation = CitationDTO(
+            text="(SMRA, 2021)", citation_type=CitationType.AUTHOR_YEAR, location=0, author="SMRA"
+        )
+        reference = ReferenceDTO(
+            text=(
+                "SECRETARÍA DE MINERÍA DE LA REPÚBLICA ARGENTINA (SMRA) (2021). "
+                "Informe Litio. Octubre 2021. Recuperado de: https://example.gob.ar/litio"
+            )
+        )
+        self.assertEqual(self.matcher.find_orphaned_references([citation], [reference]), [])
+
+    def test_s33_citation_with_acronym_no_reference_declares_stays_orphaned(self):
+        citation = CitationDTO(
+            text="(OMS, 2021)", citation_type=CitationType.AUTHOR_YEAR, location=0, author="OMS"
+        )
+        reference = ReferenceDTO(
+            text=(
+                "SECRETARÍA DE MINERÍA DE LA REPÚBLICA ARGENTINA (SMRA) (2021). "
+                "Informe Litio. Octubre 2021. Recuperado de: https://example.gob.ar/litio"
+            )
+        )
+        self.assertEqual(self.matcher.find_orphaned_citations([citation], [reference]), [citation])
+
+    def test_s34_acronym_outside_reference_author_part_is_not_declared(self):
+        citation = CitationDTO(
+            text="(SMRA, 2020)", citation_type=CitationType.AUTHOR_YEAR, location=0, author="SMRA"
+        )
+        reference = ReferenceDTO(text="Smith, J. (2020). Informe (SMRA).")
+        self.assertEqual(self.matcher.find_orphaned_citations([citation], [reference]), [citation])
