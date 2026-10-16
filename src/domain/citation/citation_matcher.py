@@ -45,7 +45,7 @@ class CitationMatcher:
         return [
             reference
             for reference in references
-            if self._normalize_author(reference.text) not in citation_keys
+            if not any(key in citation_keys for key in self._reference_keys(reference))
         ]
 
     def match_citations_to_references(
@@ -73,7 +73,17 @@ class CitationMatcher:
         }
 
     def _build_reference_keys(self, references: list[ReferenceDTO]) -> dict[str, ReferenceDTO]:
-        return {self._normalize_author(reference.text): reference for reference in references}
+        return {
+            key: reference for reference in references for key in self._reference_keys(reference)
+        }
+
+    def _reference_keys(self, reference: ReferenceDTO) -> set[str]:
+        """Return the surname key and, when the author part declares one, the acronym key."""
+        keys = {self._normalize_author(reference.text)}
+        acronym = self._normalize_acronym(reference.text)
+        if acronym:
+            keys.add(acronym)
+        return keys
 
     def _is_orphaned_citation(
         self, citation: CitationDTO, reference_keys: dict[str, ReferenceDTO]
@@ -91,10 +101,7 @@ class CitationMatcher:
         if is_non_author:
             return "__non_author__"
 
-        year_match = re.search(r"\((?:\d{1,2}\s+de\s+\w+\s+de\s+)?\d{4}[a-z]?\)", text)
-        if year_match:
-            text = text[: year_match.start()].strip()
-
+        text = self._author_part(text)
         text = re.sub(r"\s+et\s+al\.?.*", "", text, flags=re.IGNORECASE).strip()
         text = re.sub(r"\s+y\s+.*", "", text, flags=re.IGNORECASE).strip()
         text = re.sub(r"\b[A-ZÁÉÍÓÚÑ]\.\s*", "", text).strip()
@@ -102,3 +109,13 @@ class CitationMatcher:
 
         words = text.split()
         return words[0].lower() if words else ""
+
+    def _normalize_acronym(self, text: str) -> str:
+        """Return the lowercased acronym declared in parentheses in the author part, or empty."""
+        acronym_match = re.search(r"\(([A-ZÁÉÍÓÚÑÜ]{2,10})\)", self._author_part(text))
+        return acronym_match.group(1).lower() if acronym_match else ""
+
+    def _author_part(self, text: str) -> str:
+        """Return the text preceding the parenthesized year, or the whole text if there is none."""
+        year_match = re.search(r"\((?:\d{1,2}\s+de\s+\w+\s+de\s+)?\d{4}[a-z]?\)", text)
+        return text[: year_match.start()].strip() if year_match else text
