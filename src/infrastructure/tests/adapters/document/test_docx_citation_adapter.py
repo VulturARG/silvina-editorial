@@ -74,3 +74,14 @@ class TestDocxCitationAdapter(TestCase):
         self.assertTrue(citations_from_str)
         for citation in citations_from_str:
             self.assertEqual(citation.location, 0)
+
+    def test_parenthetical_group_with_semicolon_yields_one_citation_per_segment(self):
+        full_text = "Estudios previos lo confirman (Dupuy et al., 2021; nota sin año; Boyes, 2015)."
+        citations = self.adapter._extract_citations(full_text=full_text)
+        self.assertEqual(
+            [(citation.author, citation.year, citation.text) for citation in citations],
+            [
+                ("Dupuy et al.", "2021", "(Dupuy et al., 2021)"),
+                ("Boyes", "2015", "(Boyes, 2015)"),
+            ],
+        )
