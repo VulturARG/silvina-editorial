@@ -47,6 +47,27 @@ class TestDimensionFeedbackExtractor(TestCase):
         self.assertNotIn("RECOMENDACIÓN", result.feedback)
         self.assertNotIn("Esta recomendacion debe ser eliminada", result.feedback)
 
+    def test_keeps_the_sections_that_follow_a_recommendation_paragraph(self):
+        block = """## **2. Conclusiones** [Puntuación: 8/10]
+**Fortalezas:**
+- Sintetiza los seis ejes con una acción concreta por cada uno.
+
+**Recomendación estratégica clara**: El texto pivota hacia la acción.
+
+**Conexión con introducción**: La conclusión cierra el círculo con la introducción.
+
+### Limitaciones
+
+**Falta de priorización**: No establece jerarquía entre las líneas de acción.
+"""
+
+        result = self._extractor.extract(block)
+
+        self.assertNotIn("pivota hacia la acción", result.feedback)
+        self.assertIn("Conexión con introducción", result.feedback)
+        self.assertIn("Limitaciones", result.feedback)
+        self.assertIn("No establece jerarquía", result.feedback)
+
     def test_formats_titles_with_colon_joined_by_space(self):
         block = """**1. Argumentación**
 **Fortalezas**
