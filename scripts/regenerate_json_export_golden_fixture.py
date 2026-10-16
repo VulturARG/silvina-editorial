@@ -77,6 +77,7 @@ def map_report_to_legacy_dict(report: ReportInputDTO) -> dict[str, Any]:
                 "errors": grammar.errors,
             },
             "dimensions": quality.dimension_scores,
+            "editorial_suitability": quality.editorial_suitability,
         },
         "structure_validation": {
             "is_valid": structure.is_valid,
