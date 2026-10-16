@@ -735,3 +735,49 @@ Las conclusiones parciales aún no cierran la argumentación del texto analizado
             result.matched_dimensions,
             frozenset({QualityDimension.CLARITY}),
         )
+
+    def test_bold_label_naming_a_dimension_inside_a_section_does_not_split_it(self):
+        response = """## **1. Conclusiones** [Puntuación: 6/10]
+
+### Estructura y cobertura
+
+El documento culmina con una sección formal que retoma los seis ejes y ofrece recomendaciones.
+
+### Fortalezas
+
+**Coherencia retrospectiva:**
+Las conclusiones refuerzan el hilo narrativo inicial del documento analizado.
+
+### Deficiencias críticas
+
+**Ausencia de métricas de éxito:**
+No hay indicadores de desempeño que permitan medir el logro de los objetivos.
+
+---
+
+## **2. Coherencia** [Puntuación: 5/10]
+
+### Debilidades
+
+**Conexiones lógicas débiles:**
+Las secciones del documento no se conectan entre sí de forma explícita.
+"""
+        parser = QualityResponseParserBuilderForTest().build()
+
+        result = parser.parse(response)
+
+        conclusions = result.scores[QualityDimension.CONCLUSIONS]
+        coherence = result.scores[QualityDimension.COHERENCE]
+        titles = [
+            block.text
+            for block in conclusions.feedback_blocks
+            if block.kind == FeedbackBlockKind.TITLE
+        ]
+        for expected_title in (
+            "Estructura y cobertura",
+            "Coherencia retrospectiva",
+            "Ausencia de métricas de éxito",
+        ):
+            self.assertIn(expected_title, titles)
+        self.assertEqual(coherence.score, 5.0)
+        self.assertNotIn("Coherencia retrospectiva", coherence.feedback)
