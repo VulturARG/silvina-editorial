@@ -85,29 +85,46 @@ class DocxCitationAdapter(CitationExtractionPort):
         for match in _PATTERN_PARENTHETICAL.findall(paragraph_text):
             if _PATTERN_DATE_LIKE.match(match):
                 continue
-            year_m = _PATTERN_YEAR.search(match)
-            if not year_m:
-                continue
-            year = year_m.group(1)
-            author = match[: year_m.start()].strip("(").strip().rstrip(",").strip()
-            if len(author) < 2:
-                continue
-            key = f"{author}|{year}"
-            if key in seen:
-                continue
-            seen.add(key)
-            if "&" in author or "," in author:
-                first = split(r"[,&]", author)[0].strip()
-                first_authors_by_year.setdefault(year, set()).add(first)
-            citations.append(
-                CitationDTO(
-                    text=match,
-                    citation_type=CitationType.AUTHOR_YEAR,
-                    location=paragraph_index,
-                    author=author,
-                    year=year,
+            for segment in match[1:-1].split(";"):
+                self._collect_parenthetical_segment(
+                    segment=segment,
+                    paragraph_index=paragraph_index,
+                    citations=citations,
+                    seen=seen,
+                    first_authors_by_year=first_authors_by_year,
                 )
+
+    def _collect_parenthetical_segment(
+        self,
+        segment: str,
+        paragraph_index: int,
+        citations: list[CitationDTO],
+        seen: set[str],
+        first_authors_by_year: dict[str, set[str]],
+    ) -> None:
+        year_match = _PATTERN_YEAR.search(segment)
+        if not year_match:
+            return
+        year = year_match.group(1)
+        author = segment[: year_match.start()].strip("(").strip().rstrip(",").strip()
+        if len(author) < 2:
+            return
+        key = f"{author}|{year}"
+        if key in seen:
+            return
+        seen.add(key)
+        if "&" in author or "," in author:
+            first = split(r"[,&]", author)[0].strip()
+            first_authors_by_year.setdefault(year, set()).add(first)
+        citations.append(
+            CitationDTO(
+                text=f"({segment.strip()})",
+                citation_type=CitationType.AUTHOR_YEAR,
+                location=paragraph_index,
+                author=author,
+                year=year,
             )
+        )
 
     def _collect_multi_author(
         self,
