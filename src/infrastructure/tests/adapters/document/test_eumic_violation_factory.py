@@ -34,7 +34,21 @@ class TestEumicViolationFactory(TestCase):
         self.assertEqual(violation.severity, SeverityLevel.INFO)
         self.assertEqual(
             violation.details,
-            "Predominantemente use 12pt. Detectados: 10pt",
+            "Tamaño requerido: 12pt. Tamaño fuera de la norma detectado: 10pt",
+        )
+
+    def test_variable_font_sizes_uses_plural_wording_when_several_sizes_are_outside_norm(self):
+        first_size_mock = MagicMock()
+        first_size_mock.pt = 10.0
+        second_size_mock = MagicMock()
+        second_size_mock.pt = 14.0
+        violation = EumicViolationFactory.variable_font_sizes(
+            non_standard_sizes=[first_size_mock, second_size_mock],
+            required_size_pt=12.0,
+        )
+        self.assertEqual(
+            violation.details,
+            "Tamaño requerido: 12pt. Tamaños fuera de la norma detectados: 10pt, 14pt",
         )
 
     def test_missing_abstract_includes_configured_word_range(self):
