@@ -1,4 +1,4 @@
-from re import compile, findall, split
+from re import IGNORECASE, compile, findall, split
 
 from src.domain.document.citation_extraction_port import CitationExtractionPort
 from src.domain.document.document_text_port import DocumentTextPort
@@ -9,7 +9,13 @@ from src.domain.exceptions.citation_errors import CitationParsingFailed  # noqa:
 _INTRO_PHRASES = ("Como", "Según", "Si", "No", "En", "El", "La", "Los", "Las", "Un", "Una")
 
 _PATTERN_PARENTHETICAL = compile(r"\([^)]*(?:19|20)\d{2}[^)]*\)")
-_PATTERN_DATE_LIKE = compile(r"^\(\d+\s+de\s+")
+_PATTERN_DATE_LIKE = compile(
+    r"^\((?:\d+\s+de\s+"
+    r"|(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre"
+    r"|octubre|noviembre|diciembre)\b"
+    r"|(?:(?!(?:19|20)\d{2})[^)])*?/)",
+    IGNORECASE,
+)
 _PATTERN_YEAR = compile(r"((?:19|20)\d{2})")
 _PATTERN_MULTI_AUTHOR = compile(
     r"(?<![a-záéíóúñ])\b"
