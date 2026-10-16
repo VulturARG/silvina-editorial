@@ -52,6 +52,23 @@ class TestDocumentContentExtractorBody(TestCase):
         self.assertEqual(document_content.body.title, "Main title")
         self.assertEqual(document_content.body.paragraphs, ("Body one.", "Body two."))
 
+    def test_sets_title_from_body_and_authors_from_the_paragraph_after_the_title(self):
+        extractor = self._build_extractor(
+            content_paragraphs=[
+                "Main title",
+                "Jane Doe",
+                "Resumen",
+                "Abstract sentence.",
+                "Main title",
+                "Body one.",
+            ]
+        )
+
+        document_content = extractor.extract_content(docx_path="test.docx")
+
+        self.assertEqual(document_content.title, "Main title")
+        self.assertEqual(document_content.authors, "Jane Doe")
+
     def test_propagates_document_body_not_located_when_repeated_title_is_missing(self):
         extractor = self._build_extractor(content_paragraphs=["Main title", "Other paragraph."])
 
