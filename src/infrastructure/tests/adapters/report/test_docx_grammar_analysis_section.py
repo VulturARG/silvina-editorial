@@ -85,6 +85,23 @@ class TestDocxGrammarAnalysisSection(TestCase):
         error_paragraphs = [text for text in self._paragraph_texts() if text.startswith("error")]
         self.assertEqual(len(error_paragraphs), 1)
 
+    def test_render_states_the_display_limit_when_list_is_truncated(self) -> None:
+        errors = [self._make_error(message=f"error {index}") for index in range(6)]
+
+        self._render_errors(errors, max_errors_displayed=5)
+
+        self.assertEqual(
+            self._paragraph_texts()[4:6],
+            ["Errores Detectados:", "Solo se muestran los primeros 5 errores detectados."],
+        )
+
+    def test_render_omits_truncation_notice_when_all_errors_are_shown(self) -> None:
+        errors = [self._make_error(message=f"error {index}") for index in range(5)]
+
+        self._render_errors(errors, max_errors_displayed=5)
+
+        self.assertNotIn("Solo se muestran", " ".join(self._paragraph_texts()))
+
     def test_grammar_context_truncated_by_context_truncation_limit(self) -> None:
         self._render_errors([self._make_error(context="x" * 50)], context_truncation_limit=10)
 

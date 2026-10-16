@@ -27,7 +27,7 @@ class TestDocxFooterSection(TestCase):
 
     def test_render_adds_blank_paragraph_and_separator_line(self) -> None:
         self.assertEqual(self.document.paragraphs[0].text, "")
-        self.assertEqual(self.document.paragraphs[1].text, "─" * 80)
+        self.assertEqual(self.document.paragraphs[1].text, "─" * 66)
 
     def test_render_adds_generated_by_line_with_injected_clock_timestamp(self) -> None:
         self.assertEqual(

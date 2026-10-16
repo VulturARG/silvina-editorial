@@ -50,11 +50,10 @@ class DocxApaValidationSection(DocxReportSection):
         for violation in violations:
             violations_by_type[violation.error_type].append(violation)
 
-        max_errors = self._docx_report_settings.max_errors_displayed
         for errors in violations_by_type.values():
             document.add_paragraph(f"CITACIÓN INCORRECTA ({len(errors)}):", style="Heading 3")
 
-            for index, apa_violation in enumerate(errors[:max_errors], 1):
+            for index, apa_violation in enumerate(errors, 1):
                 document.add_paragraph(f"{index}. Citación: {apa_violation.citation_text}")
                 document.add_paragraph(
                     f'   Ubicación: "{apa_violation.location}"', style="List Bullet 2"

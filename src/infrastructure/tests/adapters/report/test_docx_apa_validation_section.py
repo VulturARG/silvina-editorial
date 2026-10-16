@@ -94,7 +94,7 @@ class TestDocxApaValidationSection(TestCase):
 
         self.assertNotIn("Corrección", "\n".join(self._paragraph_texts()))
 
-    def test_apa_violations_limited_by_max_errors_displayed(self) -> None:
+    def test_apa_violations_are_not_limited_by_max_errors_displayed(self) -> None:
         section = ReportFixtures.make_apa_validation_section(
             docx_report_settings=ReportFixtures.make_settings(max_errors_displayed=1)
         )
@@ -106,5 +106,8 @@ class TestDocxApaValidationSection(TestCase):
         section.render(document=self.document, report_input=report_input)
 
         citation_paragraphs = [text for text in self._paragraph_texts() if "Citación:" in text]
-        self.assertEqual(citation_paragraphs, ["1. Citación: cite0"])
+        self.assertEqual(
+            citation_paragraphs,
+            ["1. Citación: cite0", "2. Citación: cite1", "3. Citación: cite2"],
+        )
         self.assertEqual(self._paragraph_texts()[1], "CITACIÓN INCORRECTA (3):")

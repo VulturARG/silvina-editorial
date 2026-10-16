@@ -9,7 +9,7 @@ from src.domain.dtos.report_input_dto import ReportInputDTO
 from src.infrastructure.adapters.report.docx_report_section import DocxReportSection
 from src.infrastructure.adapters.report.docx_report_settings import DocxReportSettings
 
-FOOTER_SEPARATOR = "─" * 80
+FOOTER_SEPARATOR = "─" * 66
 FOOTER_TIMESTAMP_FORMAT = "%d/%m/%Y %H:%M"
 
 
