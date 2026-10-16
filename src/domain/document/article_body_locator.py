@@ -1,3 +1,4 @@
+from src.domain.document.title_normalizer import TitleNormalizer
 from src.domain.dtos.abstract_norms_dto import AbstractNormsDTO
 from src.domain.dtos.article_body_dto import ArticleBodyDTO
 from src.domain.dtos.bibliography_norms_dto import BibliographyNormsDTO
@@ -31,9 +32,9 @@ class ArticleBodyLocator:
         )
 
     def _find_repeated_title_index(self, paragraphs: list[str]) -> int:
-        search_key = self._normalize(paragraphs[0])
+        search_key = TitleNormalizer.normalize(paragraphs[0])
         for index in range(1, len(paragraphs)):
-            if self._normalize(paragraphs[index]).startswith(search_key):
+            if TitleNormalizer.normalize(paragraphs[index]).startswith(search_key):
                 return index
         raise DocumentBodyNotLocated()
 
@@ -77,7 +78,3 @@ class ArticleBodyLocator:
 
     def _contains_any(self, text: str, markers: tuple[str, ...]) -> bool:
         return any(marker.lower() in text for marker in markers)
-
-    @staticmethod
-    def _normalize(paragraph: str) -> str:
-        return " ".join(paragraph.lower().replace(":", " ").replace(".", " ").split())
