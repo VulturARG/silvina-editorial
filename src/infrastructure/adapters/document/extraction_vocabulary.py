@@ -1,44 +1,3 @@
-import re
-
-AUTHOR_BLACKLIST = {
-    "RESUMEN",
-    "ABSTRACT",
-    "INTRODUCCIÓN",
-    "INTRODUCTION",
-    "METODOLOGÍA",
-    "METHODOLOGY",
-    "MÉTODOS",
-    "METHODS",
-    "RESULTADOS",
-    "RESULTS",
-    "DISCUSIÓN",
-    "DISCUSSION",
-    "CONCLUSIONES",
-    "CONCLUSIONS",
-    "CONCLUSIÓN",
-    "CONCLUSION",
-    "REFERENCIAS",
-    "REFERENCES",
-    "BIBLIOGRAFÍA",
-    "BIBLIOGRAPHY",
-    "PALABRAS CLAVE",
-    "KEYWORDS",
-    "AGRADECIMIENTOS",
-    "ACKNOWLEDGMENTS",
-    "APÉNDICE",
-    "APPENDIX",
-    "ANEXO",
-    "ANNEX",
-    "TABLA",
-    "TABLE",
-    "FIGURA",
-    "FIGURE",
-    "ÍNDICE",
-    "INDEX",
-    "CONTENIDO",
-    "CONTENTS",
-}
-
 SECTION_HEADERS = [
     "INTRODUCCIÓN",
     "INTRODUCTION",
@@ -58,13 +17,6 @@ SECTION_HEADERS = [
     "BIBLIOGRAPHY",
 ]
 
-INSTITUTION_PATTERN = re.compile(
-    r"^(?:Universidad|Facultad|Escuela|Instituto|Centro|Ministerio|Comando|Departamento)",
-    re.IGNORECASE,
-)
-
 SECTION_PATTERNS = {
-    "title": r"^(?:TÍTULO|TITLE)[:\s]*(.*)",
     "keywords": r"^(?:PALABRAS CLAVE|KEYWORDS)[:\s]*(.*)",
-    "authors": r"^(?:AUTORES|AUTOR|AUTHORS|AUTHOR)[:\s]*(.*)",
 }

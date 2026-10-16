@@ -14,6 +14,7 @@ from unittest import TestCase
 
 from src.domain.classification.reference_signal_detector import ReferenceSignalDetector
 from src.domain.document.article_body_locator import ArticleBodyLocator
+from src.domain.document.article_header_locator import ArticleHeaderLocator
 from src.domain.document.document_content_extractor import DocumentContentExtractor
 from src.domain.dtos.document_content_dto import DocumentContentDTO
 from src.domain.tests.document.fake_character_count_port import FakeCharacterCountPort
@@ -45,6 +46,7 @@ class TestExtractContentReferencesParity(TestCase):
                 keyword_norms=editorial_norms.keywords,
                 bibliography_norms=editorial_norms.bibliography,
             ),
+            article_header_locator=ArticleHeaderLocator(abstract_norms=editorial_norms.abstract),
         )
         cls.signal_detector = ReferenceSignalDetector()
 

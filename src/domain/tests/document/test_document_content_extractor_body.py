@@ -1,6 +1,7 @@
 from unittest import TestCase
 
 from src.domain.document.article_body_locator import ArticleBodyLocator
+from src.domain.document.article_header_locator import ArticleHeaderLocator
 from src.domain.document.document_content_extractor import DocumentContentExtractor
 from src.domain.dtos.article_body_dto import ArticleBodyDTO
 from src.domain.dtos.document_content_dto import DocumentContentDTO
@@ -104,6 +105,7 @@ class TestDocumentContentExtractorBody(TestCase):
                 result=(references or [], "Referencias")
             ),
             article_body_locator=self._build_article_body_locator(),
+            article_header_locator=self._build_article_header_locator(),
         )
 
     def _build_article_body_locator(self) -> ArticleBodyLocator:
@@ -113,3 +115,6 @@ class TestDocumentContentExtractorBody(TestCase):
             keyword_norms=editorial_norms.keywords,
             bibliography_norms=editorial_norms.bibliography,
         )
+
+    def _build_article_header_locator(self) -> ArticleHeaderLocator:
+        return ArticleHeaderLocator(abstract_norms=build_editorial_norms_for_test().abstract)

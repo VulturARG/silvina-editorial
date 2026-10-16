@@ -13,6 +13,7 @@ from src.domain.classification.methodological_vocabulary_detector import (
 )
 from src.domain.classification.reference_signal_detector import ReferenceSignalDetector
 from src.domain.document.article_body_locator import ArticleBodyLocator
+from src.domain.document.article_header_locator import ArticleHeaderLocator
 from src.domain.document.document_content_extractor import DocumentContentExtractor
 from src.domain.dtos.article_size_thresholds_dto import ArticleSizeThresholdsDTO
 from src.domain.enums.article_type import ArticleType
@@ -52,6 +53,7 @@ class TestDocumentContentExtractorReferences(TestCase):
                 keyword_norms=editorial_norms.keywords,
                 bibliography_norms=editorial_norms.bibliography,
             ),
+            article_header_locator=ArticleHeaderLocator(abstract_norms=editorial_norms.abstract),
         )
         document_content = document_content_extractor.extract_content(docx_path=str(fixture_path))
 

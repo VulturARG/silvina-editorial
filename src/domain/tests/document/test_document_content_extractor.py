@@ -1,6 +1,7 @@
 from unittest import TestCase
 
 from src.domain.document.article_body_locator import ArticleBodyLocator
+from src.domain.document.article_header_locator import ArticleHeaderLocator
 from src.domain.document.document_content_extractor import DocumentContentExtractor
 from src.domain.dtos.character_count_dto import CharacterCountDTO
 from src.domain.dtos.document_content_dto import DocumentContentDTO
@@ -32,6 +33,7 @@ class TestDocumentContentExtractor(TestCase):
             character_count_port=character_count_port,
             reference_extraction_port=reference_extraction_port,
             article_body_locator=self._build_article_body_locator(),
+            article_header_locator=self._build_article_header_locator(),
         )
         document_content = document_content_extractor.extract_content(docx_path="test.docx")
 
@@ -55,6 +57,7 @@ class TestDocumentContentExtractor(TestCase):
             character_count_port=character_count_port,
             reference_extraction_port=reference_extraction_port,
             article_body_locator=self._build_article_body_locator(),
+            article_header_locator=self._build_article_header_locator(),
         )
         document_content = document_content_extractor.extract_content(docx_path="test.docx")
 
@@ -79,6 +82,7 @@ class TestDocumentContentExtractor(TestCase):
             character_count_port=character_count_port,
             reference_extraction_port=reference_extraction_port,
             article_body_locator=self._build_article_body_locator(),
+            article_header_locator=self._build_article_header_locator(),
         )
         document_content = document_content_extractor.extract_content(docx_path="test.docx")
 
@@ -113,6 +117,7 @@ class TestDocumentContentExtractor(TestCase):
             character_count_port=character_count_port,
             reference_extraction_port=reference_extraction_port,
             article_body_locator=self._build_article_body_locator(),
+            article_header_locator=self._build_article_header_locator(),
         )
         document_content = document_content_extractor.extract_content(docx_path="test.docx")
 
@@ -139,6 +144,7 @@ class TestDocumentContentExtractor(TestCase):
             character_count_port=character_count_port,
             reference_extraction_port=reference_extraction_port,
             article_body_locator=self._build_article_body_locator(),
+            article_header_locator=self._build_article_header_locator(),
         )
         document_content = document_content_extractor.extract_content(docx_path="test.docx")
 
@@ -163,6 +169,7 @@ class TestDocumentContentExtractor(TestCase):
             character_count_port=character_count_port,
             reference_extraction_port=reference_extraction_port,
             article_body_locator=self._build_article_body_locator(),
+            article_header_locator=self._build_article_header_locator(),
         )
         document_content = document_content_extractor.extract_content(docx_path="test.docx")
 
@@ -186,6 +193,7 @@ class TestDocumentContentExtractor(TestCase):
             character_count_port=character_count_port,
             reference_extraction_port=reference_extraction_port,
             article_body_locator=self._build_article_body_locator(),
+            article_header_locator=self._build_article_header_locator(),
         )
         document_content = document_content_extractor.extract_content(docx_path="test.docx")
 
@@ -210,6 +218,7 @@ class TestDocumentContentExtractor(TestCase):
             character_count_port=character_count_port,
             reference_extraction_port=reference_extraction_port,
             article_body_locator=self._build_article_body_locator(),
+            article_header_locator=self._build_article_header_locator(),
         )
         with self.assertRaises(RuntimeError):
             document_content_extractor.extract_content(docx_path="test.docx")
@@ -221,3 +230,6 @@ class TestDocumentContentExtractor(TestCase):
             keyword_norms=editorial_norms.keywords,
             bibliography_norms=editorial_norms.bibliography,
         )
+
+    def _build_article_header_locator(self) -> ArticleHeaderLocator:
+        return ArticleHeaderLocator(abstract_norms=build_editorial_norms_for_test().abstract)

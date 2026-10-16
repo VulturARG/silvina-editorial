@@ -16,6 +16,7 @@ from src.domain.classification.methodological_vocabulary_detector import (
 )
 from src.domain.classification.reference_signal_detector import ReferenceSignalDetector
 from src.domain.document.article_body_locator import ArticleBodyLocator
+from src.domain.document.article_header_locator import ArticleHeaderLocator
 from src.domain.document.article_length_checker import ArticleLengthChecker
 from src.domain.document.character_count_port import CharacterCountPort
 from src.domain.document.citation_extraction_port import CitationExtractionPort
@@ -183,6 +184,9 @@ class AnalyzeDocumentUseCaseWiring:
             bibliography_norms=editorial_norms.bibliography,
         )
 
+    def _get_article_header_locator(self) -> ArticleHeaderLocator:
+        return ArticleHeaderLocator(abstract_norms=self._get_editorial_norms().abstract)
+
     def _get_article_length_checker(self) -> ArticleLengthChecker:
         return ArticleLengthChecker(article_length_norms=self._get_editorial_norms().article_length)
 
@@ -193,6 +197,7 @@ class AnalyzeDocumentUseCaseWiring:
             character_count_port=self._get_character_count_port(),
             reference_extraction_port=self._get_reference_extraction_port(),
             article_body_locator=self._get_article_body_locator(),
+            article_header_locator=self._get_article_header_locator(),
         )
 
     def _get_citation_extractor(self) -> CitationExtractor:
