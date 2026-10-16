@@ -36,8 +36,7 @@ class DocxEumicViolationsSection(DocxReportSection):
             return
 
         warning_run = document.add_paragraph().add_run(
-            "No se reciben trabajos que incumplan estas normas editoriales. "
-            "Corrija los puntos indicados antes de reenviar el manuscrito."
+            "Sección informativa: estas observaciones no modifican el veredicto de publicación del análisis. Las normas editoriales EUMIC no admiten trabajos que las incumplan; corrija los puntos indicados antes de reenviar el manuscrito."
         )
         warning_run.bold = True
         warning_run.font.color.rgb = RGBColor(*self._docx_report_settings.reject_color_rgb)

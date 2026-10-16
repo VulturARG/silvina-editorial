@@ -16,10 +16,7 @@ from src.infrastructure.fastapi.src.config.dependencies import (
 from src.infrastructure.tests.adapters.report.fixtures import ReportFixtures
 
 
-EUMIC_WARNING_TEXT = (
-    "No se reciben trabajos que incumplan estas normas editoriales. "
-    "Corrija los puntos indicados antes de reenviar el manuscrito."
-)
+EUMIC_WARNING_TEXT = "Sección informativa: estas observaciones no modifican el veredicto de publicación del análisis. Las normas editoriales EUMIC no admiten trabajos que las incumplan; corrija los puntos indicados antes de reenviar el manuscrito."
 EUMIC_COMPLIANT_NOTICE = "✓ El documento cumple las normas editoriales EUMIC evaluadas"
 
 
