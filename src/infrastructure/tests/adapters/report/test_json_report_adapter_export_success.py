@@ -82,3 +82,23 @@ class TestJsonReportAdapterExportSuccess(TestCase):
             written_data["quality_analysis"]["dimensions"]["claridad"]["feedback_blocks"],
             expected_blocks,
         )
+
+    def test_export_writes_editorial_suitability_under_quality_analysis(self):
+        adapter = JsonReportAdapter()
+        report_input = JsonReportFixtures.make_real_report_input_dto()
+
+        adapter.export(report_input=report_input, output_path=_OUTPUT_PATH)
+
+        with open(_OUTPUT_PATH, encoding="utf-8") as file:
+            written_data = load(file)
+        self.assertEqual(
+            written_data["quality_analysis"]["editorial_suitability"],
+            {
+                "contribution_verdict": "Aporte relevante",
+                "contribution_phrase": "Presenta un enfoque novedoso",
+                "contribution_observation": "La contribucion es clara.",
+                "alignment_verdict": "Alineado",
+                "alignment_lines": "Linea 1, Linea 2",
+                "alignment_justification": "Coincide con las lineas editoriales.",
+            },
+        )

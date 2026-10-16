@@ -55,6 +55,7 @@ class JsonReportAdapter(ReportExportPort):
                     "errors": grammar.errors,
                 },
                 "dimensions": quality.dimension_scores,
+                "editorial_suitability": quality.editorial_suitability,
             },
             "structure_validation": {
                 "is_valid": structure.is_valid,

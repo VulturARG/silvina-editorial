@@ -41,6 +41,14 @@
         "score": 8.8,
         "feedback": "Argumentos consistentes."
       }
+    },
+    "editorial_suitability": {
+      "contribution_verdict": "Aporte relevante",
+      "contribution_phrase": "Presenta un enfoque novedoso",
+      "contribution_observation": "La contribucion es clara.",
+      "alignment_verdict": "Alineado",
+      "alignment_lines": "Linea 1, Linea 2",
+      "alignment_justification": "Coincide con las lineas editoriales."
     }
   },
   "structure_validation": {
