@@ -41,8 +41,21 @@ class EumicViolationFactory:
             category=EumicCategory.FORMAT,
             message="Tamaños de fuente variables detectados",
             severity=SeverityLevel.INFO,
-            details=f"Predominantemente use {required_size_pt:g}pt. Detectados: {sizes_str}",
+            details=EumicViolationFactory._out_of_norm_sizes_details(
+                non_standard_sizes=non_standard_sizes,
+                required_size_pt=required_size_pt,
+                sizes_str=sizes_str,
+            ),
         )
+
+    @staticmethod
+    def _out_of_norm_sizes_details(
+        non_standard_sizes: list, required_size_pt: float, sizes_str: str
+    ) -> str:
+        requirement = f"Tamaño requerido: {required_size_pt:g}pt."
+        if len(non_standard_sizes) == 1:
+            return f"{requirement} Tamaño fuera de la norma detectado: {sizes_str}"
+        return f"{requirement} Tamaños fuera de la norma detectados: {sizes_str}"
 
     @staticmethod
     def text_not_justified(non_justified: int, total: int) -> EumicViolationDTO:
