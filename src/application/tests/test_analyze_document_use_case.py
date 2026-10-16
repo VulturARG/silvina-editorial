@@ -157,10 +157,11 @@ class TestAnalyzeDocumentUseCase(TestCase):
         document_content_extractor.extract_content.return_value = content
 
         citations = [MagicMock(), MagicMock()]
+        references = [MagicMock()]
         citation_extractor = MagicMock()
         citation_extractor.extract_citations_and_references.return_value = (
             citations,
-            [],
+            references,
             "Referencias",
         )
 
@@ -173,6 +174,7 @@ class TestAnalyzeDocumentUseCase(TestCase):
         call_kwargs = mocks["apa_validator"].validate_all_citations.call_args.kwargs
         self.assertEqual(call_kwargs["citations"], citations)
         self.assertEqual(call_kwargs["paragraphs"], content.paragraphs)
+        self.assertEqual(call_kwargs["references"], references)
 
     def test_structure_validated_with_effective_structure_type(self):
         classification = _make_classification(article_type=ArticleType.SCIENTIFIC)
