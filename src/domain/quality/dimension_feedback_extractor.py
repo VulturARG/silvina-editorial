@@ -1,4 +1,4 @@
-from re import DOTALL, IGNORECASE, compile
+from re import DOTALL, IGNORECASE, MULTILINE, compile
 
 from src.domain.dtos.dimension_feedback_dto import DimensionFeedbackDTO
 from src.domain.dtos.dimension_score_dto import DimensionScoreDTO
@@ -7,7 +7,10 @@ from src.domain.enums.feedback_block_kind import FeedbackBlockKind
 from src.domain.quality.feedback_structure_parser import FeedbackStructureParser
 
 _MINIMUM_FEEDBACK_LENGTH = 10
-_RECOMMENDATION_TAIL_PATTERN = compile(r"\*\*RECOMENDACIÓN.*", DOTALL | IGNORECASE)
+_RECOMMENDATION_PARAGRAPH_PATTERN = compile(
+    r"^[ \t]*\*\*RECOMENDACIÓN.*?(?=\n[ \t]*\n|\n[ \t]*(?:#{1,6}[ \t]|-{3,}[ \t]*$)|\Z)",
+    DOTALL | IGNORECASE | MULTILINE,
+)
 _DIMENSION_HEADING_LEVEL_PATTERN = compile(r"^(#{1,6})\s*")
 
 
@@ -24,7 +27,7 @@ class DimensionFeedbackExtractor:
 
     def extract(self, block: str) -> DimensionFeedbackDTO:
         """Extract feedback text and structured blocks from a dimension text block."""
-        cleaned_block = _RECOMMENDATION_TAIL_PATTERN.sub("", block).strip()
+        cleaned_block = _RECOMMENDATION_PARAGRAPH_PATTERN.sub("", block).strip()
         lines = cleaned_block.split("\n")
         header_line = lines[0].strip()
         heading_match = _DIMENSION_HEADING_LEVEL_PATTERN.match(header_line)
