@@ -157,7 +157,10 @@ class AnalyzeDocumentUseCaseWiring:
         )
 
     def _get_reference_extraction_port(self) -> ReferenceExtractionPort:
-        return DocxReferenceAdapter(document_text_port=self._get_document_text_port())
+        return DocxReferenceAdapter(
+            document_text_port=self._get_document_text_port(),
+            bibliography_norms=self._get_editorial_norms().bibliography,
+        )
 
     def _get_grammar_check_port(self) -> GrammarCheckPort:
         return LanguageToolAdapter(

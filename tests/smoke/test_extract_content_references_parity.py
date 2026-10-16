@@ -15,6 +15,7 @@ from unittest import TestCase
 from src.domain.classification.reference_signal_detector import ReferenceSignalDetector
 from src.domain.document.article_body_locator import ArticleBodyLocator
 from src.domain.document.document_content_extractor import DocumentContentExtractor
+from src.domain.dtos.bibliography_norms_dto import BibliographyNormsDTO
 from src.domain.dtos.document_content_dto import DocumentContentDTO
 from src.domain.tests.document.fake_character_count_port import FakeCharacterCountPort
 from src.domain.tests.dtos.editorial_norms_builder_for_test import build_editorial_norms_for_test
@@ -38,7 +39,10 @@ class TestExtractContentReferencesParity(TestCase):
             content_extraction_port=ParagraphContentAdapter(),
             character_count_port=FakeCharacterCountPort(result=None),
             reference_extraction_port=DocxReferenceAdapter(
-                document_text_port=document_text_adapter
+                document_text_port=document_text_adapter,
+                bibliography_norms=BibliographyNormsDTO(
+                    header_markers=("referencias", "bibliografía"), header_max_length=30
+                ),
             ),
             article_body_locator=ArticleBodyLocator(
                 abstract_norms=editorial_norms.abstract,
@@ -56,20 +60,20 @@ class TestExtractContentReferencesParity(TestCase):
     def test_scientific_document_reaches_both_reference_signals(self) -> None:
         content = self._extract(SCIENTIFIC_DOCUMENT)
 
-        self.assertEqual(len(content.references), 34)
+        self.assertEqual(len(content.references), 32)
         self.assertTrue(self.signal_detector.has_sufficient_count(content))
         self.assertTrue(self.signal_detector.has_recent_majority(content))
 
     def test_popular_science_document_reaches_neither_reference_signal(self) -> None:
         content = self._extract(POPULAR_SCIENCE_DOCUMENT)
 
-        self.assertEqual(len(content.references), 11)
+        self.assertEqual(len(content.references), 10)
         self.assertFalse(self.signal_detector.has_sufficient_count(content))
         self.assertFalse(self.signal_detector.has_recent_majority(content))
 
     def test_opinion_document_reaches_neither_reference_signal(self) -> None:
         content = self._extract(OPINION_DOCUMENT)
 
-        self.assertEqual(len(content.references), 4)
+        self.assertEqual(len(content.references), 3)
         self.assertFalse(self.signal_detector.has_sufficient_count(content))
         self.assertFalse(self.signal_detector.has_recent_majority(content))

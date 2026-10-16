@@ -14,6 +14,7 @@ from src.domain.classification.methodological_vocabulary_detector import (
 from src.domain.classification.reference_signal_detector import ReferenceSignalDetector
 from src.domain.document.article_body_locator import ArticleBodyLocator
 from src.domain.document.document_content_extractor import DocumentContentExtractor
+from src.domain.dtos.bibliography_norms_dto import BibliographyNormsDTO
 from src.domain.dtos.article_size_thresholds_dto import ArticleSizeThresholdsDTO
 from src.domain.enums.article_type import ArticleType
 from src.domain.tests.classification.fake_llm_generator_adapter import FakeLlmGeneratorAdapter
@@ -38,7 +39,12 @@ class TestDocumentContentExtractorReferences(TestCase):
         )
         docx_text_adapter = DocxTextAdapter()
         paragraph_content_adapter = ParagraphContentAdapter()
-        docx_reference_adapter = DocxReferenceAdapter(document_text_port=docx_text_adapter)
+        docx_reference_adapter = DocxReferenceAdapter(
+            document_text_port=docx_text_adapter,
+            bibliography_norms=BibliographyNormsDTO(
+                header_markers=("referencias", "bibliografía"), header_max_length=30
+            ),
+        )
         fake_character_count_port = FakeCharacterCountPort(result=None)
         editorial_norms = build_editorial_norms_for_test()
 

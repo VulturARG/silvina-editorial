@@ -1,9 +1,9 @@
-from re import DOTALL, IGNORECASE, compile, split
+from re import compile
 
 from src.domain.document.document_text_port import DocumentTextPort
 from src.domain.document.reference_extraction_port import ReferenceExtractionPort
+from src.domain.dtos.bibliography_norms_dto import BibliographyNormsDTO
 from src.domain.dtos.reference_dto import ReferenceDTO
-from src.domain.exceptions.reference_errors import ReferenceParsingFailed  # noqa: F401
 
 _DEFAULT_SECTION_TYPE = "Referencias"
 
@@ -12,28 +12,44 @@ _SECTION_TYPE_MAP = {
     "fuentes": "Fuentes bibliográficas",
 }
 
-_YEAR_END_PATTERN = compile(r"\((?:\d{1,2}\s+de\s+\w+\s+de\s+)?\d{4}[a-z]?\)\.?")
-_AUTHOR_CLEANUP_PATTERN = compile(
-    r"([A-ZÁ-ÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁ-ÚÑ]?[a-záéíóúñ]+)*,\s+[A-ZÁÉÍÓÚÑ]\..*)"
+_FIRST_YEAR_TOKEN_PATTERN = compile(
+    r"\((?:\d{1,2}\s+de\s+\w+\s+de\s+)?\d{4}[a-z]?(?:,\s*\d{1,2}\s+de\s+\w+)?\)\.?"
 )
 _LEADING_BULLETS_PATTERN = compile(r"^[\•\-\*\·\s]+")
-_BIB_SECTION_PATTERN = compile(
-    r"(Bibliograf[íi]a|Referencias|Fuentes\s*bibliogr[áa]ficas(?:\s*consultadas)?)\s*(.{100,})",
-    flags=IGNORECASE | DOTALL,
-)
 
 
 class DocxReferenceAdapter(ReferenceExtractionPort):
-    def __init__(self, document_text_port: DocumentTextPort) -> None:
+    """Extracts the references that follow the bibliography header, one reference per paragraph."""
+
+    def __init__(
+        self,
+        document_text_port: DocumentTextPort,
+        bibliography_norms: BibliographyNormsDTO,
+    ) -> None:
         self._document_text_port = document_text_port
+        self._bibliography_norms = bibliography_norms
 
     def extract_references(self, docx_path: str) -> tuple[list[ReferenceDTO], str]:
-        full_text = "".join(self._document_text_port.read_paragraphs(path=docx_path))
-        bib_match = _BIB_SECTION_PATTERN.search(full_text)
-        if not bib_match:
+        """Return the references after the last bibliography header and the section type."""
+        paragraphs = self._document_text_port.read_paragraphs(path=docx_path)
+        header_index = self._find_bibliography_header_index(paragraphs=paragraphs)
+        if header_index is None:
             return [], _DEFAULT_SECTION_TYPE
-        section_type = self._resolve_section_type(label=bib_match.group(1).lower())
-        return self._parse_references(bib_text=bib_match.group(2)), section_type
+        section_type = self._resolve_section_type(label=paragraphs[header_index].lower())
+        return self._build_references(paragraphs=paragraphs[header_index + 1 :]), section_type
+
+    def _find_bibliography_header_index(self, paragraphs: list[str]) -> int | None:
+        for index in reversed(range(len(paragraphs))):
+            if self._is_bibliography_header(paragraph=paragraphs[index]):
+                return index
+        return None
+
+    def _is_bibliography_header(self, paragraph: str) -> bool:
+        lowered = paragraph.strip().lower()
+        is_short = len(lowered) <= self._bibliography_norms.header_max_length
+        return is_short and any(
+            marker.lower() in lowered for marker in self._bibliography_norms.header_markers
+        )
 
     def _resolve_section_type(self, label: str) -> str:
         for key, value in _SECTION_TYPE_MAP.items():
@@ -41,27 +57,19 @@ class DocxReferenceAdapter(ReferenceExtractionPort):
                 return value
         return _DEFAULT_SECTION_TYPE
 
-    def _parse_references(self, bib_text: str) -> list[ReferenceDTO]:
-        parts = split(f"({_YEAR_END_PATTERN.pattern})", bib_text)
+    def _build_references(self, paragraphs: list[str]) -> list[ReferenceDTO]:
         references: list[ReferenceDTO] = []
-        current_ref = ""
-        for part in parts:
-            current_ref += part
-            if not _YEAR_END_PATTERN.fullmatch(part):
-                continue
-            ref = self._clean_reference(text=current_ref)
-            current_ref = ""
-            if not ref:
-                continue
-            references.append(ReferenceDTO(text=ref))
-        ref = self._clean_reference(text=current_ref)
-        if ref:
-            references.append(ReferenceDTO(text=ref))
+        for paragraph in paragraphs:
+            text = self._cut_after_first_year(text=self._strip_bullets(text=paragraph))
+            if text:
+                references.append(ReferenceDTO(text=text))
         return references
 
-    def _clean_reference(self, text: str) -> str:
-        clean = _LEADING_BULLETS_PATTERN.sub("", text.strip()).strip()
-        author_match = _AUTHOR_CLEANUP_PATTERN.search(clean)
-        if author_match:
-            clean = author_match.group(1).strip()
-        return clean
+    def _strip_bullets(self, text: str) -> str:
+        return _LEADING_BULLETS_PATTERN.sub("", text.strip()).strip()
+
+    def _cut_after_first_year(self, text: str) -> str:
+        match = _FIRST_YEAR_TOKEN_PATTERN.search(text)
+        if match is None:
+            return text
+        return text[: match.end()]
