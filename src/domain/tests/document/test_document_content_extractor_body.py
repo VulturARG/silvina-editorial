@@ -3,6 +3,7 @@ from unittest import TestCase
 from src.domain.document.article_body_locator import ArticleBodyLocator
 from src.domain.document.article_header_locator import ArticleHeaderLocator
 from src.domain.document.document_content_extractor import DocumentContentExtractor
+from src.domain.document.table_markdown_renderer import TableMarkdownRenderer
 from src.domain.dtos.article_body_dto import ArticleBodyDTO
 from src.domain.dtos.document_content_dto import DocumentContentDTO
 from src.domain.dtos.reference_dto import ReferenceDTO
@@ -10,6 +11,7 @@ from src.domain.exceptions.count_errors import CharacterCountUnavailable
 from src.domain.exceptions.document_errors import DocumentBodyNotLocated
 from src.domain.tests.document.fake_character_count_port import FakeCharacterCountPort
 from src.domain.tests.document.fake_content_extraction_port import FakeContentExtractionPort
+from src.domain.tests.document.fake_document_table_port import FakeDocumentTablePort
 from src.domain.tests.document.fake_document_text_port import FakeDocumentTextPort
 from src.domain.tests.document.fake_reference_extraction_port import FakeReferenceExtractionPort
 from src.domain.tests.dtos.editorial_norms_builder_for_test import build_editorial_norms_for_test
@@ -123,6 +125,8 @@ class TestDocumentContentExtractorBody(TestCase):
             ),
             article_body_locator=self._build_article_body_locator(),
             article_header_locator=self._build_article_header_locator(),
+            document_table_port=FakeDocumentTablePort(),
+            table_markdown_renderer=TableMarkdownRenderer(),
         )
 
     def _build_article_body_locator(self) -> ArticleBodyLocator:
