@@ -65,7 +65,7 @@ class ArticleClassifier:
 
         has_research_intent, has_evidence_based_contribution, has_theoretical_justification = (
             self._detect_research_intent_signals(
-                text_sample=" ".join(document_content.body.paragraphs),
+                text_sample=document_content.body.paragraphs_text_with_tables,
                 title=document_content.body.title,
             )
         )

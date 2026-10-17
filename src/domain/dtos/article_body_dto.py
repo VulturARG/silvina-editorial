@@ -28,13 +28,25 @@ class ArticleBodyDTO(BaseDTO):
         """Return the text with each table's Markdown at its position, set apart by blank lines."""
         if not self.tables:
             return self.text
-        text = self.title
+        return self._join_blocks([(self.title, False), *self._blocks_in_document_order()])
+
+    @property
+    def paragraphs_text_with_tables(self) -> str:
+        """Return the body paragraphs with each table's Markdown set apart by blank lines."""
+        if not self.tables:
+            return " ".join(self.paragraphs)
+        return self._join_blocks(self._blocks_in_document_order())
+
+    @staticmethod
+    def _join_blocks(blocks: list[tuple[str, bool]]) -> str:
+        joined_text = ""
         previous_is_table = False
-        for block, is_table in self._blocks_in_document_order():
-            separator = "\n\n" if is_table or previous_is_table else " "
-            text += separator + block
+        for index, (block, is_table) in enumerate(blocks):
+            if index > 0:
+                joined_text += "\n\n" if is_table or previous_is_table else " "
+            joined_text += block
             previous_is_table = is_table
-        return text
+        return joined_text
 
     def _blocks_in_document_order(self) -> list[tuple[str, bool]]:
         blocks: list[tuple[str, bool]] = []

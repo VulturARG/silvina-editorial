@@ -34,7 +34,7 @@ class QualityAnalyzer:
         if document_content.body is None:
             raise QualityAnalysisFailed()
 
-        text_sample = document_content.body.text
+        text_sample = document_content.body.text_with_tables
 
         clarity_coherence_prompt = self._render_prompt(
             template=self._clarity_coherence_prompt_template, text_sample=text_sample
