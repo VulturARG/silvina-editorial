@@ -16,11 +16,13 @@ from src.domain.classification.reference_signal_detector import ReferenceSignalD
 from src.domain.document.article_body_locator import ArticleBodyLocator
 from src.domain.document.article_header_locator import ArticleHeaderLocator
 from src.domain.document.document_content_extractor import DocumentContentExtractor
+from src.domain.document.table_markdown_renderer import TableMarkdownRenderer
 from src.domain.dtos.bibliography_norms_dto import BibliographyNormsDTO
 from src.domain.dtos.document_content_dto import DocumentContentDTO
 from src.domain.tests.document.fake_character_count_port import FakeCharacterCountPort
 from src.domain.tests.dtos.editorial_norms_builder_for_test import build_editorial_norms_for_test
 from src.infrastructure.adapters.document.docx_reference_adapter import DocxReferenceAdapter
+from src.infrastructure.adapters.document.docx_table_adapter import DocxTableAdapter
 from src.infrastructure.adapters.document.docx_text_adapter import DocxTextAdapter
 from src.infrastructure.adapters.document.paragraph_content_adapter import ParagraphContentAdapter
 
@@ -51,6 +53,8 @@ class TestExtractContentReferencesParity(TestCase):
                 bibliography_norms=editorial_norms.bibliography,
             ),
             article_header_locator=ArticleHeaderLocator(abstract_norms=editorial_norms.abstract),
+            document_table_port=DocxTableAdapter(),
+            table_markdown_renderer=TableMarkdownRenderer(),
         )
         cls.signal_detector = ReferenceSignalDetector()
 

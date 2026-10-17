@@ -24,8 +24,10 @@ from src.domain.document.content_extraction_port import ContentExtractionPort
 from src.domain.document.document_content_extractor import DocumentContentExtractor
 from src.domain.document.document_format_inspection_port import DocumentFormatInspectionPort
 from src.domain.document.document_format_inspector import DocumentFormatInspector
+from src.domain.document.document_table_port import DocumentTablePort
 from src.domain.document.document_text_port import DocumentTextPort
 from src.domain.document.reference_extraction_port import ReferenceExtractionPort
+from src.domain.document.table_markdown_renderer import TableMarkdownRenderer
 from src.domain.dtos.article_size_thresholds_dto import ArticleSizeThresholdsDTO
 from src.domain.dtos.dimension_score_dto import DimensionScoreDTO
 from src.domain.dtos.editorial_norms_dto import EditorialNormsDTO
@@ -62,6 +64,7 @@ from src.domain.structure.structure_validator import StructureValidator
 from src.infrastructure.adapters.document.docx_citation_adapter import DocxCitationAdapter
 from src.infrastructure.adapters.document.docx_eumic_adapter import DocxEumicAdapter
 from src.infrastructure.adapters.document.docx_reference_adapter import DocxReferenceAdapter
+from src.infrastructure.adapters.document.docx_table_adapter import DocxTableAdapter
 from src.infrastructure.adapters.document.docx_text_adapter import DocxTextAdapter
 from src.infrastructure.adapters.document.paragraph_content_adapter import ParagraphContentAdapter
 from src.infrastructure.adapters.document.win32com_word_count_adapter import (
@@ -144,6 +147,12 @@ class AnalyzeDocumentUseCaseWiring:
     def _get_document_text_port(self) -> DocumentTextPort:
         return DocxTextAdapter()
 
+    def _get_document_table_port(self) -> DocumentTablePort:
+        return DocxTableAdapter()
+
+    def _get_table_markdown_renderer(self) -> TableMarkdownRenderer:
+        return TableMarkdownRenderer()
+
     def _get_content_extraction_port(self) -> ContentExtractionPort:
         return ParagraphContentAdapter()
 
@@ -201,6 +210,8 @@ class AnalyzeDocumentUseCaseWiring:
             reference_extraction_port=self._get_reference_extraction_port(),
             article_body_locator=self._get_article_body_locator(),
             article_header_locator=self._get_article_header_locator(),
+            document_table_port=self._get_document_table_port(),
+            table_markdown_renderer=self._get_table_markdown_renderer(),
         )
 
     def _get_citation_extractor(self) -> CitationExtractor:

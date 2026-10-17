@@ -2,6 +2,7 @@ from src.domain.document.title_normalizer import TitleNormalizer
 from src.domain.dtos.abstract_norms_dto import AbstractNormsDTO
 from src.domain.dtos.article_body_dto import ArticleBodyDTO
 from src.domain.dtos.bibliography_norms_dto import BibliographyNormsDTO
+from src.domain.dtos.body_table_dto import BodyTableDTO
 from src.domain.dtos.keyword_norms_dto import KeywordNormsDTO
 from src.domain.exceptions.document_errors import DocumentBodyNotLocated, DocumentEmpty
 
@@ -19,8 +20,12 @@ class ArticleBodyLocator:
         self._keyword_norms = keyword_norms
         self._bibliography_norms = bibliography_norms
 
-    def locate(self, paragraphs: list[str]) -> ArticleBodyDTO:
-        """Return the repeated title, the abstract paragraphs and the body paragraphs."""
+    def locate(
+        self,
+        paragraphs: list[str],
+        tables: list[BodyTableDTO] | tuple[BodyTableDTO, ...] = (),
+    ) -> ArticleBodyDTO:
+        """Return the repeated title, abstract paragraphs, body paragraphs and body tables."""
         if not paragraphs:
             raise DocumentEmpty()
         title_index = self._find_repeated_title_index(paragraphs)
@@ -29,6 +34,7 @@ class ArticleBodyLocator:
             title=paragraphs[title_index],
             abstract_paragraphs=self._find_abstract_paragraphs(paragraphs, title_index),
             paragraphs=tuple(paragraphs[title_index + 1 : header_index]),
+            tables=self._find_body_tables(tables, title_index, header_index),
         )
 
     def _find_repeated_title_index(self, paragraphs: list[str]) -> int:
@@ -37,6 +43,19 @@ class ArticleBodyLocator:
             if TitleNormalizer.normalize(paragraphs[index]).startswith(search_key):
                 return index
         raise DocumentBodyNotLocated()
+
+    def _find_body_tables(
+        self,
+        tables: list[BodyTableDTO] | tuple[BodyTableDTO, ...],
+        title_index: int,
+        header_index: int,
+    ) -> tuple[BodyTableDTO, ...]:
+        first_body_position = title_index + 1
+        return tuple(
+            BodyTableDTO(markdown=table.markdown, position=table.position - first_body_position)
+            for table in tables
+            if first_body_position <= table.position <= header_index
+        )
 
     def _find_abstract_paragraphs(self, paragraphs: list[str], title_index: int) -> tuple[str, ...]:
         heading_index = self._find_abstract_heading_index(paragraphs, title_index)
