@@ -528,7 +528,7 @@ silvina-editorial/
 
 **Contributors:**
 - Pablo Salonio (GitHub: P-SAL)
-- Luis A. Briones (GitHub: VulturARG)
+- Luis Briones (GitHub: VulturARG)
 
 **Repository:** https://github.com/P-SAL/silvina-editorial\
 **Active branch:** `silvina_editorial_v200`

@@ -1,8 +1,8 @@
 cff-version: 1.2.0
 message: "If you use this software in academic work, please cite it as below."
 title: "Silvina: AI-Powered Editorial Assistant for Spanish Academic Journals"
-version: "0.5"
-date-released: 2026-01-01
+version: "0.200"
+date-released: 2026-10-16
 license: MIT
 
 authors:
@@ -11,6 +11,10 @@ authors:
     affiliation: "Facultad Militar Conjunta, Universidad de la Defensa Nacional, Argentina"
     email: plsalonio@gmail.com
     orcid: "https://orcid.org/0009-0004-1941-3208"
+  - family-names: Briones
+    given-names: Luis
+    alias: VulturARG
+    website: "https://github.com/VulturARG"
 
 repository-code: "https://github.com/P-SAL/silvina-editorial"
 
@@ -35,7 +39,9 @@ preferred-citation:
   authors:
     - family-names: Salonio
       given-names: Pablo
+    - family-names: Briones
+      given-names: Luis
   title: "Silvina: AI-Powered Editorial Assistant for Spanish Academic Journals"
-  version: "0.5"
+  version: "0.200"
   year: 2026
   url: "https://github.com/P-SAL/silvina-editorial"
