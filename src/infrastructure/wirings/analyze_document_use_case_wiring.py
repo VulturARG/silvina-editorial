@@ -82,6 +82,9 @@ from src.infrastructure.adapters.llm_generator.ollama_backend_error_mapper impor
 from src.infrastructure.adapters.llm_generator.ollama_generator_adapter import (
     OllamaGeneratorAdapter,
 )
+from src.infrastructure.adapters.llm_generator.truncation_guard_llm_generator_adapter import (
+    TruncationGuardLlmGeneratorAdapter,
+)
 from src.infrastructure.adapters.metrics.analysis_cancellation_adapter import (
     AnalysisCancellationAdapter,
 )
@@ -458,14 +461,16 @@ class AnalyzeDocumentUseCaseWiring:
 
     def _get_llm_generator(self, purpose: AiPurpose) -> LlmGeneratorPort:
         env_config = self._get_env_config()
-        return AuditedLlmGeneratorAdapter(
-            generator=self._get_llm_backend_generator(),
-            metrics_port=self._get_analysis_metrics_port(),
-            analysis_context_port=self._get_analysis_context_port(),
-            provider=env_config.llm_provider,
-            model_name=self._get_active_model_name(),
-            purpose=purpose,
-            audit_payload_policy=self._get_audit_payload_policy(),
+        return TruncationGuardLlmGeneratorAdapter(
+            generator=AuditedLlmGeneratorAdapter(
+                generator=self._get_llm_backend_generator(),
+                metrics_port=self._get_analysis_metrics_port(),
+                analysis_context_port=self._get_analysis_context_port(),
+                provider=env_config.llm_provider,
+                model_name=self._get_active_model_name(),
+                purpose=purpose,
+                audit_payload_policy=self._get_audit_payload_policy(),
+            ),
         )
 
     def _get_analysis_metrics_recorder(self) -> AnalysisMetricsRecorder:

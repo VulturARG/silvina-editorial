@@ -42,7 +42,7 @@ An output cut by the output-token limit must fail with a clear error instead of 
 
 - [x] **TASK-01** Per-call output limits: new settings and `EnvConfig` attributes, `ArticleClassifier` and `EditorialSuitabilityAnalyzer` take `max_output_tokens` instead of `num_predict`, `QualityAnalyzer` sends its limit, wiring updated, old setting removed. RED first.
 
-- [ ] **TASK-02** Truncation guard: `LanguageModelOutputTruncated`, a decorator adapter that raises it when `done_reason` is `length`, composed in `_get_llm_generator` around the audited adapter. RED first.
+- [x] **TASK-02** Truncation guard: `LanguageModelOutputTruncated`, a decorator adapter that raises it when `done_reason` is `length`, composed in `_get_llm_generator` around the audited adapter. RED first.
 
 ## 6. Evidence
 
@@ -52,3 +52,9 @@ An output cut by the output-token limit must fail with a clear error instead of 
 - New tests (logic only): the three limits read from the settings file and overridden by environment variable, fail-fast naming the key, wiring of the limits into the classifier and the quality analyzer, and the quality analyzer sending only `{"num_predict": limit}` in both calls.
 - If a local `.env` still defines `ARTICLE_CLASSIFIER_NUM_PREDICT`, it is no longer read. The three new limits work with the settings file defaults.
 - Not touched: `docs/full-text-refactor/02-text-limits-inventory.md` (study document, line 34 still mentions the old key).
+
+### TASK-02
+- RED: the new and the changed test modules did not import before the implementation (the symbols did not exist), so the new tests were blocked and not run one by one; the wiring modules that could not be collected account for the 62 missing tests of that pass (2263 passed against the 2325 baseline). Blocked new tests include `test_generate_with_usage_raises_output_truncated_when_done_reason_is_length`, `test_generate_raises_output_truncated_when_done_reason_is_length` and `test_truncated_generation_is_recorded_before_the_guard_raises`.
+- GREEN: baseline 2325 passed, final 2336 passed (191 subtests), re-run by the parent; `ruff check` and `ruff format --check` clean. All changed files are inside the allowed surfaces.
+- `TruncationGuardLlmGeneratorAdapter` wraps the audited generator in `_get_llm_generator`, so the audit still records the interaction with `done_reason = length` before the guard raises `LanguageModelOutputTruncated`. The warm-up goes through its own adapter and is not affected.
+- Claude: `CLAUDE_STOP_REASON_TO_DONE_REASON` already maps `max_tokens` and `model_context_window_exceeded` to `length`, so the guard also covers a response cut by the Claude backend. Claude still ignores the generation options.

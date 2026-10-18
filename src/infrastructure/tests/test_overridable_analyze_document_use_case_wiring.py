@@ -6,11 +6,11 @@ from unittest.mock import patch
 
 from src.application.analyze_document_use_case import AnalyzeDocumentUseCase
 from src.domain.enums.ai_provider import AiProvider
-from src.infrastructure.adapters.llm_generator.audited_llm_generator_adapter import (
-    AuditedLlmGeneratorAdapter,
-)
 from src.infrastructure.adapters.llm_generator.ollama_generator_adapter import (
     OllamaGeneratorAdapter,
+)
+from src.infrastructure.adapters.llm_generator.truncation_guard_llm_generator_adapter import (
+    TruncationGuardLlmGeneratorAdapter,
 )
 from src.infrastructure.overridable_env_config import OverridableEnvConfig
 from src.infrastructure.resources.prompts.classification import (
@@ -18,6 +18,9 @@ from src.infrastructure.resources.prompts.classification import (
 )
 from src.infrastructure.tests.test_doubles.complete_test_environment import (
     CompleteTestEnvironment,
+)
+from src.infrastructure.tests.test_doubles.truncation_guard_unwrapper_for_test import (
+    TruncationGuardUnwrapperForTest,
 )
 from src.infrastructure.wirings.analyze_document_use_case_wiring import (
     AnalyzeDocumentUseCaseWiring,
@@ -95,14 +98,14 @@ class TestOverridableAnalyzeDocumentUseCaseWiring(TestCase):
                 {"OLLAMA_MODEL_NAME": "override-model"}
             ).create_use_case()
 
-        generators = (
+        guards = (
             use_case._article_classifier._llm_generator,
             use_case._quality_analyzer._llm_generator,
             use_case._quality_analyzer._editorial_suitability_analyzer._llm_generator,
         )
-        for generator in generators:
-            self.assertIsInstance(generator, AuditedLlmGeneratorAdapter)
-            assert isinstance(generator, AuditedLlmGeneratorAdapter)
+        for guard in guards:
+            self.assertIsInstance(guard, TruncationGuardLlmGeneratorAdapter)
+            generator = TruncationGuardUnwrapperForTest.audited_generator(guard)
             self.assertEqual(generator._model_name, "override-model")
             self.assertIsInstance(generator._generator, OllamaGeneratorAdapter)
             assert isinstance(generator._generator, OllamaGeneratorAdapter)
@@ -134,9 +137,9 @@ class TestOverridableAnalyzeDocumentUseCaseWiring(TestCase):
 
         self.assertEqual(active_model_name, self.ENVIRONMENT_MODEL_NAME)
         mock_load.assert_not_called()
-        classifier_generator = use_case._article_classifier._llm_generator
-        self.assertIsInstance(classifier_generator, AuditedLlmGeneratorAdapter)
-        assert isinstance(classifier_generator, AuditedLlmGeneratorAdapter)
+        classifier_generator = TruncationGuardUnwrapperForTest.audited_generator(
+            use_case._article_classifier._llm_generator
+        )
         self.assertEqual(classifier_generator._provider, AiProvider.OLLAMA)
         self.assertIsInstance(classifier_generator._generator, OllamaGeneratorAdapter)
 
