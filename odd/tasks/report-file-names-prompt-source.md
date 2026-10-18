@@ -34,6 +34,9 @@ A CLI run that uses a non-default prompt source must not overwrite the reports o
 
 ## 5. Open items
 
+- Native review of TASK-01 (commit `5239ecc`, 6 files, 245 lines) was approved and acknowledged (lineage `review-a43fe7d3b0280997`, medium risk, lens `review-reliability`, authority burned). Advisory findings, non-blocking, location only (the provider returns no text): R3-001 and R3-004 WARNING `report_file_paths_builder.py:58`, R3-003 WARNING `:63`, R3-002 WARNING `:67`, R3-005 WARNING `test_document_analysis_command.py:159`. Separate later work. One edge case reasoned by the parent, not confirmed by the findings: a `--prompts-dir` folder literally named `default` is treated as the default source, so its reports get no suffix and overwrite the default ones.
+- Commit and branch are local: this branch is not pushed and has no pull request.
+
 - Windows path length: the suffix with the six per-prompt names is about 100 characters longer than today; mention it to the user at close.
 
 ## 6. Evidence
