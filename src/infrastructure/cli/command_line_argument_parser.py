@@ -30,6 +30,7 @@ class CommandLineArgumentParser:
             clarity_coherence_prompt=namespace.clarity_coherence_prompt,
             contribution_prompt=namespace.contribution_prompt,
             research_lines=namespace.research_lines,
+            prompts_directory=namespace.prompts_directory,
         )
 
     def _build_argument_parser(self) -> ArgumentParser:
@@ -90,6 +91,17 @@ class CommandLineArgumentParser:
             choices=[mode.value for mode in AppMode],
             default=None,
             help="Application mode that overrides APP_MODE",
+        )
+        parser.add_argument(
+            "--prompts-dir",
+            dest="prompts_directory",
+            type=self._parse_prompts_directory_path,
+            default=None,
+            metavar="DIRECTORY",
+            help=(
+                "Root of a complete prompt set: a directory with the classification/ and quality/ "
+                "folders, holding the same file names as the default prompts"
+            ),
         )
         parser.add_argument(
             "--s4-s5-s6-signal-prompt",
@@ -165,6 +177,19 @@ class CommandLineArgumentParser:
         if normalized_text not in self.BOOLEAN_VALUES_BY_TEXT:
             raise ArgumentTypeError(f"Valor no válido: '{text}'. Use true o false.")
         return self.BOOLEAN_VALUES_BY_TEXT[normalized_text]
+
+    def _parse_prompts_directory_path(self, text: str) -> Path:
+        """Validate that the directory exists and contains every file of a complete prompt set."""
+        directory_path = Path(text)
+        if not directory_path.is_dir():
+            raise ArgumentTypeError(f"El directorio no existe o no es un directorio: '{text}'.")
+        for relative_path in CommandLineArguments.prompt_root_relative_paths():
+            if not (directory_path / relative_path).is_file():
+                missing_file_name = relative_path.as_posix()
+                raise ArgumentTypeError(
+                    f"No se encontró el archivo '{missing_file_name}' en el directorio: '{text}'."
+                )
+        return directory_path
 
     def _parse_prompt_directory_path(self, text: str, expected_file_name: str) -> Path:
         """Validate that the directory exists and contains the expected prompt file."""

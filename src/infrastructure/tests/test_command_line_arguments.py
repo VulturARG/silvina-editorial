@@ -118,3 +118,19 @@ class TestCommandLineArguments(TestCase):
                 "research_lines",
             },
         )
+
+    def test_prompts_directory_is_none_when_omitted(self):
+        self.assertIsNone(CommandLineArguments().prompts_directory)
+
+    def test_prompt_root_relative_paths_lists_six_files_grouped_by_folder(self):
+        self.assertEqual(
+            CommandLineArguments.prompt_root_relative_paths(),
+            (
+                Path("classification/s4_s5_s6_signal_prompt.txt"),
+                Path("quality/alignment_prompt.txt"),
+                Path("quality/argumentation_conclusions_prompt.txt"),
+                Path("quality/clarity_coherence_prompt.txt"),
+                Path("quality/contribution_prompt.txt"),
+                Path("quality/research_lines.txt"),
+            ),
+        )

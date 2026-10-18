@@ -150,6 +150,21 @@ class TestCliAnalysisServicesWiring(TestCase):
 
         self.assertEqual(analyze_wiring._prompt_file_overrides, prompt_file_overrides)
 
+    def test_passes_prompts_root_to_analyze_document_use_case_wiring(self):
+        prompts_root = Path("custom/prompts")
+        with patch.dict(environ, self._complete_environment(), clear=True):
+            wiring = CliAnalysisServicesWiring({}, prompts_root=prompts_root)
+            analyze_wiring = wiring._analyze_document_use_case_wiring()
+
+        self.assertEqual(
+            analyze_wiring._classification_prompts_directory,
+            str(prompts_root / "classification"),
+        )
+        self.assertEqual(
+            analyze_wiring._quality_prompts_directory,
+            str(prompts_root / "quality"),
+        )
+
     def test_release_language_model_server_use_case_is_release_language_model_server_use_case(
         self,
     ):

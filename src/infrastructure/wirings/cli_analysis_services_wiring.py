@@ -34,10 +34,12 @@ class CliAnalysisServicesWiring:
         self,
         environment_overrides: Mapping[str, str | None],
         prompt_file_overrides: Mapping[str, Path | None] | None = None,
+        prompts_root: Path | None = None,
     ) -> None:
-        """Keep the overrides applied to the configuration and prompts of this run."""
+        """Keep the overrides and the custom prompts root applied to this run."""
         self._environment_overrides = environment_overrides
         self._prompt_file_overrides = prompt_file_overrides
+        self._prompts_root = prompts_root
 
     def create_services(self) -> CliAnalysisServices:
         """Return the analysis and export use cases sharing one overridden configuration."""
@@ -57,7 +59,9 @@ class CliAnalysisServicesWiring:
 
     def _analyze_document_use_case_wiring(self) -> OverridableAnalyzeDocumentUseCaseWiring:
         return OverridableAnalyzeDocumentUseCaseWiring(
-            self._environment_overrides, self._prompt_file_overrides
+            self._environment_overrides,
+            self._prompt_file_overrides,
+            prompts_root=self._prompts_root,
         )
 
     def _ensure_language_model_server_use_case(self) -> EnsureLanguageModelServerUseCase:

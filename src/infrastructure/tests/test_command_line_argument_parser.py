@@ -6,15 +6,41 @@ from unittest import TestCase
 
 from src.infrastructure.cli.command_line_argument_parser import CommandLineArgumentParser
 from src.infrastructure.cli.command_line_arguments import CommandLineArguments
+from src.infrastructure.resources.prompts import PROMPTS_ROOT
 
 
 class TestCommandLineArgumentParser(TestCase):
+    COMPLETE_PROMPTS_ROOT_FILES = (
+        "classification/s4_s5_s6_signal_prompt.txt",
+        "quality/alignment_prompt.txt",
+        "quality/argumentation_conclusions_prompt.txt",
+        "quality/clarity_coherence_prompt.txt",
+        "quality/contribution_prompt.txt",
+        "quality/research_lines.txt",
+    )
+
     def setUp(self):
         self.parser = CommandLineArgumentParser()
 
     def _assert_usage_error(self, argument_list: list[str]) -> None:
         with redirect_stderr(StringIO()), self.assertRaises(SystemExit):
             self.parser.parse(argument_list)
+
+    def _usage_error_text(self, argument_list: list[str]) -> str:
+        error_output = StringIO()
+        with redirect_stderr(error_output), self.assertRaises(SystemExit):
+            self.parser.parse(argument_list)
+        return error_output.getvalue()
+
+    def _create_complete_prompts_root(self) -> Path:
+        temporary_directory = TemporaryDirectory()
+        self.addCleanup(temporary_directory.cleanup)
+        prompts_root = Path(temporary_directory.name)
+        for relative_path in self.COMPLETE_PROMPTS_ROOT_FILES:
+            file_path = prompts_root / relative_path
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            file_path.write_text(relative_path, encoding="utf-8")
+        return prompts_root
 
     def test_every_argument_is_none_when_omitted(self):
         self.assertEqual(self.parser.parse([]), CommandLineArguments())
@@ -229,6 +255,85 @@ class TestCommandLineArgumentParser(TestCase):
                 research_lines=base_directory,
             ),
         )
+
+    def test_parses_prompts_dir_as_path_when_root_is_complete(self):
+        prompts_root = self._create_complete_prompts_root()
+
+        arguments = self.parser.parse(["--prompts-dir", str(prompts_root)])
+
+        self.assertEqual(arguments.prompts_directory, prompts_root)
+
+    def test_accepts_packaged_v2_prompt_set_as_prompts_dir(self):
+        arguments = self.parser.parse(["--prompts-dir", str(PROMPTS_ROOT / "v2")])
+
+        self.assertEqual(arguments.prompts_directory, PROMPTS_ROOT / "v2")
+
+    def test_accepts_extra_files_in_prompts_dir(self):
+        prompts_root = self._create_complete_prompts_root()
+        (prompts_root / "notes.md").write_text("extra", encoding="utf-8")
+
+        arguments = self.parser.parse(["--prompts-dir", str(prompts_root)])
+
+        self.assertEqual(arguments.prompts_directory, prompts_root)
+
+    def test_parses_prompts_dir_together_with_per_prompt_flag(self):
+        prompts_root = self._create_complete_prompts_root()
+        research_lines_root = self._create_complete_prompts_root()
+
+        arguments = self.parser.parse(
+            [
+                "--prompts-dir",
+                str(prompts_root),
+                "--research-lines",
+                str(research_lines_root / "quality"),
+            ]
+        )
+
+        self.assertEqual(arguments.prompts_directory, prompts_root)
+        self.assertEqual(arguments.research_lines, research_lines_root / "quality")
+
+    def test_rejects_prompts_dir_that_does_not_exist(self):
+        temporary_directory = TemporaryDirectory()
+        self.addCleanup(temporary_directory.cleanup)
+        nonexistent_directory = Path(temporary_directory.name) / "nonexistent"
+
+        self._assert_usage_error(["--prompts-dir", str(nonexistent_directory)])
+
+    def test_rejects_prompts_dir_missing_classification_prompt(self):
+        prompts_root = self._create_complete_prompts_root()
+        (prompts_root / "classification" / "s4_s5_s6_signal_prompt.txt").unlink()
+
+        self._assert_usage_error(["--prompts-dir", str(prompts_root)])
+
+    def test_rejects_prompts_dir_missing_quality_prompt(self):
+        prompts_root = self._create_complete_prompts_root()
+        (prompts_root / "quality" / "research_lines.txt").unlink()
+
+        self._assert_usage_error(["--prompts-dir", str(prompts_root)])
+
+    def test_rejects_prompts_dir_missing_file_even_when_per_prompt_flag_covers_it(self):
+        prompts_root = self._create_complete_prompts_root()
+        (prompts_root / "quality" / "research_lines.txt").unlink()
+        research_lines_root = self._create_complete_prompts_root()
+
+        self._assert_usage_error(
+            [
+                "--prompts-dir",
+                str(prompts_root),
+                "--research-lines",
+                str(research_lines_root / "quality"),
+            ]
+        )
+
+    def test_usage_error_names_first_missing_file_in_prompt_order(self):
+        prompts_root = self._create_complete_prompts_root()
+        (prompts_root / "classification" / "s4_s5_s6_signal_prompt.txt").unlink()
+        (prompts_root / "quality" / "research_lines.txt").unlink()
+
+        error_text = self._usage_error_text(["--prompts-dir", str(prompts_root)])
+
+        self.assertIn("classification/s4_s5_s6_signal_prompt.txt", error_text)
+        self.assertNotIn("research_lines.txt", error_text)
 
     def test_parses_every_option_together(self):
         arguments = self.parser.parse(

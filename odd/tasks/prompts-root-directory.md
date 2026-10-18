@@ -35,7 +35,7 @@ Let `main.py` receive one optional argument that replaces the whole default prom
 ## 4. Tasks
 
 - [x] **TASK-01** Rename the `v2` prompt files (drop `_v2`) and add a `PROMPTS_ROOT` constant for the packaged root. `AnalyzeDocumentUseCaseWiring` accepts `prompts_root` (default packaged) and derives `classification/` and `quality/` from it; `OverridableAnalyzeDocumentUseCaseWiring` forwards it. RED first.
-- [ ] **TASK-02** `CommandLineArguments.prompts_directory` and the `--prompts-dir` option with strict validation of the six files in the parser; plumb the value `DocumentAnalysisCommand` -> services factory -> `DocumentAnalysisCommandWiring` -> `CliAnalysisServicesWiring` -> `OverridableAnalyzeDocumentUseCaseWiring`. RED first.
+- [x] **TASK-02** `CommandLineArguments.prompts_directory` and the `--prompts-dir` option with strict validation of the six files in the parser; plumb the value `DocumentAnalysisCommand` -> services factory -> `DocumentAnalysisCommandWiring` -> `CliAnalysisServicesWiring` -> `OverridableAnalyzeDocumentUseCaseWiring`. RED first.
 - [ ] **TASK-03** Prompt source description: a value object built from `CommandLineArguments` (`default` or root folder name, plus replaced prompt names in fixed order) with its text rendering; log it from the CLI run. RED first.
 - [ ] **TASK-04** Show the prompt source in the reports: optional parameter in `ExportReportWiring`, `JsonReportWiring` and `HtmlReportWiring`, rendered by the Word, JSON and HTML adapters only when present; `CliAnalysisServicesWiring` passes it, FastAPI does not. RED first.
 - [ ] **TASK-05** README usage for `--prompts-dir` and the reported prompt source; full unit-suite run.
@@ -50,4 +50,10 @@ Let `main.py` receive one optional argument that replaces the whole default prom
 - RED: `PROMPTS_ROOT` import failed with `ImportError`; then `test_create_use_case_reads_prompt_templates_from_custom_prompts_root` and `test_create_use_case_loads_renamed_v2_prompt_set_from_its_root` (analyze wiring) and `test_create_use_case_reads_prompt_templates_from_custom_prompts_root` and `test_per_prompt_override_wins_over_custom_prompts_root` (overridable wiring) failed with `TypeError: unexpected keyword argument 'prompts_root'`.
 - GREEN: 61 focused tests passing (re-run by the parent); full unit suite `Ran 2201 tests, OK` (reported by the writer).
 - `prompts_root` stays a regular trailing parameter, like `prompt_file_overrides`.
-- Commit: see `git log` entry `feat(prompts): read prompts from a configurable root in the wirings`.
+- Commit: `ec996d0` `feat(prompts): read prompts from a configurable root in the wirings`.
+
+### TASK-02
+- RED: 10 errors and 3 failures, e.g. `test_usage_error_names_first_missing_file_in_prompt_order` (`unrecognized arguments: --prompts-dir`), `test_passes_prompts_directory_to_services_factory` (`TypeError`), `test_services_factory_forwards_prompts_root`, `test_prompt_root_relative_paths_lists_six_files_grouped_by_folder` (`AttributeError`). Caveat: the rejection tests passed in RED because argparse already rejected the unknown option; their real signal comes with the positive and message tests.
+- GREEN: 107 focused tests passing (re-run by the parent); full unit suite `Ran 2215 tests, OK` and ruff clean (reported by the writer).
+- The six expected files live only in `CommandLineArguments.prompt_root_relative_paths()`; the missing-file message uses the POSIX form (`classification/s4_s5_s6_signal_prompt.txt`).
+- The services factory now takes a third argument `prompts_root`; `CliAnalysisServicesWiring` already holds both `prompt_file_overrides` and `prompts_root`, which is all TASK-03 needs to describe the prompt source.
