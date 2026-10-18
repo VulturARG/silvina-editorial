@@ -315,6 +315,7 @@ The document is read from the current directory unless `--input-dir` is given. O
 | `--llm-provider <name>` | Overrides `LLM_PROVIDER` |
 | `--external-llm-model-name <name>` | Overrides `EXTERNAL_LLM_MODEL_NAME` |
 | `--app-mode DEBUG\|PROD` | Overrides `APP_MODE` |
+| `--prompts-dir <dir>` | Root of a complete prompt set that replaces the default `src/infrastructure/resources/prompts`: a directory with the `classification/` and `quality/` folders and the same file names as the default one |
 | `--s4-s5-s6-signal-prompt <dir>` | Directory containing `s4_s5_s6_signal_prompt.txt` to override default signal prompt |
 | `--alignment-prompt <dir>` | Directory containing `alignment_prompt.txt` to override default alignment prompt |
 | `--argumentation-conclusions-prompt <dir>` | Directory containing `argumentation_conclusions_prompt.txt` to override default argumentation prompt |
@@ -337,6 +338,14 @@ Prompt files can be overridden individually by pointing to a directory that cont
 ```bash
 python main.py documento.docx --alignment-prompt C:\mis_prompts
 ```
+
+A whole prompt set can be replaced at once with `--prompts-dir`. The directory must contain `classification/s4_s5_s6_signal_prompt.txt` and `quality/{alignment_prompt,argumentation_conclusions_prompt,clarity_coherence_prompt,contribution_prompt,research_lines}.txt`; a missing file is a usage error and the packaged prompts are never used as a silent fallback. The per-prompt flags above still take precedence over the directory.
+
+```bash
+python main.py documento.docx --prompts-dir src\infrastructure\resources\prompts\v2
+```
+
+Each CLI run records which prompts it used, in the log (`Prompt source: ...`) and in the Word, JSON and HTML reports (`Prompts utilizados`, the `prompt_source` key and a line at the top of the HTML page). The value is `default` or the name of the `--prompts-dir` folder, followed by the replaced prompts when per-prompt flags are used, for example `v2 + alignment_prompt`. The web reports do not show it.
 
 ---
 

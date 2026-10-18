@@ -38,11 +38,12 @@ Let `main.py` receive one optional argument that replaces the whole default prom
 - [x] **TASK-02** `CommandLineArguments.prompts_directory` and the `--prompts-dir` option with strict validation of the six files in the parser; plumb the value `DocumentAnalysisCommand` -> services factory -> `DocumentAnalysisCommandWiring` -> `CliAnalysisServicesWiring` -> `OverridableAnalyzeDocumentUseCaseWiring`. RED first.
 - [x] **TASK-03** Prompt source description: a value object built from `CommandLineArguments` (`default` or root folder name, plus replaced prompt names in fixed order) with its text rendering; log it from the CLI run. RED first.
 - [x] **TASK-04** Show the prompt source in the reports: optional parameter in `ExportReportWiring`, `JsonReportWiring` and `HtmlReportWiring`, rendered by the Word, JSON and HTML adapters only when present; `CliAnalysisServicesWiring` passes it, FastAPI does not. RED first.
-- [ ] **TASK-05** README usage for `--prompts-dir` and the reported prompt source; full unit-suite run.
+- [x] **TASK-05** README usage for `--prompts-dir` and the reported prompt source; full unit-suite run.
 
 ## 5. Open items
 
 - HTML placement: the prompt source line sits at the top of `<main>` in `standalone_report.html`, not inside the document information block, because that block lives in `partials/_results.html`, shared with the web pages. Moving it would change the web view; decide with the user at close.
+- Native review of TASK-04 (commit `b92f5a7`, 17 files, 315 lines) was approved and acknowledged (lineage `review-f4eaf1147642713e`, medium risk, lens `review-reliability`, authority burned). Advisory findings, non-blocking, location only: R3-001 WARNING `json_report_adapter.py:21` (`legacy_shape["prompt_source"]` is assigned directly into the legacy shape), R3-002 SUGGESTION `test_cli_analysis_services_wiring.py:277-320`. Separate later work. The TASK-05 documentation commit was not reviewed (passive documentation).
 - Native review of the TASK-01..03 slice (base `96c4ca5`, 33 files) was approved and acknowledged (lineage `review-003bce0a599d86c1`, medium risk, lens `review-reliability`, authority burned). The default provider candidate (merge `0c9631b`, 1071 files) could not be reviewed: `lens_context_budget_exceeded`, no authority created. Advisory findings, non-blocking, location only (the provider returns no text): R3-001 WARNING `command_line_argument_parser.py:183` (`_parse_prompts_directory_path`), R3-002 WARNING `test_command_line_argument_parser.py:302-312` (the rejection tests only assert a usage error, not the message naming the missing file), R3-003 SUGGESTION `prompt_source_builder.py:25` (`resolve().name` is empty for a filesystem root such as `C:\`). Separate later work.
 
 - "Log" is implemented as the standard `logging` output configured by `LoggingConfigWiring` (the CLI also has the console `ConsoleStepAnnouncer`, which is left untouched). Confirm with the user at close.
@@ -73,3 +74,8 @@ Let `main.py` receive one optional argument that replaces the whole default prom
 - RED: 10 tests failed as expected (`TypeError: unexpected keyword argument 'prompt_source'` / `takes no arguments` in the section, adapters and wirings; text absent and `KeyError` in the three CLI report use case tests). The tests of the four pieces were written together and run once, not strictly piece by piece. The "value absent" tests are guards that passed from the start.
 - GREEN: 204 tests of `tests/adapters/report` (characterization, golden parity and fingerprint untouched) and 45 wiring tests passing (re-run by the parent); FastAPI `test_dependencies.py` 13 passed; full unit suite `Ran 2254 tests, OK`; `tests/` 34 OK; ruff clean (reported by the writer).
 - Shown as: Word paragraph `Prompts utilizados: <value>` at the end of the document information section; JSON top-level key `prompt_source` (absent when there is no value); HTML paragraph at the top of `<main>` of `standalone_report.html`. The web output is unchanged because every new parameter defaults to `None`.
+
+### TASK-05
+- README: `--prompts-dir` row in the CLI options table, a usage section for the whole-set override (strict validation, no silent fallback, per-prompt flags keep precedence) and a note on where the prompt source is recorded.
+- GREEN: full unit suite `Ran 2254 tests, OK`; `tests/` OK; `ruff check src` and `ruff format --check src` clean (703 files).
+- Commit: `b92f5a7` `feat(report): show the prompt source in the CLI Word, JSON and HTML reports`; the README and this document close in the final `docs` commit.
