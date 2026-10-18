@@ -96,7 +96,7 @@ class TestQualityAnalyzerTables(TestCase):
             paragraphs=("Before.", "After."),
             tables=(BodyTableDTO(markdown=TABLE_MARKDOWN, position=1),),
         )
-        expected_text_sample = f"Body Title Before.\n\n{TABLE_MARKDOWN}\n\nAfter."
+        expected_text_sample = f"Body Title\n\nBefore.\n\n{TABLE_MARKDOWN}\n\nAfter."
 
         self.analyzer.analyze(build_document_content(body))
 
@@ -112,7 +112,7 @@ class TestQualityAnalyzerTables(TestCase):
             paragraphs=("Before.", "After."),
             tables=(BodyTableDTO(markdown=TABLE_MARKDOWN, position=1),),
         )
-        expected_text_sample = f"Body Title Before.\n\n{TABLE_MARKDOWN}\n\nAfter."
+        expected_text_sample = f"Body Title\n\nBefore.\n\n{TABLE_MARKDOWN}\n\nAfter."
 
         self.analyzer.analyze(build_document_content(body))
 
@@ -126,14 +126,14 @@ class TestQualityAnalyzerTables(TestCase):
             paragraphs=("Only paragraph.",),
             tables=(BodyTableDTO(markdown=TABLE_MARKDOWN, position=1),),
         )
-        expected_text_sample = f"Body Title Only paragraph.\n\n{TABLE_MARKDOWN}"
+        expected_text_sample = f"Body Title\n\nOnly paragraph.\n\n{TABLE_MARKDOWN}"
 
         self.analyzer.analyze(build_document_content(body))
 
         self.assertIn(expected_text_sample, self.quality_adapter.received_prompts[0])
         self.assertIn(expected_text_sample, self.suitability_adapter.received_prompts[0])
 
-    def test_body_without_tables_produces_the_same_prompts_as_its_plain_text(self):
+    def test_body_without_tables_produces_the_same_prompts_as_its_text_with_tables(self):
         body = ArticleBodyDTO(
             title="Body Title",
             abstract_paragraphs=(),
@@ -145,16 +145,17 @@ class TestQualityAnalyzerTables(TestCase):
         self.assertEqual(
             self.quality_adapter.received_prompts,
             [
-                CLARITY_COHERENCE_PROMPT_TEMPLATE.format(text_sample=body.text),
-                ARGUMENTATION_CONCLUSIONS_PROMPT_TEMPLATE.format(text_sample=body.text),
+                CLARITY_COHERENCE_PROMPT_TEMPLATE.format(text_sample=body.text_with_tables),
+                ARGUMENTATION_CONCLUSIONS_PROMPT_TEMPLATE.format(text_sample=body.text_with_tables),
             ],
         )
         self.assertEqual(
             self.suitability_adapter.received_prompts,
             [
-                SUITABILITY_CONTRIBUTION_PROMPT_TEMPLATE.format(text_sample=body.text),
+                SUITABILITY_CONTRIBUTION_PROMPT_TEMPLATE.format(text_sample=body.text_with_tables),
                 SUITABILITY_ALIGNMENT_PROMPT_TEMPLATE.format(
-                    research_lines=SUITABILITY_RESEARCH_LINES, text_sample=body.text
+                    research_lines=SUITABILITY_RESEARCH_LINES,
+                    text_sample=body.text_with_tables,
                 ),
             ],
         )

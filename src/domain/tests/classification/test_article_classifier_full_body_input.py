@@ -33,8 +33,9 @@ class TestArticleClassifierFullBodyInput(TestCase):
         self._build_classifier(fake_llm_generator).classify(document_content)
 
         prompt = fake_llm_generator.received_prompts[0]
+        text_sample = "\n\n".join(body_paragraphs)
         self.assertIn(f"TITULO: {BODY_TITLE}\n", prompt)
-        self.assertIn(f"TEXTO: {' '.join(body_paragraphs)}", prompt)
+        self.assertIn(f"TEXTO: {text_sample}", prompt)
 
     def test_body_much_longer_than_former_limits_reaches_prompt_uncut(self) -> None:
         first_paragraph = "INICIO " + "a" * 99_990
@@ -48,7 +49,7 @@ class TestArticleClassifierFullBodyInput(TestCase):
         self._build_classifier(fake_llm_generator).classify(document_content)
 
         prompt = fake_llm_generator.received_prompts[0]
-        self.assertIn(" ".join(body_paragraphs), prompt)
+        self.assertIn("\n\n".join(body_paragraphs), prompt)
         self.assertIn("INICIO", prompt)
         self.assertIn("FINAL", prompt)
 

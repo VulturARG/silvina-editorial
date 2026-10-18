@@ -8,12 +8,32 @@ SECOND_TABLE_MARKDOWN = "| Key | Value |\n| --- | --- |\n| x | y |"
 
 
 class TestArticleBodyDTOParagraphsTextWithTables(TestCase):
-    def test_equals_plain_join_of_paragraphs_when_there_are_no_tables(self):
+    def test_joins_paragraphs_with_blank_lines_without_tables(self):
         body = ArticleBodyDTO(
             title="Title", abstract_paragraphs=(), paragraphs=("First.", "Second.")
         )
 
-        self.assertEqual(body.paragraphs_text_with_tables, "First. Second.")
+        self.assertEqual(body.paragraphs_text_with_tables, "First.\n\nSecond.")
+
+    def test_returns_single_paragraph_alone_without_tables(self):
+        body = ArticleBodyDTO(title="Title", abstract_paragraphs=(), paragraphs=("Only.",))
+
+        self.assertEqual(body.paragraphs_text_with_tables, "Only.")
+
+    def test_is_empty_when_there_are_no_paragraphs_and_no_tables(self):
+        body = ArticleBodyDTO(title="Title", abstract_paragraphs=(), paragraphs=())
+
+        self.assertEqual(body.paragraphs_text_with_tables, "")
+
+    def test_returns_only_table_markdown_when_there_are_no_paragraphs(self):
+        body = ArticleBodyDTO(
+            title="Title",
+            abstract_paragraphs=(),
+            paragraphs=(),
+            tables=(BodyTableDTO(markdown=FIRST_TABLE_MARKDOWN, position=0),),
+        )
+
+        self.assertEqual(body.paragraphs_text_with_tables, FIRST_TABLE_MARKDOWN)
 
     def test_inserts_table_between_surrounding_paragraphs_with_blank_lines(self):
         body = ArticleBodyDTO(
@@ -25,7 +45,7 @@ class TestArticleBodyDTOParagraphsTextWithTables(TestCase):
 
         self.assertEqual(
             body.paragraphs_text_with_tables,
-            f"Before. Caption.\n\n{FIRST_TABLE_MARKDOWN}\n\nAfter.",
+            f"Before.\n\nCaption.\n\n{FIRST_TABLE_MARKDOWN}\n\nAfter.",
         )
 
     def test_places_table_at_position_zero_before_the_first_paragraph(self):
@@ -38,7 +58,7 @@ class TestArticleBodyDTOParagraphsTextWithTables(TestCase):
 
         self.assertEqual(
             body.paragraphs_text_with_tables,
-            f"{FIRST_TABLE_MARKDOWN}\n\nFirst. Second.",
+            f"{FIRST_TABLE_MARKDOWN}\n\nFirst.\n\nSecond.",
         )
 
     def test_places_table_at_the_end_when_position_equals_paragraph_count(self):
@@ -51,7 +71,7 @@ class TestArticleBodyDTOParagraphsTextWithTables(TestCase):
 
         self.assertEqual(
             body.paragraphs_text_with_tables,
-            f"First. Second.\n\n{FIRST_TABLE_MARKDOWN}",
+            f"First.\n\nSecond.\n\n{FIRST_TABLE_MARKDOWN}",
         )
 
     def test_places_two_tables_at_their_own_positions(self):
@@ -67,7 +87,7 @@ class TestArticleBodyDTOParagraphsTextWithTables(TestCase):
 
         self.assertEqual(
             body.paragraphs_text_with_tables,
-            f"A\n\n{FIRST_TABLE_MARKDOWN}\n\nB C\n\n{SECOND_TABLE_MARKDOWN}",
+            f"A\n\n{FIRST_TABLE_MARKDOWN}\n\nB\n\nC\n\n{SECOND_TABLE_MARKDOWN}",
         )
 
     def test_never_contains_the_title_with_or_without_tables(self):

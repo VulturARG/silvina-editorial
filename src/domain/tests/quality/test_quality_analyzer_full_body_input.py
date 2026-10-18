@@ -98,8 +98,8 @@ class TestQualityAnalyzerFullBodyInput(TestCase):
 
         self.analyzer.analyze(build_document_content(body))
 
-        self.assertIn(body.text, self.quality_adapter.received_prompts[0])
-        self.assertIn(body.text, self.quality_adapter.received_prompts[1])
+        self.assertIn(body.text_with_tables, self.quality_adapter.received_prompts[0])
+        self.assertIn(body.text_with_tables, self.quality_adapter.received_prompts[1])
 
     def test_editorial_suitability_prompts_receive_the_whole_body_text(self):
         body = ArticleBodyDTO(
@@ -110,8 +110,8 @@ class TestQualityAnalyzerFullBodyInput(TestCase):
 
         self.analyzer.analyze(build_document_content(body))
 
-        self.assertIn(body.text, self.suitability_adapter.received_prompts[0])
-        self.assertIn(body.text, self.suitability_adapter.received_prompts[1])
+        self.assertIn(body.text_with_tables, self.suitability_adapter.received_prompts[0])
+        self.assertIn(body.text_with_tables, self.suitability_adapter.received_prompts[1])
 
     def test_body_of_200000_characters_reaches_every_prompt_uncut(self):
         body = ArticleBodyDTO(
@@ -128,7 +128,7 @@ class TestQualityAnalyzerFullBodyInput(TestCase):
             *self.suitability_adapter.received_prompts,
         ]:
             self.assertTrue(
-                body.text in prompt, "the full 200000-character body must reach the prompt"
+                body.text_with_tables in prompt, "the full body must reach the prompt uncut"
             )
 
     def test_body_title_appears_once_and_document_title_is_not_sent(self):
