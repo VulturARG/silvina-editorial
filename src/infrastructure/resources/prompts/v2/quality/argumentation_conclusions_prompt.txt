@@ -32,14 +32,16 @@ Observa: si las conclusiones se desprenden de lo desarrollado en el texto; si re
 - 0-2: sin relación con el texto o contradictorias con él.
 Verifica las conclusiones contra todo lo desarrollado en el artículo, no solo contra el último apartado.
 
-Responde únicamente con las dos secciones del formato siguiente, sin texto antes ni después. Reproduce cada encabezado exactamente como aparece, reemplazando X por la puntuación. El texto entre corchetes que va debajo de cada encabezado es una instrucción: sustitúyelo por tu evaluación.
+Responde únicamente con las dos secciones del formato siguiente, sin texto antes ni después. Reproduce cada encabezado exactamente como aparece. En cada sección escribe primero tu análisis y, en la última línea, la puntuación que se desprende de ese análisis, con el formato exacto "Puntuación: X/10" (X es un número entero), sin nada más en esa línea ni después de ella dentro de la sección. No escribas la puntuación dentro del análisis ni uses otros encabezados dentro de las secciones. El texto entre corchetes que va debajo de cada encabezado es una instrucción: sustitúyelo por tu evaluación.
 
 FORMATO DE RESPUESTA (OBLIGATORIO):
 
-**1. Argumentación** [Puntuación: X/10]
+### 1. Argumentación
 [Si hay argumentos, evalúa su calidad. Si no los hay, indícalo claramente y asigna una puntuación baja.]
+Puntuación: X/10
 
-**2. Conclusiones** [Puntuación: X/10]
+### 2. Conclusiones
 [OBLIGATORIO: Evalúa siempre. Si no hay sección formal, analiza el párrafo final del texto y asigna puntuación.]
+Puntuación: X/10
 
 CRITERIOS: 9-10 Excelente | 7-8 Bueno | 5-6 Aceptable | 3-4 Deficiente | 0-2 Inaceptable
