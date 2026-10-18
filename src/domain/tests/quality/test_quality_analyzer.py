@@ -249,7 +249,7 @@ Este bloque de claridad nunca deberia usarse porque viene de la llamada dos.
         self.assertIn(
             "Eres un revisor editorial académico experto.", fake_adapter.received_prompts[0]
         )
-        self.assertIn("Title Parrafo uno. Parrafo dos.", fake_adapter.received_prompts[0])
+        self.assertIn("Title\n\nParrafo uno.\n\nParrafo dos.", fake_adapter.received_prompts[0])
 
     def test_result_includes_editorial_suitability_dto_from_analyzer(self):
         fake_adapter = FakeLlmGeneratorAdapter([VALID_RESPONSE_ONE, VALID_RESPONSE_TWO])
