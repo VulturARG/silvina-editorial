@@ -44,7 +44,12 @@ An output cut by the output-token limit must fail with a clear error instead of 
 
 - [x] **TASK-02** Truncation guard: `LanguageModelOutputTruncated`, a decorator adapter that raises it when `done_reason` is `length`, composed in `_get_llm_generator` around the audited adapter. RED first.
 
-## 6. Evidence
+## 6. Open items
+
+- Native review of the whole slice (3 commits, 27 files, 642 lines, base `2784a59`) was approved and acknowledged (lineage `review-0209109b795bdf08`, medium risk, lens `review-reliability`, authority burned). Advisory findings, non-blocking, location only (the provider returns no text): R3-001 WARNING `analysis_settings.toml:18`, R3-002 WARNING `env_config.py:45-59`, R3-003 WARNING `analysis_settings.toml:17-20`, R3-004 WARNING `test_env_config_settings_file.py:199-236`, R3-005 WARNING `analyze_document_use_case_wiring.py:463-473`, R3-006 SUGGESTION `test_analyze_document_use_case_wiring.py:365`. Separate later work. One point reasoned by the parent, not confirmed by the findings and not verified in the code: the three limits are read as integers without checking that they are positive.
+- The default review candidate of this repository is a base diff of about 1100 paths; the slice was reviewed with an explicit full-sha `baseRef` and `committedOnly`.
+
+## 7. Evidence
 
 ### TASK-01
 - RED: 76 failed, 2252 passed before touching production code (cascade: the settings double lost `num_predict` while `EnvConfig` still required it, and the constructors did not accept `max_output_tokens`).
