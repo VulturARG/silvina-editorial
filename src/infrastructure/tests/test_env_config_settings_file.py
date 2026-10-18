@@ -196,3 +196,41 @@ class TestEnvConfigSettingsFile(TestCase):
             config = EnvConfig(settings_file_path=self._settings_file_path)
 
         self.assertEqual(config.eumic_min_words_for_abstract_check, 1500)
+
+    def test_environment_variable_overrides_the_article_classification_max_output_tokens(self):
+        environment = self._complete_environment(
+            {"ARTICLE_CLASSIFICATION_MAX_OUTPUT_TOKENS": "256"}
+        )
+
+        with patch.dict(environ, environment, clear=True):
+            config = EnvConfig(settings_file_path=self._settings_file_path)
+
+        self.assertEqual(config.article_classification_max_output_tokens, 256)
+
+    def test_environment_variable_overrides_the_editorial_suitability_max_output_tokens(self):
+        environment = self._complete_environment(
+            {"EDITORIAL_SUITABILITY_MAX_OUTPUT_TOKENS": "2000"}
+        )
+
+        with patch.dict(environ, environment, clear=True):
+            config = EnvConfig(settings_file_path=self._settings_file_path)
+
+        self.assertEqual(config.editorial_suitability_max_output_tokens, 2000)
+
+    def test_environment_variable_overrides_the_quality_analysis_max_output_tokens(self):
+        environment = self._complete_environment({"QUALITY_ANALYSIS_MAX_OUTPUT_TOKENS": "8192"})
+
+        with patch.dict(environ, environment, clear=True):
+            config = EnvConfig(settings_file_path=self._settings_file_path)
+
+        self.assertEqual(config.quality_analysis_max_output_tokens, 8192)
+
+    def test_raises_setting_value_missing_naming_the_quality_analysis_max_output_tokens(self):
+        self._write_settings({"quality_analysis_max_output_tokens": None})
+
+        with patch.dict(environ, self._complete_environment(), clear=True):
+            with self.assertRaises(SettingValueMissing) as context:
+                EnvConfig(settings_file_path=self._settings_file_path)
+            self.assertRegex(
+                context.exception.dict()["error"], "quality_analysis_max_output_tokens"
+            )

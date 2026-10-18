@@ -59,7 +59,7 @@ def build_analyzer(quality_level_thresholds: QualityLevelThresholdsDTO) -> Quali
         alignment_prompt_template=SUITABILITY_ALIGNMENT_PROMPT_TEMPLATE,
         research_lines=SUITABILITY_RESEARCH_LINES,
         temperature=0.1,
-        num_predict=300,
+        max_output_tokens=300,
     )
     return QualityAnalyzer(
         llm_generator=FakeLlmGeneratorAdapter(
@@ -70,6 +70,7 @@ def build_analyzer(quality_level_thresholds: QualityLevelThresholdsDTO) -> Quali
         argumentation_conclusions_prompt_template=ARGUMENTATION_CONCLUSIONS_PROMPT_TEMPLATE,
         editorial_suitability_analyzer=editorial_suitability_analyzer,
         quality_level_thresholds=quality_level_thresholds,
+        max_output_tokens=4096,
     )
 
 

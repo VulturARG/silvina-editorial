@@ -24,7 +24,7 @@ ALIGNMENT_RESPONSE = (
 
 
 def build_analyzer(
-    fake_adapter: FakeLlmGeneratorAdapter, temperature: float = 0.1, num_predict: int = 300
+    fake_adapter: FakeLlmGeneratorAdapter, temperature: float = 0.1, max_output_tokens: int = 300
 ) -> EditorialSuitabilityAnalyzer:
     return EditorialSuitabilityAnalyzer(
         llm_generator=fake_adapter,
@@ -33,7 +33,7 @@ def build_analyzer(
         alignment_prompt_template=ALIGNMENT_PROMPT_TEMPLATE,
         research_lines=RESEARCH_LINES_FIXTURE,
         temperature=temperature,
-        num_predict=num_predict,
+        max_output_tokens=max_output_tokens,
     )
 
 
@@ -57,7 +57,7 @@ class TestEditorialSuitabilityAnalyzer(TestCase):
 
     def test_both_calls_use_injected_temperature_and_num_predict_options(self):
         fake_adapter = FakeLlmGeneratorAdapter([CONTRIBUTION_RESPONSE, ALIGNMENT_RESPONSE])
-        analyzer = build_analyzer(fake_adapter, temperature=0.6, num_predict=450)
+        analyzer = build_analyzer(fake_adapter, temperature=0.6, max_output_tokens=450)
 
         analyzer.analyze(text_sample="Texto de muestra del articulo.")
 
@@ -65,7 +65,7 @@ class TestEditorialSuitabilityAnalyzer(TestCase):
         self.assertEqual(fake_adapter.received_options[0], expected_options)
         self.assertEqual(fake_adapter.received_options[1], expected_options)
 
-    def test_constructor_without_temperature_or_num_predict_raises_type_error(self):
+    def test_constructor_without_temperature_or_max_output_tokens_raises_type_error(self):
         fake_adapter = FakeLlmGeneratorAdapter([CONTRIBUTION_RESPONSE, ALIGNMENT_RESPONSE])
         incomplete_arguments = {
             "llm_generator": fake_adapter,

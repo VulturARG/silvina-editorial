@@ -40,10 +40,15 @@ An output cut by the output-token limit must fail with a clear error instead of 
 
 ## 5. Tasks
 
-- [ ] **TASK-01** Per-call output limits: new settings and `EnvConfig` attributes, `ArticleClassifier` and `EditorialSuitabilityAnalyzer` take `max_output_tokens` instead of `num_predict`, `QualityAnalyzer` sends its limit, wiring updated, old setting removed. RED first.
+- [x] **TASK-01** Per-call output limits: new settings and `EnvConfig` attributes, `ArticleClassifier` and `EditorialSuitabilityAnalyzer` take `max_output_tokens` instead of `num_predict`, `QualityAnalyzer` sends its limit, wiring updated, old setting removed. RED first.
 
 - [ ] **TASK-02** Truncation guard: `LanguageModelOutputTruncated`, a decorator adapter that raises it when `done_reason` is `length`, composed in `_get_llm_generator` around the audited adapter. RED first.
 
 ## 6. Evidence
 
-(Filled in as the tasks close.)
+### TASK-01
+- RED: 76 failed, 2252 passed before touching production code (cascade: the settings double lost `num_predict` while `EnvConfig` still required it, and the constructors did not accept `max_output_tokens`).
+- GREEN: baseline 2318 passed, final 2325 passed (191 subtests), re-run by the parent; `ruff check` and `ruff format --check` clean. 19 files, all inside the allowed surfaces; no reference to the old `article_classifier_num_predict` is left.
+- New tests (logic only): the three limits read from the settings file and overridden by environment variable, fail-fast naming the key, wiring of the limits into the classifier and the quality analyzer, and the quality analyzer sending only `{"num_predict": limit}` in both calls.
+- If a local `.env` still defines `ARTICLE_CLASSIFIER_NUM_PREDICT`, it is no longer read. The three new limits work with the settings file defaults.
+- Not touched: `docs/full-text-refactor/02-text-limits-inventory.md` (study document, line 34 still mentions the old key).

@@ -97,7 +97,7 @@ class TestDocumentContentExtractorReferences(TestCase):
                 directory=PROMPTS_DIR, filename="s4_s5_s6_signal_prompt.txt"
             ),
             temperature=0.1,
-            num_predict=300,
+            max_output_tokens=300,
             methodological_vocabulary_detector=MethodologicalVocabularyDetector(),
             reference_signal_detector=ReferenceSignalDetector(),
             rule_table=ClassificationRuleTable(),

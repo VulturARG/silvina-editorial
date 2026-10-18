@@ -44,7 +44,7 @@ class TestArticleClassifierImrydOverride(TestCase):
         self.assertEqual(self._fake_llm_generator.call_count, 1)
 
     def test_llm_call_passes_temperature_and_num_predict_as_options(self) -> None:
-        classifier = self._build_classifier(temperature=0.1, num_predict=300)
+        classifier = self._build_classifier(temperature=0.1, max_output_tokens=300)
         document_content = self._build_document_content(imryd_paragraphs=False, char_count=1000)
 
         classifier.classify(document_content)
@@ -54,7 +54,7 @@ class TestArticleClassifierImrydOverride(TestCase):
             {"temperature": 0.1, "num_predict": 300},
         )
 
-    def test_constructor_without_temperature_or_num_predict_raises_type_error(self) -> None:
+    def test_constructor_without_temperature_or_max_output_tokens_raises_type_error(self) -> None:
         kwargs = {
             "llm_generator": self._fake_llm_generator,
             "signal_detector": ImrydSignalDetector(),
@@ -96,7 +96,7 @@ class TestArticleClassifierImrydOverride(TestCase):
             classifier.classify(document_content)
 
     def _build_classifier(
-        self, temperature: float = 0.1, num_predict: int = 300
+        self, temperature: float = 0.1, max_output_tokens: int = 300
     ) -> ArticleClassifier:
         return ArticleClassifier(
             llm_generator=self._fake_llm_generator,
@@ -115,7 +115,7 @@ class TestArticleClassifierImrydOverride(TestCase):
             response_parser=ArticleClassificationResponseParser(),
             signal_prompt_template="TITULO: {title}\nTEXTO: {text_sample}",
             temperature=temperature,
-            num_predict=num_predict,
+            max_output_tokens=max_output_tokens,
             methodological_vocabulary_detector=MethodologicalVocabularyDetector(),
             reference_signal_detector=ReferenceSignalDetector(),
             rule_table=ClassificationRuleTable(),

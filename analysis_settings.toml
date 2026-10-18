@@ -13,7 +13,11 @@ max_author_name_length = 100
 
 [article_classifier]
 temperature = 0.1
-num_predict = 300
+
+[llm_output_limits]
+article_classification_max_output_tokens = 128
+editorial_suitability_max_output_tokens = 1000
+quality_analysis_max_output_tokens = 4096
 
 [article_size]
 short_min_chars = 16000

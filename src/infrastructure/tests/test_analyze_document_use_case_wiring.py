@@ -478,17 +478,38 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         use_case = self._create_use_case_from_test_settings()
         analyzer = use_case._quality_analyzer._editorial_suitability_analyzer
         self.assertAlmostEqual(analyzer._temperature, expected["article_classifier_temperature"])
-        self.assertEqual(analyzer._num_predict, expected["article_classifier_num_predict"])
+        self.assertEqual(
+            analyzer._max_output_tokens, expected["editorial_suitability_max_output_tokens"]
+        )
 
     def test_env_vars_override_editorial_suitability_generation_options(self):
         with patch.dict(
             environ,
-            {"ARTICLE_CLASSIFIER_TEMPERATURE": "0.4", "ARTICLE_CLASSIFIER_NUM_PREDICT": "512"},
+            {
+                "ARTICLE_CLASSIFIER_TEMPERATURE": "0.4",
+                "EDITORIAL_SUITABILITY_MAX_OUTPUT_TOKENS": "512",
+            },
         ):
             use_case = AnalyzeDocumentUseCaseWiring().create_use_case()
         analyzer = use_case._quality_analyzer._editorial_suitability_analyzer
         self.assertAlmostEqual(analyzer._temperature, 0.4)
-        self.assertEqual(analyzer._num_predict, 512)
+        self.assertEqual(analyzer._max_output_tokens, 512)
+
+    def test_article_classifier_uses_article_classification_max_output_tokens_from_settings(self):
+        expected = CompleteTestSettings.expected_values()
+        use_case = self._create_use_case_from_test_settings()
+        self.assertEqual(
+            use_case._article_classifier._max_output_tokens,
+            expected["article_classification_max_output_tokens"],
+        )
+
+    def test_quality_analyzer_uses_quality_analysis_max_output_tokens_from_settings(self):
+        expected = CompleteTestSettings.expected_values()
+        use_case = self._create_use_case_from_test_settings()
+        self.assertEqual(
+            use_case._quality_analyzer._max_output_tokens,
+            expected["quality_analysis_max_output_tokens"],
+        )
 
     def test_default_wiring_uses_ollama_generator_and_provider(self):
         use_case = AnalyzeDocumentUseCaseWiring().create_use_case()

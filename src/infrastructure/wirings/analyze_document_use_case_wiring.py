@@ -261,7 +261,7 @@ class AnalyzeDocumentUseCaseWiring:
                 filename="s4_s5_s6_signal_prompt.txt",
             ),
             temperature=env_config.article_classifier_temperature,
-            num_predict=env_config.article_classifier_num_predict,
+            max_output_tokens=env_config.article_classification_max_output_tokens,
             methodological_vocabulary_detector=MethodologicalVocabularyDetector(),
             reference_signal_detector=ReferenceSignalDetector(),
             rule_table=ClassificationRuleTable(),
@@ -283,6 +283,7 @@ class AnalyzeDocumentUseCaseWiring:
         )
 
     def _get_quality_analyzer(self) -> QualityAnalyzer:
+        env_config = self._get_env_config()
         return QualityAnalyzer(
             llm_generator=self._get_llm_generator(purpose=AiPurpose.QUALITY_ANALYSIS),
             response_parser=self._get_quality_response_parser(),
@@ -295,7 +296,8 @@ class AnalyzeDocumentUseCaseWiring:
                 filename="argumentation_conclusions_prompt.txt",
             ),
             editorial_suitability_analyzer=self._get_editorial_suitability_analyzer(),
-            quality_level_thresholds=self._get_env_config().get_quality_level_thresholds(),
+            quality_level_thresholds=env_config.get_quality_level_thresholds(),
+            max_output_tokens=env_config.quality_analysis_max_output_tokens,
         )
 
     def _get_quality_response_parser(self) -> QualityResponseParser:
@@ -394,7 +396,7 @@ class AnalyzeDocumentUseCaseWiring:
                 filename="research_lines.txt",
             ),
             temperature=env_config.article_classifier_temperature,
-            num_predict=env_config.article_classifier_num_predict,
+            max_output_tokens=env_config.editorial_suitability_max_output_tokens,
         )
 
     def _read_prompt_text(self, directory: str, filename: str) -> str:
