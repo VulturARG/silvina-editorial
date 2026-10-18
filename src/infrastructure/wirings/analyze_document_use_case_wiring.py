@@ -82,6 +82,9 @@ from src.infrastructure.adapters.llm_generator.ollama_backend_error_mapper impor
 from src.infrastructure.adapters.llm_generator.ollama_generator_adapter import (
     OllamaGeneratorAdapter,
 )
+from src.infrastructure.adapters.llm_generator.truncation_guard_llm_generator_adapter import (
+    TruncationGuardLlmGeneratorAdapter,
+)
 from src.infrastructure.adapters.metrics.analysis_cancellation_adapter import (
     AnalysisCancellationAdapter,
 )
@@ -261,7 +264,7 @@ class AnalyzeDocumentUseCaseWiring:
                 filename="s4_s5_s6_signal_prompt.txt",
             ),
             temperature=env_config.article_classifier_temperature,
-            num_predict=env_config.article_classifier_num_predict,
+            max_output_tokens=env_config.article_classification_max_output_tokens,
             methodological_vocabulary_detector=MethodologicalVocabularyDetector(),
             reference_signal_detector=ReferenceSignalDetector(),
             rule_table=ClassificationRuleTable(),
@@ -283,6 +286,7 @@ class AnalyzeDocumentUseCaseWiring:
         )
 
     def _get_quality_analyzer(self) -> QualityAnalyzer:
+        env_config = self._get_env_config()
         return QualityAnalyzer(
             llm_generator=self._get_llm_generator(purpose=AiPurpose.QUALITY_ANALYSIS),
             response_parser=self._get_quality_response_parser(),
@@ -295,7 +299,8 @@ class AnalyzeDocumentUseCaseWiring:
                 filename="argumentation_conclusions_prompt.txt",
             ),
             editorial_suitability_analyzer=self._get_editorial_suitability_analyzer(),
-            quality_level_thresholds=self._get_env_config().get_quality_level_thresholds(),
+            quality_level_thresholds=env_config.get_quality_level_thresholds(),
+            max_output_tokens=env_config.quality_analysis_max_output_tokens,
         )
 
     def _get_quality_response_parser(self) -> QualityResponseParser:
@@ -394,7 +399,7 @@ class AnalyzeDocumentUseCaseWiring:
                 filename="research_lines.txt",
             ),
             temperature=env_config.article_classifier_temperature,
-            num_predict=env_config.article_classifier_num_predict,
+            max_output_tokens=env_config.editorial_suitability_max_output_tokens,
         )
 
     def _read_prompt_text(self, directory: str, filename: str) -> str:
@@ -456,14 +461,16 @@ class AnalyzeDocumentUseCaseWiring:
 
     def _get_llm_generator(self, purpose: AiPurpose) -> LlmGeneratorPort:
         env_config = self._get_env_config()
-        return AuditedLlmGeneratorAdapter(
-            generator=self._get_llm_backend_generator(),
-            metrics_port=self._get_analysis_metrics_port(),
-            analysis_context_port=self._get_analysis_context_port(),
-            provider=env_config.llm_provider,
-            model_name=self._get_active_model_name(),
-            purpose=purpose,
-            audit_payload_policy=self._get_audit_payload_policy(),
+        return TruncationGuardLlmGeneratorAdapter(
+            generator=AuditedLlmGeneratorAdapter(
+                generator=self._get_llm_backend_generator(),
+                metrics_port=self._get_analysis_metrics_port(),
+                analysis_context_port=self._get_analysis_context_port(),
+                provider=env_config.llm_provider,
+                model_name=self._get_active_model_name(),
+                purpose=purpose,
+                audit_payload_policy=self._get_audit_payload_policy(),
+            ),
         )
 
     def _get_analysis_metrics_recorder(self) -> AnalysisMetricsRecorder:

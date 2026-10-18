@@ -14,7 +14,7 @@ class EditorialSuitabilityAnalyzer:
         alignment_prompt_template: str,
         research_lines: str,
         temperature: float,
-        num_predict: int,
+        max_output_tokens: int,
     ) -> None:
         self._llm_generator = llm_generator
         self._parser = parser
@@ -22,7 +22,7 @@ class EditorialSuitabilityAnalyzer:
         self._alignment_prompt_template = alignment_prompt_template
         self._research_lines = research_lines
         self._temperature = temperature
-        self._num_predict = num_predict
+        self._max_output_tokens = max_output_tokens
 
     def analyze(self, text_sample: str) -> EditorialSuitabilityDTO:
         """Evaluate contribution and alignment suitability for the given text sample."""
@@ -50,4 +50,4 @@ class EditorialSuitabilityAnalyzer:
         )
 
     def _generation_options(self) -> dict:
-        return {"temperature": self._temperature, "num_predict": self._num_predict}
+        return {"temperature": self._temperature, "num_predict": self._max_output_tokens}

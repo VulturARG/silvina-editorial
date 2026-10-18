@@ -21,6 +21,7 @@ class QualityAnalyzer:
         argumentation_conclusions_prompt_template: str,
         editorial_suitability_analyzer: EditorialSuitabilityAnalyzer,
         quality_level_thresholds: QualityLevelThresholdsDTO,
+        max_output_tokens: int,
     ) -> None:
         self._llm_generator = llm_generator
         self._response_parser = response_parser
@@ -28,6 +29,7 @@ class QualityAnalyzer:
         self._argumentation_conclusions_prompt_template = argumentation_conclusions_prompt_template
         self._editorial_suitability_analyzer = editorial_suitability_analyzer
         self._quality_level_thresholds = quality_level_thresholds
+        self._max_output_tokens = max_output_tokens
 
     def analyze(self, document_content: DocumentContentDTO) -> QualityResultDTO:
         """Score document quality across Claridad, Coherencia, Argumentación and Conclusiones."""
@@ -43,9 +45,13 @@ class QualityAnalyzer:
             template=self._argumentation_conclusions_prompt_template, text_sample=text_sample
         )
 
-        clarity_coherence_response = self._llm_generator.generate(prompt=clarity_coherence_prompt)
+        clarity_coherence_response = self._llm_generator.generate(
+            prompt=clarity_coherence_prompt,
+            options={"num_predict": self._max_output_tokens},
+        )
         argumentation_conclusions_response = self._llm_generator.generate(
-            prompt=argumentation_conclusions_prompt
+            prompt=argumentation_conclusions_prompt,
+            options={"num_predict": self._max_output_tokens},
         )
 
         clarity_coherence_parsed = self._response_parser.parse(text=clarity_coherence_response)

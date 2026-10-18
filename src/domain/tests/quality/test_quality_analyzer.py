@@ -61,7 +61,9 @@ SUITABILITY_ALIGNMENT_RESPONSE = (
 )
 
 
-def build_analyzer(fake_adapter: FakeLlmGeneratorAdapter) -> QualityAnalyzer:
+def build_analyzer(
+    fake_adapter: FakeLlmGeneratorAdapter, max_output_tokens: int = 4096
+) -> QualityAnalyzer:
     suitability_adapter = FakeLlmGeneratorAdapter(
         [SUITABILITY_CONTRIBUTION_RESPONSE, SUITABILITY_ALIGNMENT_RESPONSE]
     )
@@ -72,7 +74,7 @@ def build_analyzer(fake_adapter: FakeLlmGeneratorAdapter) -> QualityAnalyzer:
         alignment_prompt_template=SUITABILITY_ALIGNMENT_PROMPT_TEMPLATE,
         research_lines=SUITABILITY_RESEARCH_LINES,
         temperature=0.1,
-        num_predict=300,
+        max_output_tokens=300,
     )
     return QualityAnalyzer(
         llm_generator=fake_adapter,
@@ -86,6 +88,7 @@ def build_analyzer(fake_adapter: FakeLlmGeneratorAdapter) -> QualityAnalyzer:
             acceptable_threshold=5.0,
             needs_improvement_threshold=3.0,
         ),
+        max_output_tokens=max_output_tokens,
     )
 
 
@@ -123,6 +126,17 @@ class TestQualityAnalyzer(TestCase):
         analyzer.analyze(self.document_content)
 
         self.assertEqual(fake_adapter.call_count, 2)
+
+    def test_both_generate_calls_send_only_the_injected_num_predict_option(self):
+        fake_adapter = FakeLlmGeneratorAdapter([VALID_RESPONSE_ONE, VALID_RESPONSE_TWO])
+        analyzer = build_analyzer(fake_adapter, max_output_tokens=1234)
+
+        analyzer.analyze(self.document_content)
+
+        self.assertEqual(
+            fake_adapter.received_options,
+            [{"num_predict": 1234}, {"num_predict": 1234}],
+        )
 
     def test_overall_score_is_mean_of_four_dimension_scores(self):
         response_one = """**1. Claridad** [Puntuación: 8/10]

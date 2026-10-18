@@ -42,8 +42,20 @@ class EnvConfig:
         self.article_classifier_temperature: float = settings.read_float(
             "ARTICLE_CLASSIFIER_TEMPERATURE", "article_classifier", "temperature"
         )
-        self.article_classifier_num_predict: int = settings.read_integer(
-            "ARTICLE_CLASSIFIER_NUM_PREDICT", "article_classifier", "num_predict"
+        self.article_classification_max_output_tokens: int = settings.read_integer(
+            "ARTICLE_CLASSIFICATION_MAX_OUTPUT_TOKENS",
+            "llm_output_limits",
+            "article_classification_max_output_tokens",
+        )
+        self.editorial_suitability_max_output_tokens: int = settings.read_integer(
+            "EDITORIAL_SUITABILITY_MAX_OUTPUT_TOKENS",
+            "llm_output_limits",
+            "editorial_suitability_max_output_tokens",
+        )
+        self.quality_analysis_max_output_tokens: int = settings.read_integer(
+            "QUALITY_ANALYSIS_MAX_OUTPUT_TOKENS",
+            "llm_output_limits",
+            "quality_analysis_max_output_tokens",
         )
 
         self.article_size_short_min_chars: int = settings.read_integer(

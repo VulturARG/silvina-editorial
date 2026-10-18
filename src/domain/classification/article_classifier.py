@@ -29,7 +29,7 @@ class ArticleClassifier:
         response_parser: ArticleClassificationResponseParser,
         signal_prompt_template: str,
         temperature: float,
-        num_predict: int,
+        max_output_tokens: int,
         methodological_vocabulary_detector: MethodologicalVocabularyDetector,
         reference_signal_detector: ReferenceSignalDetector,
         rule_table: ClassificationRuleTable,
@@ -40,7 +40,7 @@ class ArticleClassifier:
         self._response_parser = response_parser
         self._signal_prompt_template = signal_prompt_template
         self._temperature = temperature
-        self._num_predict = num_predict
+        self._max_output_tokens = max_output_tokens
         self._methodological_vocabulary_detector = methodological_vocabulary_detector
         self._reference_signal_detector = reference_signal_detector
         self._rule_table = rule_table
@@ -123,6 +123,9 @@ class ArticleClassifier:
         prompt = self._signal_prompt_template.format(title=title, text_sample=text_sample)
         response = self._llm_generator.generate(
             prompt=prompt,
-            options={"temperature": self._temperature, "num_predict": self._num_predict},
+            options={
+                "temperature": self._temperature,
+                "num_predict": self._max_output_tokens,
+            },
         )
         return self._response_parser.parse(response_text=response)

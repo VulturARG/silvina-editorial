@@ -51,3 +51,12 @@ class LanguageModelServerExecutableNotFound(LanguageModelServerStartFailed):
         "The Ollama executable was not found in the PATH or in the usual installation folders. "
         "Install Ollama or add its folder to the PATH."
     )
+
+
+class LanguageModelOutputTruncated(LanguageModelError):
+    """Raised when the language model response was cut by the output token limit."""
+
+    MESSAGE = (
+        "The language model response was cut by the output token limit. "
+        "Raise the output limit of this step in the settings file."
+    )

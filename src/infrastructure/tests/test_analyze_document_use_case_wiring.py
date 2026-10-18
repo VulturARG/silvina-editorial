@@ -8,13 +8,17 @@ from unittest import TestCase
 from unittest.mock import patch
 
 from src.application.analyze_document_use_case import AnalyzeDocumentUseCase
+from src.domain.dtos.llm_generation_dto import LlmGenerationDTO
 from src.domain.dtos.recommendation_settings_dto import RecommendationSettingsDTO
 from src.domain.enums.ai_provider import AiProvider
 from src.domain.enums.ai_purpose import AiPurpose
 from src.domain.enums.app_mode import AppMode
 from src.domain.enums.execution_status import ExecutionStatus
+from src.domain.enums.llm_done_reason import LlmDoneReason
 from src.domain.enums.section_name import SectionName
+from src.domain.exceptions.language_model_errors import LanguageModelOutputTruncated
 from src.domain.exceptions.settings_errors import SettingValueMissing
+from src.domain.metrics.analysis_metrics_port import AnalysisMetricsPort
 from src.domain.metrics.analysis_tracker import AnalysisTracker
 from src.domain.metrics.audit_payload_policy import AuditPayloadPolicy
 from src.domain.ports.llm_generator_port import LlmGeneratorPort
@@ -33,6 +37,7 @@ from src.domain.tests.classification.fake_llm_generator_adapter import FakeLlmGe
 from src.domain.tests.dtos.editorial_norms_builder_for_test import (
     build_editorial_norms_for_test,
 )
+from src.domain.tests.metrics.fake_analysis_metrics_port import FakeAnalysisMetricsPort
 from src.domain.tests.structure.structure_norms_builder_for_test import (
     build_structure_norms_for_test,
 )
@@ -42,11 +47,11 @@ from src.infrastructure.adapters.grammar.language_tool_adapter import LanguageTo
 from src.infrastructure.adapters.grammar.language_tool_settings import (
     LanguageToolSettings,
 )
-from src.infrastructure.adapters.llm_generator.audited_llm_generator_adapter import (
-    AuditedLlmGeneratorAdapter,
-)
 from src.infrastructure.adapters.llm_generator.ollama_generator_adapter import (
     OllamaGeneratorAdapter,
+)
+from src.infrastructure.adapters.llm_generator.truncation_guard_llm_generator_adapter import (
+    TruncationGuardLlmGeneratorAdapter,
 )
 from src.infrastructure.adapters.metrics.fail_safe_analysis_metrics_adapter import (
     FailSafeAnalysisMetricsAdapter,
@@ -66,6 +71,12 @@ from src.infrastructure.tests.test_doubles.complete_test_environment import (
 )
 from src.infrastructure.tests.test_doubles.complete_test_settings import (
     CompleteTestSettings,
+)
+from src.infrastructure.tests.test_doubles.fixed_generation_llm_generator_adapter import (
+    FixedGenerationLlmGeneratorAdapter,
+)
+from src.infrastructure.tests.test_doubles.truncation_guard_unwrapper_for_test import (
+    TruncationGuardUnwrapperForTest,
 )
 from src.infrastructure.wirings.analyze_document_use_case_wiring import (
     AnalyzeDocumentUseCaseWiring,
@@ -153,12 +164,12 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
     def test_article_classifier_and_quality_analyzer_wrap_the_same_ollama_generator(self):
         wiring = AnalyzeDocumentUseCaseWiring()
         use_case = wiring.create_use_case()
-        classifier_generator = use_case._article_classifier._llm_generator
-        quality_generator = use_case._quality_analyzer._llm_generator
-        self.assertIsInstance(classifier_generator, AuditedLlmGeneratorAdapter)
-        self.assertIsInstance(quality_generator, AuditedLlmGeneratorAdapter)
-        assert isinstance(classifier_generator, AuditedLlmGeneratorAdapter)
-        assert isinstance(quality_generator, AuditedLlmGeneratorAdapter)
+        classifier_guard = use_case._article_classifier._llm_generator
+        quality_guard = use_case._quality_analyzer._llm_generator
+        self.assertIsInstance(classifier_guard, TruncationGuardLlmGeneratorAdapter)
+        self.assertIsInstance(quality_guard, TruncationGuardLlmGeneratorAdapter)
+        classifier_generator = TruncationGuardUnwrapperForTest.audited_generator(classifier_guard)
+        quality_generator = TruncationGuardUnwrapperForTest.audited_generator(quality_guard)
         self.assertIs(
             classifier_generator._generator,
             quality_generator._generator,
@@ -168,26 +179,22 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         with patch.dict(environ, {"OLLAMA_MODEL_NAME": "custom-editorial-model"}):
             use_case = AnalyzeDocumentUseCaseWiring().create_use_case()
 
-        classifier_generator = use_case._article_classifier._llm_generator
-        quality_generator = use_case._quality_analyzer._llm_generator
-        editorial_generator = (
-            use_case._quality_analyzer._editorial_suitability_analyzer._llm_generator
-        )
+        classifier_guard = use_case._article_classifier._llm_generator
+        quality_guard = use_case._quality_analyzer._llm_generator
+        editorial_guard = use_case._quality_analyzer._editorial_suitability_analyzer._llm_generator
 
-        self.assertIsInstance(classifier_generator, AuditedLlmGeneratorAdapter)
-        assert isinstance(classifier_generator, AuditedLlmGeneratorAdapter)
+        classifier_generator = TruncationGuardUnwrapperForTest.audited_generator(classifier_guard)
+        quality_generator = TruncationGuardUnwrapperForTest.audited_generator(quality_guard)
+        editorial_generator = TruncationGuardUnwrapperForTest.audited_generator(editorial_guard)
+
         self.assertEqual(classifier_generator._provider, AiProvider.OLLAMA)
         self.assertEqual(classifier_generator._model_name, "custom-editorial-model")
         self.assertEqual(classifier_generator._purpose, AiPurpose.ARTICLE_CLASSIFICATION)
 
-        self.assertIsInstance(quality_generator, AuditedLlmGeneratorAdapter)
-        assert isinstance(quality_generator, AuditedLlmGeneratorAdapter)
         self.assertEqual(quality_generator._provider, AiProvider.OLLAMA)
         self.assertEqual(quality_generator._model_name, "custom-editorial-model")
         self.assertEqual(quality_generator._purpose, AiPurpose.QUALITY_ANALYSIS)
 
-        self.assertIsInstance(editorial_generator, AuditedLlmGeneratorAdapter)
-        assert isinstance(editorial_generator, AuditedLlmGeneratorAdapter)
         self.assertEqual(editorial_generator._provider, AiProvider.OLLAMA)
         self.assertEqual(editorial_generator._model_name, "custom-editorial-model")
         self.assertEqual(editorial_generator._purpose, AiPurpose.EDITORIAL_SUITABILITY)
@@ -195,17 +202,15 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
     def test_audited_adapters_and_tracker_share_metrics_port_and_audit_policy(self):
         use_case = AnalyzeDocumentUseCaseWiring().create_use_case()
 
-        classifier_generator = use_case._article_classifier._llm_generator
-        quality_generator = use_case._quality_analyzer._llm_generator
-        editorial_generator = (
+        classifier_generator = TruncationGuardUnwrapperForTest.audited_generator(
+            use_case._article_classifier._llm_generator
+        )
+        quality_generator = TruncationGuardUnwrapperForTest.audited_generator(
+            use_case._quality_analyzer._llm_generator
+        )
+        editorial_generator = TruncationGuardUnwrapperForTest.audited_generator(
             use_case._quality_analyzer._editorial_suitability_analyzer._llm_generator
         )
-        self.assertIsInstance(classifier_generator, AuditedLlmGeneratorAdapter)
-        self.assertIsInstance(quality_generator, AuditedLlmGeneratorAdapter)
-        self.assertIsInstance(editorial_generator, AuditedLlmGeneratorAdapter)
-        assert isinstance(classifier_generator, AuditedLlmGeneratorAdapter)
-        assert isinstance(quality_generator, AuditedLlmGeneratorAdapter)
-        assert isinstance(editorial_generator, AuditedLlmGeneratorAdapter)
 
         tracker_metrics_port = use_case._analysis_tracker._metrics_recorder._metrics_port
 
@@ -332,6 +337,33 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         self.assertEqual(input_payload, prompt)
         self.assertEqual(output_payload, response_content)
 
+    def test_truncated_generation_is_recorded_before_the_guard_raises(self):
+        metrics_port = FakeAnalysisMetricsPort()
+        truncated_generation = LlmGenerationDTO(
+            text="cut response",
+            prompt_tokens=120,
+            completion_tokens=128,
+            done_reason=LlmDoneReason.LENGTH.value,
+        )
+
+        class InlineWiring(AnalyzeDocumentUseCaseWiring):
+            def _get_ollama_generator(self) -> LlmGeneratorPort:
+                return FixedGenerationLlmGeneratorAdapter(generation_result=truncated_generation)
+
+            def _get_analysis_metrics_port(self) -> AnalysisMetricsPort:
+                return metrics_port
+
+        use_case = InlineWiring().create_use_case()
+        classifier_guard = use_case._article_classifier._llm_generator
+
+        with self.assertRaises(LanguageModelOutputTruncated):
+            classifier_guard.generate(prompt="prompt for a truncated classification")
+
+        self.assertEqual(len(metrics_port.recorded_ai_interactions), 1)
+        interaction = metrics_port.recorded_ai_interactions[0]
+        self.assertEqual(interaction.done_reason, LlmDoneReason.LENGTH.value)
+        self.assertEqual(interaction.status, ExecutionStatus.SUCCESS)
+
     @staticmethod
     def _complete_environment(overrides: dict[str, str] | None = None) -> dict[str, str]:
         environment = {
@@ -429,8 +461,9 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
     def test_env_var_overrides_ollama_think(self):
         with patch.dict(environ, {"OLLAMA_THINK": "true"}):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
-        audited_generator = result._article_classifier._llm_generator
-        assert isinstance(audited_generator, AuditedLlmGeneratorAdapter)
+        audited_generator = TruncationGuardUnwrapperForTest.audited_generator(
+            result._article_classifier._llm_generator
+        )
         generator = audited_generator._generator
         self.assertIsInstance(generator, OllamaGeneratorAdapter)
         assert isinstance(generator, OllamaGeneratorAdapter)
@@ -445,8 +478,9 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
     def test_env_var_overrides_ollama_keep_alive(self):
         with patch.dict(environ, {"OLLAMA_MODEL_KEEP_ALIVE": "30m"}):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
-        audited_generator = result._article_classifier._llm_generator
-        assert isinstance(audited_generator, AuditedLlmGeneratorAdapter)
+        audited_generator = TruncationGuardUnwrapperForTest.audited_generator(
+            result._article_classifier._llm_generator
+        )
         generator = audited_generator._generator
         self.assertIsInstance(generator, OllamaGeneratorAdapter)
         assert isinstance(generator, OllamaGeneratorAdapter)
@@ -456,8 +490,9 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         env_without = {k: v for k, v in environ.items() if k != "OLLAMA_NUM_CTX"}
         with patch.dict(environ, env_without, clear=True):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
-        audited_generator = result._article_classifier._llm_generator
-        assert isinstance(audited_generator, AuditedLlmGeneratorAdapter)
+        audited_generator = TruncationGuardUnwrapperForTest.audited_generator(
+            result._article_classifier._llm_generator
+        )
         generator = audited_generator._generator
         self.assertIsInstance(generator, OllamaGeneratorAdapter)
         assert isinstance(generator, OllamaGeneratorAdapter)
@@ -466,8 +501,9 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
     def test_env_var_overrides_ollama_num_ctx(self):
         with patch.dict(environ, {"OLLAMA_NUM_CTX": "16384"}):
             result = AnalyzeDocumentUseCaseWiring().create_use_case()
-        audited_generator = result._article_classifier._llm_generator
-        assert isinstance(audited_generator, AuditedLlmGeneratorAdapter)
+        audited_generator = TruncationGuardUnwrapperForTest.audited_generator(
+            result._article_classifier._llm_generator
+        )
         generator = audited_generator._generator
         self.assertIsInstance(generator, OllamaGeneratorAdapter)
         assert isinstance(generator, OllamaGeneratorAdapter)
@@ -478,23 +514,44 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         use_case = self._create_use_case_from_test_settings()
         analyzer = use_case._quality_analyzer._editorial_suitability_analyzer
         self.assertAlmostEqual(analyzer._temperature, expected["article_classifier_temperature"])
-        self.assertEqual(analyzer._num_predict, expected["article_classifier_num_predict"])
+        self.assertEqual(
+            analyzer._max_output_tokens, expected["editorial_suitability_max_output_tokens"]
+        )
 
     def test_env_vars_override_editorial_suitability_generation_options(self):
         with patch.dict(
             environ,
-            {"ARTICLE_CLASSIFIER_TEMPERATURE": "0.4", "ARTICLE_CLASSIFIER_NUM_PREDICT": "512"},
+            {
+                "ARTICLE_CLASSIFIER_TEMPERATURE": "0.4",
+                "EDITORIAL_SUITABILITY_MAX_OUTPUT_TOKENS": "512",
+            },
         ):
             use_case = AnalyzeDocumentUseCaseWiring().create_use_case()
         analyzer = use_case._quality_analyzer._editorial_suitability_analyzer
         self.assertAlmostEqual(analyzer._temperature, 0.4)
-        self.assertEqual(analyzer._num_predict, 512)
+        self.assertEqual(analyzer._max_output_tokens, 512)
+
+    def test_article_classifier_uses_article_classification_max_output_tokens_from_settings(self):
+        expected = CompleteTestSettings.expected_values()
+        use_case = self._create_use_case_from_test_settings()
+        self.assertEqual(
+            use_case._article_classifier._max_output_tokens,
+            expected["article_classification_max_output_tokens"],
+        )
+
+    def test_quality_analyzer_uses_quality_analysis_max_output_tokens_from_settings(self):
+        expected = CompleteTestSettings.expected_values()
+        use_case = self._create_use_case_from_test_settings()
+        self.assertEqual(
+            use_case._quality_analyzer._max_output_tokens,
+            expected["quality_analysis_max_output_tokens"],
+        )
 
     def test_default_wiring_uses_ollama_generator_and_provider(self):
         use_case = AnalyzeDocumentUseCaseWiring().create_use_case()
-        classifier_generator = use_case._article_classifier._llm_generator
-        self.assertIsInstance(classifier_generator, AuditedLlmGeneratorAdapter)
-        assert isinstance(classifier_generator, AuditedLlmGeneratorAdapter)
+        classifier_generator = TruncationGuardUnwrapperForTest.audited_generator(
+            use_case._article_classifier._llm_generator
+        )
         self.assertEqual(classifier_generator._provider, AiProvider.OLLAMA)
         self.assertIsInstance(classifier_generator._generator, OllamaGeneratorAdapter)
         assert isinstance(classifier_generator._generator, OllamaGeneratorAdapter)
@@ -517,26 +574,24 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
             ) as mock_load:
                 use_case = AnalyzeDocumentUseCaseWiring().create_use_case()
 
-        classifier_generator = use_case._article_classifier._llm_generator
-        quality_generator = use_case._quality_analyzer._llm_generator
-        editorial_generator = (
+        classifier_generator = TruncationGuardUnwrapperForTest.audited_generator(
+            use_case._article_classifier._llm_generator
+        )
+        quality_generator = TruncationGuardUnwrapperForTest.audited_generator(
+            use_case._quality_analyzer._llm_generator
+        )
+        editorial_generator = TruncationGuardUnwrapperForTest.audited_generator(
             use_case._quality_analyzer._editorial_suitability_analyzer._llm_generator
         )
 
-        self.assertIsInstance(classifier_generator, AuditedLlmGeneratorAdapter)
-        assert isinstance(classifier_generator, AuditedLlmGeneratorAdapter)
         self.assertEqual(classifier_generator._provider, AiProvider.CLAUDE)
         self.assertEqual(classifier_generator._model_name, "claude-3-7-sonnet")
         self.assertIs(classifier_generator._generator, fake_generator)
 
-        self.assertIsInstance(quality_generator, AuditedLlmGeneratorAdapter)
-        assert isinstance(quality_generator, AuditedLlmGeneratorAdapter)
         self.assertEqual(quality_generator._provider, AiProvider.CLAUDE)
         self.assertEqual(quality_generator._model_name, "claude-3-7-sonnet")
         self.assertIs(quality_generator._generator, fake_generator)
 
-        self.assertIsInstance(editorial_generator, AuditedLlmGeneratorAdapter)
-        assert isinstance(editorial_generator, AuditedLlmGeneratorAdapter)
         self.assertEqual(editorial_generator._provider, AiProvider.CLAUDE)
         self.assertEqual(editorial_generator._model_name, "claude-3-7-sonnet")
         self.assertIs(editorial_generator._generator, fake_generator)
@@ -587,9 +642,9 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
             ) as mock_load:
                 use_case = AnalyzeDocumentUseCaseWiring().create_use_case()
 
-        classifier_generator = use_case._article_classifier._llm_generator
-        self.assertIsInstance(classifier_generator, AuditedLlmGeneratorAdapter)
-        assert isinstance(classifier_generator, AuditedLlmGeneratorAdapter)
+        classifier_generator = TruncationGuardUnwrapperForTest.audited_generator(
+            use_case._article_classifier._llm_generator
+        )
         self.assertEqual(classifier_generator._provider, AiProvider.OLLAMA)
         self.assertIsInstance(classifier_generator._generator, OllamaGeneratorAdapter)
         assert isinstance(classifier_generator._generator, OllamaGeneratorAdapter)

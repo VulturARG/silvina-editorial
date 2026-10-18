@@ -85,7 +85,7 @@ class TestArticleClassifierFullBodyInput(TestCase):
             response_parser=ArticleClassificationResponseParser(),
             signal_prompt_template=PROMPT_TEMPLATE,
             temperature=0.1,
-            num_predict=300,
+            max_output_tokens=300,
             methodological_vocabulary_detector=MethodologicalVocabularyDetector(),
             reference_signal_detector=ReferenceSignalDetector(),
             rule_table=ClassificationRuleTable(),

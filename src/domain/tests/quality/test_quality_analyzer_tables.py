@@ -60,7 +60,7 @@ def build_analyzer(
         alignment_prompt_template=SUITABILITY_ALIGNMENT_PROMPT_TEMPLATE,
         research_lines=SUITABILITY_RESEARCH_LINES,
         temperature=0.1,
-        num_predict=300,
+        max_output_tokens=300,
     )
     return QualityAnalyzer(
         llm_generator=quality_adapter,
@@ -74,6 +74,7 @@ def build_analyzer(
             acceptable_threshold=5.0,
             needs_improvement_threshold=3.0,
         ),
+        max_output_tokens=4096,
     )
 
 
