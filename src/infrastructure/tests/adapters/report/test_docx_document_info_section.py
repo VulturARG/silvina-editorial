@@ -2,6 +2,7 @@ from unittest import TestCase
 
 from docx import Document
 
+from src.domain.dtos.prompt_source_dto import PromptSourceDTO
 from src.infrastructure.adapters.report.docx_report_section import DocxReportSection
 from src.infrastructure.tests.adapters.report.fixtures import ReportFixtures
 
@@ -70,3 +71,22 @@ class TestDocxDocumentInfoSection(TestCase):
 
         pages_text = [text for text in self._paragraph_texts() if "Páginas estimadas" in text]
         self.assertEqual(pages_text[0], "Páginas estimadas: 2")
+
+    def test_render_adds_prompt_source_paragraph_when_present(self) -> None:
+        prompt_source = PromptSourceDTO(
+            base_label="v2", replaced_prompt_names=("alignment_prompt",)
+        )
+        section = ReportFixtures.make_document_info_section(prompt_source=prompt_source)
+
+        section.render(document=self.document, report_input=ReportFixtures.make_report_input_dto())
+
+        self.assertEqual(self._paragraph_texts()[-1], "Prompts utilizados: v2 + alignment_prompt")
+
+    def test_render_omits_prompt_source_paragraph_when_absent(self) -> None:
+        self.section.render(
+            document=self.document, report_input=ReportFixtures.make_report_input_dto()
+        )
+
+        self.assertFalse(
+            any(text.startswith("Prompts utilizados") for text in self._paragraph_texts())
+        )

@@ -3,6 +3,7 @@ from datetime import datetime
 from os.path import join
 
 from src.application.export_report_use_case import ExportReportUseCase
+from src.domain.dtos.prompt_source_dto import PromptSourceDTO
 from src.domain.report.report_export_port import ReportExportPort
 from src.infrastructure.adapters.report.citation_match_rate_formatter import (
     CitationMatchRateFormatter,
@@ -74,6 +75,10 @@ from src.infrastructure.resources.assets import ASSETS_DIR
 class ExportReportWiring:
     """Factory for building a ready-to-use ExportReportUseCase."""
 
+    def __init__(self, prompt_source: PromptSourceDTO | None = None) -> None:
+        """Keep the prompt source shown in the document information section, when given."""
+        self._prompt_source = prompt_source
+
     def create_use_case(self) -> ExportReportUseCase:
         """Return an ExportReportUseCase wired to the Word report export adapter."""
         return ExportReportUseCase(report_export_port=self._report_export_port())
@@ -128,6 +133,7 @@ class ExportReportWiring:
                 docx_report_settings=docx_report_settings,
                 section_heading_writer=section_heading_writer,
                 labeled_paragraph_writer=labeled_paragraph_writer,
+                prompt_source=self._prompt_source,
             ),
             self._classification_section(
                 section_heading_writer=section_heading_writer,
@@ -264,11 +270,13 @@ class ExportReportWiring:
         docx_report_settings: DocxReportSettings,
         section_heading_writer: DocxSectionHeadingWriter,
         labeled_paragraph_writer: DocxLabeledParagraphWriter,
+        prompt_source: PromptSourceDTO | None,
     ) -> DocxReportSection:
         return DocxDocumentInfoSection(
             docx_report_settings=docx_report_settings,
             section_heading_writer=section_heading_writer,
             labeled_paragraph_writer=labeled_paragraph_writer,
+            prompt_source=prompt_source,
         )
 
     def _classification_section(

@@ -6,6 +6,7 @@ from unittest import TestCase
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+from src.domain.dtos.prompt_source_dto import PromptSourceDTO
 from src.domain.enums.quality_dimension import QualityDimension
 from src.infrastructure.adapters.report.html_report_adapter import HtmlReportAdapter
 from src.infrastructure.fastapi.src.utils.inline_bold_renderer import InlineBoldRenderer
@@ -134,13 +135,35 @@ class TestHtmlReportAdapter(TestCase):
                 report_input=self._report_input, output_path=missing_directory_path
             )
 
-    def _make_adapter(self, logo_data_uri: str | None) -> HtmlReportAdapter:
+    def test_export_shows_prompt_source_when_present(self):
+        adapter = self._make_adapter(
+            logo_data_uri=_LOGO_DATA_URI,
+            prompt_source=PromptSourceDTO(
+                base_label="v2", replaced_prompt_names=("alignment_prompt",)
+            ),
+        )
+
+        adapter.export(report_input=self._report_input, output_path=self._output_path)
+
+        html = self._read_output()
+        self.assertIn("Prompts utilizados:", html)
+        self.assertIn("v2 + alignment_prompt", html)
+
+    def test_export_omits_prompt_source_when_absent(self):
+        self._adapter.export(report_input=self._report_input, output_path=self._output_path)
+
+        self.assertNotIn("Prompts utilizados", self._read_output())
+
+    def _make_adapter(
+        self, logo_data_uri: str | None, prompt_source: PromptSourceDTO | None = None
+    ) -> HtmlReportAdapter:
         return HtmlReportAdapter(
             template_environment=self._make_template_environment(),
             stylesheet_text=self._stylesheet_text,
             logo_data_uri=logo_data_uri,
             app_name=_APP_NAME,
             app_version=_APP_VERSION,
+            prompt_source=prompt_source,
         )
 
     @staticmethod

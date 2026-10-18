@@ -1,7 +1,9 @@
 from collections.abc import Callable, Mapping
+from logging import getLogger
 from pathlib import Path
 
 from src.application.export_report_use_case import ExportReportUseCase
+from src.domain.dtos.prompt_source_dto import PromptSourceDTO
 from src.domain.dtos.report_input_dto import ReportInputDTO
 from src.domain.exceptions.base_src_error import BaseSrcError
 from src.domain.exceptions.document_errors import DocumentInvalidType, DocumentNotFound
@@ -12,6 +14,8 @@ from src.infrastructure.cli.document_name_prompter import DocumentNamePrompter
 from src.infrastructure.cli.report_file_paths import ReportFilePaths
 from src.infrastructure.cli.report_file_paths_builder import ReportFilePathsBuilder
 from src.infrastructure.cli.source_document_locator import SourceDocumentLocator
+
+logger = getLogger(__name__)
 
 
 class DocumentAnalysisCommand:
@@ -31,7 +35,8 @@ class DocumentAnalysisCommand:
         report_file_paths_builder: ReportFilePathsBuilder,
         console_step_announcer: ConsoleStepAnnouncer,
         services_factory: Callable[
-            [Mapping[str, str | None], Mapping[str, Path | None]], CliAnalysisServices
+            [Mapping[str, str | None], Mapping[str, Path | None], Path | None],
+            CliAnalysisServices,
         ],
     ) -> None:
         """Keep the collaborators used by each step of the analysis run."""
@@ -71,10 +76,12 @@ class DocumentAnalysisCommand:
                 services = self._services_factory(
                     arguments.environment_overrides(),
                     arguments.prompt_file_overrides(),
+                    arguments.prompts_directory,
                 )
         except Exception as error:
             self._console_step_announcer.announce_error(self._describe_error(error))
             return self.FAILURE_STATUS
+        logger.info("Prompt source: %s", services.prompt_source.describe())
         try:
             try:
                 return self._analyze_and_export(services, document_path, arguments.output_directory)
@@ -106,7 +113,7 @@ class DocumentAnalysisCommand:
         output_directory: Path | None,
     ) -> int:
         report_file_paths = self._build_report_file_paths(
-            document_path, output_directory, services.model_name
+            document_path, output_directory, services.model_name, services.prompt_source
         )
         if services.uses_local_language_model:
             with self._console_step_announcer.step(
@@ -152,10 +159,11 @@ class DocumentAnalysisCommand:
         document_path: Path,
         output_directory: Path | None,
         model_name: str,
+        prompt_source: PromptSourceDTO,
     ) -> ReportFilePaths:
         with self._console_step_announcer.step("Calculando las rutas de los informes"):
             report_file_paths = self._report_file_paths_builder.build(
-                document_path, output_directory, model_name
+                document_path, output_directory, model_name, prompt_source
             )
         return report_file_paths
 

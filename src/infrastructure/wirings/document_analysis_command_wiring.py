@@ -40,14 +40,17 @@ class DocumentAnalysisCommandWiring:
 
     def _services_factory(
         self,
-    ) -> Callable[[Mapping[str, str | None], Mapping[str, Path | None]], CliAnalysisServices]:
+    ) -> Callable[
+        [Mapping[str, str | None], Mapping[str, Path | None], Path | None], CliAnalysisServices
+    ]:
         return self._create_services
 
     def _create_services(
         self,
         environment_overrides: Mapping[str, str | None],
         prompt_file_overrides: Mapping[str, Path | None],
+        prompts_root: Path | None,
     ) -> CliAnalysisServices:
         return CliAnalysisServicesWiring(
-            environment_overrides, prompt_file_overrides
+            environment_overrides, prompt_file_overrides, prompts_root
         ).create_services()

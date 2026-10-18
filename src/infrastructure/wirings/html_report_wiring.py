@@ -4,6 +4,7 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from src.application.export_report_use_case import ExportReportUseCase
+from src.domain.dtos.prompt_source_dto import PromptSourceDTO
 from src.domain.enums.quality_dimension import QualityDimension
 from src.domain.report.report_export_port import ReportExportPort
 from src.infrastructure.adapters.report.html_report_adapter import HtmlReportAdapter
@@ -20,6 +21,10 @@ _LOGO_PATH = _INFRASTRUCTURE_DIRECTORY / "fastapi" / "static" / "img" / "silvina
 class HtmlReportWiring:
     """Factory for building a ready-to-use ExportReportUseCase wired to standalone HTML output."""
 
+    def __init__(self, prompt_source: PromptSourceDTO | None = None) -> None:
+        """Keep the prompt source shown in the standalone report, when given."""
+        self._prompt_source = prompt_source
+
     def create_use_case(self) -> ExportReportUseCase:
         """Return an ExportReportUseCase wired to the standalone HTML report adapter."""
         return ExportReportUseCase(report_export_port=self._report_export_port())
@@ -32,6 +37,7 @@ class HtmlReportWiring:
             logo_data_uri=self._logo_data_uri(),
             app_name=environment_configuration.silvina_app_name,
             app_version=environment_configuration.silvina_version,
+            prompt_source=self._prompt_source,
         )
 
     def _environment_configuration(self) -> EnvConfig:

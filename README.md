@@ -315,6 +315,7 @@ The document is read from the current directory unless `--input-dir` is given. O
 | `--llm-provider <name>` | Overrides `LLM_PROVIDER` |
 | `--external-llm-model-name <name>` | Overrides `EXTERNAL_LLM_MODEL_NAME` |
 | `--app-mode DEBUG\|PROD` | Overrides `APP_MODE` |
+| `--prompts-dir <dir>` | Root of a complete prompt set that replaces the default `src/infrastructure/resources/prompts`: a directory with the `classification/` and `quality/` folders and the same file names as the default one |
 | `--s4-s5-s6-signal-prompt <dir>` | Directory containing `s4_s5_s6_signal_prompt.txt` to override default signal prompt |
 | `--alignment-prompt <dir>` | Directory containing `alignment_prompt.txt` to override default alignment prompt |
 | `--argumentation-conclusions-prompt <dir>` | Directory containing `argumentation_conclusions_prompt.txt` to override default argumentation prompt |
@@ -326,7 +327,13 @@ The external LLM is only used when the mode is `DEBUG`, as with the `.env` setti
 
 When a local Ollama model is used, the CLI verifies that the language model server is reachable in its own announced step (`Verificando el servidor del modelo de lenguaje`). If the local Ollama server is not running, the CLI starts the system `ollama serve` process and waits up to the timeout limit. The executable is looked up in the PATH, then in the system-wide persistent PATH, then in `%LOCALAPPDATA%\Programs\Ollama`, so a terminal opened before installing Ollama still works. A server started by the CLI is closed after 5 minutes without use by a background watcher process (configurable through `OLLAMA_SERVER_IDLE_SHUTDOWN`), while a server that was already running is never touched; a second CLI run within the window restarts the count. Next, when warm-up is enabled (`OLLAMA_WARMUP_ON_STARTUP=true`), the model is preloaded before the analysis in its own announced step (`Precargando el modelo de lenguaje`). When using an external model, both server check and warm-up steps are skipped.
 
-Each run writes three reports, `<document>_analisis_<model>.docx`, `.json` and `.html`, overwriting any previous files with the same names.
+Each run writes three reports, `<document>_analisis_<model>.docx`, `.json` and `.html`, overwriting any previous files with the same names. The default prompt source adds no suffix. Any other prompt source adds the same suffix to the three names: an underscore followed by the `--prompts-dir` folder name and the replaced prompt names, joined with `+`. A `--prompts-dir` folder always adds its name, even when the folder is named `default`. With model `claude-haiku-5-5`:
+
+- `doc_analisis_claude-haiku-5-5_v2.docx`: `--prompts-dir` pointing to a folder named `v2`, no per-prompt flags.
+- `doc_analisis_claude-haiku-5-5_v2+alignment_prompt.docx`: the same folder, with `alignment_prompt` replaced.
+- `doc_analisis_claude-haiku-5-5_clarity_coherence_prompt+research_lines.docx`: default prompts, with `clarity_coherence_prompt` and `research_lines` replaced.
+
+Runs with different prompt sources therefore no longer overwrite each other. Runs with the same prompt source and model still overwrite each other.
 
 ```bash
 python main.py documento.docx --input-dir C:\Trabajos --output-dir C:\Informes --app-mode PROD
@@ -337,6 +344,14 @@ Prompt files can be overridden individually by pointing to a directory that cont
 ```bash
 python main.py documento.docx --alignment-prompt C:\mis_prompts
 ```
+
+A whole prompt set can be replaced at once with `--prompts-dir`. The directory must contain `classification/s4_s5_s6_signal_prompt.txt` and `quality/{alignment_prompt,argumentation_conclusions_prompt,clarity_coherence_prompt,contribution_prompt,research_lines}.txt`; a missing file is a usage error and the packaged prompts are never used as a silent fallback. The per-prompt flags above still take precedence over the directory.
+
+```bash
+python main.py documento.docx --prompts-dir src\infrastructure\resources\prompts\v2
+```
+
+Each CLI run records which prompts it used, in the log (`Prompt source: ...`) and in the Word, JSON and HTML reports (`Prompts utilizados`, the `prompt_source` key and a line at the top of the HTML page). The value is `default` or the name of the `--prompts-dir` folder, followed by the replaced prompts when per-prompt flags are used, for example `v2 + alignment_prompt`. The web reports do not show it.
 
 ---
 

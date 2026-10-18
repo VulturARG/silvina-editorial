@@ -1,5 +1,6 @@
 from docx.document import Document as DocxDocument
 
+from src.domain.dtos.prompt_source_dto import PromptSourceDTO
 from src.domain.dtos.report_input_dto import ReportInputDTO
 from src.infrastructure.adapters.report.docx_labeled_paragraph_writer import (
     DocxLabeledParagraphWriter,
@@ -21,10 +22,12 @@ class DocxDocumentInfoSection(DocxReportSection):
         docx_report_settings: DocxReportSettings,
         section_heading_writer: DocxSectionHeadingWriter,
         labeled_paragraph_writer: DocxLabeledParagraphWriter,
+        prompt_source: PromptSourceDTO | None = None,
     ) -> None:
         self._docx_report_settings = docx_report_settings
         self._section_heading_writer = section_heading_writer
         self._labeled_paragraph_writer = labeled_paragraph_writer
+        self._prompt_source = prompt_source
 
     def render(self, document: DocxDocument, report_input: ReportInputDTO) -> None:
         """Add title, authors, word and character counts and estimated pages."""
@@ -64,3 +67,10 @@ class DocxDocumentInfoSection(DocxReportSection):
             label="Páginas estimadas: ",
             value=str(estimated_pages),
         )
+
+        if self._prompt_source is not None:
+            self._labeled_paragraph_writer.write(
+                document=document,
+                label="Prompts utilizados: ",
+                value=self._prompt_source.describe(),
+            )

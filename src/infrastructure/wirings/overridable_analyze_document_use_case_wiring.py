@@ -17,9 +17,10 @@ class OverridableAnalyzeDocumentUseCaseWiring(AnalyzeDocumentUseCaseWiring):
         self,
         environment_overrides: Mapping[str, str | None],
         prompt_file_overrides: Mapping[str, Path | None] | None = None,
+        prompts_root: Path | None = None,
     ) -> None:
         """Keep the overrides applied to the configuration and prompts built for the pipeline."""
-        super().__init__()
+        super().__init__(prompts_root=prompts_root)
         self._environment_overrides = dict(environment_overrides)
         self._prompt_file_overrides = (
             dict(prompt_file_overrides) if prompt_file_overrides is not None else {}

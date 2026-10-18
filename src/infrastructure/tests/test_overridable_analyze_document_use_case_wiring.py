@@ -209,6 +209,67 @@ class TestOverridableAnalyzeDocumentUseCaseWiring(TestCase):
         )
         self.assertEqual(text, parent_text)
 
+    PROMPT_RELATIVE_PATHS = (
+        "classification/s4_s5_s6_signal_prompt.txt",
+        "quality/alignment_prompt.txt",
+        "quality/argumentation_conclusions_prompt.txt",
+        "quality/clarity_coherence_prompt.txt",
+        "quality/contribution_prompt.txt",
+        "quality/research_lines.txt",
+    )
+
+    def test_create_use_case_reads_prompt_templates_from_custom_prompts_root(self):
+        prompts_root = self._write_prompts_root(content_prefix="custom")
+        with patch.dict(environ, self._complete_environment(), clear=True):
+            use_case = OverridableAnalyzeDocumentUseCaseWiring(
+                {},
+                prompts_root=prompts_root,
+            ).create_use_case()
+
+        self.assertEqual(
+            use_case._article_classifier._signal_prompt_template,
+            "custom s4_s5_s6_signal_prompt",
+        )
+        self.assertEqual(
+            use_case._quality_analyzer._clarity_coherence_prompt_template,
+            "custom clarity_coherence_prompt",
+        )
+        suitability_analyzer = use_case._quality_analyzer._editorial_suitability_analyzer
+        self.assertEqual(suitability_analyzer._research_lines, "custom research_lines")
+
+    def test_per_prompt_override_wins_over_custom_prompts_root(self):
+        prompts_root = self._write_prompts_root(content_prefix="custom")
+        temporary_directory = TemporaryDirectory()
+        self.addCleanup(temporary_directory.cleanup)
+        override_path = Path(temporary_directory.name) / "clarity_coherence_prompt.txt"
+        override_path.write_text("override clarity_coherence_prompt", encoding="utf-8")
+
+        with patch.dict(environ, self._complete_environment(), clear=True):
+            use_case = OverridableAnalyzeDocumentUseCaseWiring(
+                {},
+                prompt_file_overrides={"clarity_coherence_prompt": override_path},
+                prompts_root=prompts_root,
+            ).create_use_case()
+
+        self.assertEqual(
+            use_case._quality_analyzer._clarity_coherence_prompt_template,
+            "override clarity_coherence_prompt",
+        )
+        self.assertEqual(
+            use_case._quality_analyzer._argumentation_conclusions_prompt_template,
+            "custom argumentation_conclusions_prompt",
+        )
+
+    def _write_prompts_root(self, content_prefix: str) -> Path:
+        temporary_directory = TemporaryDirectory()
+        self.addCleanup(temporary_directory.cleanup)
+        prompts_root = Path(temporary_directory.name)
+        for relative_path in self.PROMPT_RELATIVE_PATHS:
+            prompt_path = prompts_root / relative_path
+            prompt_path.parent.mkdir(parents=True, exist_ok=True)
+            prompt_path.write_text(f"{content_prefix} {prompt_path.stem}", encoding="utf-8")
+        return prompts_root
+
     def test_read_prompt_text_supports_all_six_prompt_keys(self):
         temporary_directory = TemporaryDirectory()
         self.addCleanup(temporary_directory.cleanup)

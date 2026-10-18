@@ -2,6 +2,7 @@ from collections.abc import Callable, Sequence
 from datetime import datetime
 from unittest.mock import MagicMock
 
+from src.domain.dtos.prompt_source_dto import PromptSourceDTO
 from src.domain.dtos.publication_verdict_dto import PublicationVerdictDTO
 from src.domain.dtos.report_input_dto import ReportInputDTO
 from src.domain.enums.publication_verdict import PublicationVerdict
@@ -235,12 +236,14 @@ class ReportFixtures:
     @staticmethod
     def make_document_info_section(
         docx_report_settings: DocxReportSettings | None = None,
+        prompt_source: PromptSourceDTO | None = None,
     ) -> DocxDocumentInfoSection:
         settings = ReportFixtures._settings_or_default(docx_report_settings)
         return DocxDocumentInfoSection(
             docx_report_settings=settings,
             section_heading_writer=DocxSectionHeadingWriter(docx_report_settings=settings),
             labeled_paragraph_writer=DocxLabeledParagraphWriter(),
+            prompt_source=prompt_source,
         )
 
     @staticmethod

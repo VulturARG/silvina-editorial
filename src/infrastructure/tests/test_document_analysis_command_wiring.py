@@ -21,7 +21,18 @@ class TestDocumentAnalysisCommandWiring(TestCase):
         with patch(
             "src.infrastructure.wirings.document_analysis_command_wiring.CliAnalysisServicesWiring"
         ) as mock_cli_wiring:
-            wiring._create_services(environment_overrides, prompt_file_overrides)
+            wiring._create_services(environment_overrides, prompt_file_overrides, None)
 
-        mock_cli_wiring.assert_called_once_with(environment_overrides, prompt_file_overrides)
+        mock_cli_wiring.assert_called_once_with(environment_overrides, prompt_file_overrides, None)
+        mock_cli_wiring.return_value.create_services.assert_called_once_with()
+
+    def test_services_factory_forwards_prompts_root(self):
+        wiring = DocumentAnalysisCommandWiring()
+        prompts_root = Path("custom-prompts")
+        with patch(
+            "src.infrastructure.wirings.document_analysis_command_wiring.CliAnalysisServicesWiring"
+        ) as mock_cli_wiring:
+            wiring._create_services({}, {}, prompts_root)
+
+        mock_cli_wiring.assert_called_once_with({}, {}, prompts_root)
         mock_cli_wiring.return_value.create_services.assert_called_once_with()

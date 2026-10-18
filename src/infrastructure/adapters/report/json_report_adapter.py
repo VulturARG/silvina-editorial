@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from src.domain.dtos.base_dto import BaseDTO
+from src.domain.dtos.prompt_source_dto import PromptSourceDTO
 from src.domain.dtos.report_input_dto import ReportInputDTO
 from src.domain.report.report_export_port import ReportExportPort
 
@@ -11,8 +12,13 @@ from src.domain.report.report_export_port import ReportExportPort
 class JsonReportAdapter(ReportExportPort):
     """Export analysis reports to JSON, matching the legacy on-disk report shape."""
 
+    def __init__(self, prompt_source: PromptSourceDTO | None = None) -> None:
+        self._prompt_source = prompt_source
+
     def export(self, report_input: ReportInputDTO, output_path: str) -> bool:
         legacy_shape = self._to_legacy_shape(report_input)
+        if self._prompt_source is not None:
+            legacy_shape["prompt_source"] = self._prompt_source.describe()
         json_data = self._prepare_for_json(legacy_shape)
 
         with open(output_path, "w", encoding="utf-8") as file:

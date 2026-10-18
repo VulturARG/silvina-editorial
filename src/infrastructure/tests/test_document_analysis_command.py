@@ -12,6 +12,7 @@ from src.application.release_language_model_server_use_case import (
     ReleaseLanguageModelServerUseCase,
 )
 from src.application.warm_up_language_model_use_case import WarmUpLanguageModelUseCase
+from src.domain.dtos.prompt_source_dto import PromptSourceDTO
 from src.domain.exceptions.language_model_errors import (
     LanguageModelError,
     LanguageModelLoadFailed,
@@ -32,6 +33,9 @@ from src.infrastructure.cli.windows_file_name_sanitizer import WindowsFileNameSa
 class TestDocumentAnalysisCommand(TestCase):
     MODEL_NAME = "gemma-test"
     DOCUMENT_NAME = "tesis.docx"
+    DEFAULT_PROMPT_SOURCE = PromptSourceDTO(
+        base_label=PromptSourceDTO.DEFAULT_BASE_LABEL, replaced_prompt_names=()
+    )
 
     def setUp(self):
         temporary_directory = TemporaryDirectory()
@@ -100,6 +104,40 @@ class TestDocumentAnalysisCommand(TestCase):
 
         self.assertTrue(self._expected_directory().is_dir())
 
+    def test_logs_prompt_source_description_once_per_run(self):
+        prompt_source = PromptSourceDTO(
+            base_label="v2", replaced_prompt_names=("alignment_prompt",)
+        )
+        self._services_factory.return_value = self._build_services(
+            self.MODEL_NAME, prompt_source=prompt_source
+        )
+
+        with self.assertLogs(level="INFO") as captured_logs:
+            self._run(self._arguments())
+
+        prompt_source_lines = [line for line in captured_logs.output if "Prompt source" in line]
+        self.assertEqual(
+            prompt_source_lines,
+            [
+                "INFO:src.infrastructure.cli.document_analysis_command:"
+                "Prompt source: v2 + alignment_prompt"
+            ],
+        )
+
+    def test_logs_default_prompt_source_when_no_custom_prompts_are_used(self):
+        with self.assertLogs(level="INFO") as captured_logs:
+            self._run(self._arguments())
+
+        self.assertIn(
+            "INFO:src.infrastructure.cli.document_analysis_command:Prompt source: default",
+            captured_logs.output,
+        )
+
+    def test_prompt_source_is_not_printed_to_console(self):
+        self._run(self._arguments())
+
+        self.assertNotIn("Prompt source", "".join(self._printed_lines))
+
     def test_exports_word_json_and_html_reports_into_output_directory(self):
         self._run(self._arguments())
 
@@ -115,6 +153,44 @@ class TestDocumentAnalysisCommand(TestCase):
         self._html_report_use_case.execute.assert_called_once_with(
             report_input=self._report,
             output_path=str(base_directory / "tesis_analisis_gemma-test.html"),
+        )
+
+    def test_exports_reports_with_prompt_source_suffix_in_their_names(self):
+        prompt_source = PromptSourceDTO(
+            base_label="v2",
+            replaced_prompt_names=("alignment_prompt",),
+            uses_custom_prompts_root=True,
+        )
+        self._services_factory.return_value = self._build_services(
+            self.MODEL_NAME, prompt_source=prompt_source
+        )
+
+        self._run(self._arguments())
+
+        base_directory = self._expected_directory()
+        self._word_report_use_case.execute.assert_called_once_with(
+            report_input=self._report,
+            output_path=str(base_directory / "tesis_analisis_gemma-test_v2+alignment_prompt.docx"),
+        )
+        self._json_report_use_case.execute.assert_called_once_with(
+            report_input=self._report,
+            output_path=str(base_directory / "tesis_analisis_gemma-test_v2+alignment_prompt.json"),
+        )
+        self._html_report_use_case.execute.assert_called_once_with(
+            report_input=self._report,
+            output_path=str(base_directory / "tesis_analisis_gemma-test_v2+alignment_prompt.html"),
+        )
+
+    def test_default_prompt_source_keeps_report_names_without_suffix(self):
+        self._services_factory.return_value = self._build_services(
+            self.MODEL_NAME, prompt_source=self.DEFAULT_PROMPT_SOURCE
+        )
+
+        self._run(self._arguments())
+
+        self._word_report_use_case.execute.assert_called_once_with(
+            report_input=self._report,
+            output_path=str(self._expected_directory() / "tesis_analisis_gemma-test.docx"),
         )
 
     def test_honors_explicit_output_directory_and_creates_it_with_parents(self):
@@ -174,6 +250,7 @@ class TestDocumentAnalysisCommand(TestCase):
                 "APP_MODE": "DEBUG",
             },
             arguments.prompt_file_overrides(),
+            None,
         )
 
     def test_passes_prompt_file_overrides_to_services_factory(self):
@@ -191,6 +268,23 @@ class TestDocumentAnalysisCommand(TestCase):
         self._services_factory.assert_called_once_with(
             arguments.environment_overrides(),
             arguments.prompt_file_overrides(),
+            None,
+        )
+
+    def test_passes_prompts_directory_to_services_factory(self):
+        prompts_directory = self._input_directory / "prompts"
+        arguments = CommandLineArguments(
+            document_name=self.DOCUMENT_NAME,
+            input_directory=self._input_directory,
+            prompts_directory=prompts_directory,
+        )
+
+        self._run(arguments)
+
+        self._services_factory.assert_called_once_with(
+            arguments.environment_overrides(),
+            arguments.prompt_file_overrides(),
+            prompts_directory,
         )
 
     def test_model_name_from_services_appears_sanitized_in_report_file_names(self):
@@ -441,6 +535,7 @@ class TestDocumentAnalysisCommand(TestCase):
         model_name: str,
         uses_local_language_model: bool = True,
         warms_up_language_model: bool = True,
+        prompt_source: PromptSourceDTO = DEFAULT_PROMPT_SOURCE,
     ) -> CliAnalysisServices:
         return CliAnalysisServices(
             analyze_document_use_case=self._analyze_document_use_case,
@@ -453,6 +548,7 @@ class TestDocumentAnalysisCommand(TestCase):
             model_name=model_name,
             uses_local_language_model=uses_local_language_model,
             warms_up_language_model=warms_up_language_model,
+            prompt_source=prompt_source,
         )
 
     def test_releases_server_after_successful_run(self):

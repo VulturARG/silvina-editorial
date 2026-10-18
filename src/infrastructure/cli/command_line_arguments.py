@@ -7,8 +7,9 @@ from typing import ClassVar
 class CommandLineArguments:
     """Values received from the command line, before any default is resolved."""
 
+    CLASSIFICATION_PROMPT_NAME: ClassVar[str] = "s4_s5_s6_signal_prompt"
     PROMPT_NAMES: ClassVar[tuple[str, ...]] = (
-        "s4_s5_s6_signal_prompt",
+        CLASSIFICATION_PROMPT_NAME,
         "alignment_prompt",
         "argumentation_conclusions_prompt",
         "clarity_coherence_prompt",
@@ -30,6 +31,7 @@ class CommandLineArguments:
     clarity_coherence_prompt: Path | None = None
     contribution_prompt: Path | None = None
     research_lines: Path | None = None
+    prompts_directory: Path | None = None
 
     def environment_overrides(self) -> dict[str, str | None]:
         """Return the overrides keyed by the environment variable each one replaces."""
@@ -53,3 +55,16 @@ class CommandLineArguments:
     def _prompt_file_path(self, prompt_name: str) -> Path | None:
         directory: Path | None = getattr(self, prompt_name)
         return None if directory is None else directory / f"{prompt_name}.txt"
+
+    @classmethod
+    def prompt_root_relative_paths(cls) -> tuple[Path, ...]:
+        """Return the files a complete prompts root must contain, relative to that root."""
+        return tuple(
+            cls._prompt_root_relative_path(prompt_name) for prompt_name in cls.PROMPT_NAMES
+        )
+
+    @classmethod
+    def _prompt_root_relative_path(cls, prompt_name: str) -> Path:
+        is_classification_prompt = prompt_name == cls.CLASSIFICATION_PROMPT_NAME
+        folder_name = "classification" if is_classification_prompt else "quality"
+        return Path(folder_name) / f"{prompt_name}.txt"
