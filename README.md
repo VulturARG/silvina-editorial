@@ -1,10 +1,10 @@
-# Silvina Editorial Assistant v0.100
+# Silvina Editorial Assistant v0.200
 
-[![Version](https://img.shields.io/badge/version-v0.100-blue)](https://github.com/P-SAL/silvina-editorial)
+[![Version](https://img.shields.io/badge/version-v0.200-blue)](https://github.com/P-SAL/silvina-editorial)
 [![Python](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Status](https://img.shields.io/badge/status-Active%20Development-yellow)](https://github.com/P-SAL/silvina-editorial)
-[![Branch](https://img.shields.io/badge/dev%20branch-silvina__editorial__v100-orange)](https://github.com/P-SAL/silvina-editorial/tree/silvina_editorial_v100)
+[![Branch](https://img.shields.io/badge/dev%20branch-silvina__editorial__v200-orange)](https://github.com/P-SAL/silvina-editorial/tree/silvina_editorial_v200)
 
 **AI-powered manuscript review for Spanish academic journals** | EUMIC compliance • APA 7 validation • Modular architecture • LLM-powered quality analysis • FastAPI web interface
 
@@ -14,11 +14,11 @@
 
 Silvina is an intelligent editorial assistant for **Revista Visión Conjunta** (Facultad Militar Conjunta - Universidad de la Defensa Nacional, Argentina). It automates academic manuscript review using **deterministic structural validation** and **selective AI-powered analysis**.
 
-**Current Version:** v0.100 (Q4 2026)
-**Architecture:** Hexagonal Architecture (Domain → Application → Infrastructure)
-**LLM Integration:** Ollama (gemma4-26b-adapted, built from hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:UD-IQ4_XS)
-**Interface:** FastAPI + HTMX web UI + CLI
-**Output Location:** `Documents\Silvina\reports\` (Word report, JSON data)
+**Current Version:** v0.200 (Q4 2026)\
+**Architecture:** Hexagonal Architecture (Domain → Application → Infrastructure)\
+**LLM Integration:** Ollama (gemma4-26b-adapted, built from hf.co/unsloth/gemma-4-26B-A4B-it-GGUF:UD-IQ4_XS)\
+**Interface:** FastAPI + HTMX web UI + CLI\
+**Output Location:** web interface: `Documents\Silvina\reports\` (Word report, JSON data); command line: `<document folder>\análisis` (Word, JSON and HTML reports)
 
 ---
 
@@ -26,26 +26,30 @@ Silvina is an intelligent editorial assistant for **Revista Visión Conjunta** (
 
 ```
 main                    ← Production branch — stable, merged from dev
-silvina_editorial_v100  ← Active development branch ← ALL work goes here
+silvina_editorial_v200  ← Active development branch ← feature branches merge here
+silvina_editorial_v100  ← Historical reference (read-only)
 silvina_editorial_v09   ← Historical reference (read-only)
 silvina_editorial_v08   ← Historical reference (read-only)
 ```
 
 **Development workflow:**
-1. All code changes happen on `silvina_editorial_v09`
-2. Push to `silvina_editorial_v09` after each session
+1. Each change is developed on its own feature branch (`feat/…`, `fix/…`, `refactor/…`, `docs/…`) created from `silvina_editorial_v200`
+2. The feature branch is merged into `silvina_editorial_v200` through a pull request
 3. When a stable milestone is reached → merge to `main`
-4. Never develop directly on `main`
+4. Never develop directly on `main` or on `silvina_editorial_v200`
+
+Substantial features are planned in `odd/tasks/<feature-name>.md` before the first change and closed with one commit per task.
 
 **Setup on development machine:**
 ```bash
-git checkout silvina_editorial_v100
-cd silvina_editorial
-source ../venv312/Scripts/activate  # Windows Git Bash
+git checkout silvina_editorial_v200
+source .venv/Scripts/activate  # Windows Git Bash
 ```
 
-**Primary development machine:** DESKTOP-OE2SEGH (32GB RAM, Ryzen 7 8700G)
-**Secondary machine:** DESKTOP-LN7Q8I6 (8GB RAM) — code editing only, no LLM inference
+**Development machines:**
+- DESKTOP-OE2SEGH — AMD Ryzen 7 8700G, 32GB RAM
+- DESKTOP-LN7Q8I6 — 8GB RAM (code editing only, no LLM inference)
+- DESKTOP — AMD Ryzen 5 5600X, 32GB RAM, GPU: Radeon RX 7800 XT 16GB VRAM
 
 ---
 
@@ -56,6 +60,11 @@ source ../venv312/Scripts/activate  # Windows Git Bash
 - Interactive result visualization
 - One-click Word/JSON download
 - Clean shutdown button
+
+### ⌨️ **Command Line**
+- `python main.py <document.docx>` runs the same analysis and writes the Word, JSON and HTML reports
+- Starts and stops the Ollama server and preloads the model on its own
+- Per-run overrides for the model, the mode and the prompts
 
 ### 🏗️ **Hexagonal Architecture**
 ```
@@ -159,15 +168,23 @@ src/infrastructure/ # Adapters (docx, ollama, win32com, language_tool), wiring, 
 
 **Architecture:** Single combined LLM call per dimension pair (Call 1: Claridad + Coherencia / Call 2: Argumentación + Conclusiones). Score inference from narrative when LLM omits score format.
 
-**Full body analysis:** the quality and editorial suitability prompts receive the whole article body (title and body paragraphs), with no sampling or truncation.
+**Full body analysis:** the classification, quality and editorial suitability prompts receive the whole article body (title and body paragraphs), with no sampling or truncation. The grammar check also covers the abstract and the whole body.
+
+**Article body:** Silvina locates the body between the article header and the bibliography header (`[bibliography]` in `editorial_norms.toml`). The body size sets the article size band (`[article_size]` in `analysis_settings.toml`, which now includes an extra long band), and an article whose body exceeds `max_body_chars` (`[article_length]`, 75 000 characters by default) is rejected before the analysis.
+
+**Tables:** the tables of the document are read with their position and sent to the classification, quality and editorial suitability prompts as Markdown tables, placed between the paragraphs that surround them in the original. They do not count toward the body length and do not change citations, references, grammar, sections or word counts. Images are not sent; the prompts carry only their captions.
 
 ---
 
 ## 📊 Multi-Format Reports
 
-**2 Output Files** saved to `C:\Users\[user]\Documents\Silvina\reports\`:
+**Web interface** — 2 files saved to `C:\Users\[user]\Documents\Silvina\reports\` (or the directory in `SILVINA_REPORTS_DIR`):
 1. **📘 Word Report** (`_analisis.docx`)
-2. **📊 JSON Data** (`_analisis.json`)
+2. **📊 JSON Data** (`_analisis.json`), including the editorial suitability
+
+**Command line** — 3 files in `<document folder>\análisis` (or `--output-dir`): the Word report, the JSON data and an **HTML report** (`.html`).
+
+The Word report lists every APA 7 violation, states the display limit when grammar errors are truncated, and marks the unmet EUMIC norms section as informative.
 
 ---
 
@@ -193,14 +210,14 @@ git clone https://github.com/P-SAL/silvina-editorial.git
 cd silvina-editorial
 
 # 2. Switch to development branch
-git checkout silvina_editorial_v100
-cd silvina_editorial_v100
+git checkout silvina_editorial_v200
 
-# 3. Create virtual environment
-python -m venv ../venv312
-source ../venv312/Scripts/activate  # Windows Git Bash
+# 3. Create the virtual environment and install dependencies (Windows)
+setup.bat
+source .venv/Scripts/activate  # Windows Git Bash
 
-# 4. Install dependencies
+# 4. Or do it manually
+python -m venv .venv
 pip install -r requirements.txt
 
 # 5. Install the LLM model (requires Ollama 0.35.0 or newer)
@@ -273,6 +290,12 @@ EXTERNAL_LLM_MODEL_NAME=<claude model name>
 
 ### Web Interface
 ```bash
+launch_silvina.bat
+```
+
+Or, with the virtual environment active:
+
+```bash
 python web_main.py
 ```
 
@@ -319,13 +342,19 @@ python main.py documento.docx --alignment-prompt C:\mis_prompts
 
 ## 📁 Project Structure
 ```
-silvina_editorial_v100/
-├── main.py
-├── web_main.py
+silvina-editorial/
+├── main.py                      # Command line entry point
+├── web_main.py                  # Web server entry point
+├── launch_silvina.bat
+├── setup.bat
 ├── version.txt
 ├── requirements.txt
 ├── analysis_settings.toml
 ├── editorial_norms.toml
+├── scripts/                     # Ollama model creation and fixture tools
+├── sandbox/                     # Sample documents for manual testing
+├── odd/tasks/                   # Feature plans, one document per feature
+├── docs/                        # Design and study documents
 ├── src/
 │   ├── domain/                  # Entities, DTOs, enums, exceptions, and ports
 │   │   ├── citation/
@@ -337,6 +366,8 @@ silvina_editorial_v100/
 │   │   ├── exceptions/
 │   │   ├── gateway/
 │   │   ├── grammar/
+│   │   ├── language_model/
+│   │   ├── metrics/
 │   │   ├── ports/
 │   │   ├── quality/
 │   │   ├── recommendation/
@@ -344,18 +375,24 @@ silvina_editorial_v100/
 │   │   └── structure/
 │   ├── application/             # Use cases (orchestrate domain behavior)
 │   │   ├── analyze_document_use_case.py
-│   │   └── export_report_use_case.py
+│   │   ├── export_report_use_case.py
+│   │   ├── ensure_language_model_server_use_case.py
+│   │   ├── release_language_model_server_use_case.py
+│   │   └── warm_up_language_model_use_case.py
 │   └── infrastructure/          # Adapters, config, and wirings
 │       ├── adapters/
 │       │   ├── document/
 │       │   ├── gateway/
 │       │   ├── grammar/
 │       │   ├── llm_generator/
+│       │   ├── metrics/
 │       │   └── report/
-│       ├── config/
+│       ├── cli/
+│       ├── fastapi/
+│       ├── resources/           # Prompts and the Ollama Modelfile
 │       ├── env_config.py
 │       └── wirings/
-└── tests/                       # Integration and unit tests
+└── tests/                       # Integration and unit tests (unit tests also live next to each layer)
     ├── e2e/
     ├── fixtures/
     ├── smoke/
@@ -366,7 +403,18 @@ silvina_editorial_v100/
 
 ## 🔄 Version History
 
-### v0.100 (Q4 2026) — Current
+### v0.200 (Q4 2026) — Current
+
+- 📄 **Whole article body analysis:** the classification, quality, editorial suitability and grammar checks read the whole article body instead of a text sample. The body is located between the header and the bibliography, driven by `editorial_norms.toml`.
+- 📏 **Article length:** new extra long size band, and articles above `max_body_chars` are rejected before the analysis.
+- 📊 **Tables in the prompts:** document tables reach the classification, quality and editorial suitability prompts as Markdown, at their original position.
+- 🧾 **JSON report** now includes the editorial suitability.
+- 🔧 **FIXED (document):** the title and the authors are taken from the article header.
+- 🔧 **FIXED (citations):** every citation of a parenthetical group separated by semicolons is extracted; each reference is read from its own paragraph; parentheses with dates and document codes are not citations; the ampersand of corporate authors is kept; a citation matches the acronym declared in its reference.
+- 🔧 **FIXED (quality):** dimensions are matched from the section header line, the response is split only at bold lines that carry a score, only the recommendation paragraph is dropped from a feedback, and a heading that groups several titled sections is kept. Quality levels use the thresholds from `analysis_settings.toml` (`[quality_level]`).
+- 🔧 **FIXED (report):** every APA 7 violation is listed, the grammar truncation limit is stated, the unmet EUMIC norms section is marked as informative, out-of-norm font sizes are worded in singular and plural, and the closing separator fits the page width.
+
+### v0.100 (Q3 2026)
 
 - 🌐 **FastAPI + HTMX web interface** replaces Gradio (`web_main.py`, started by `launch_silvina.bat`).
 - 📄 **JSON report export** next to the Word report.
@@ -427,7 +475,9 @@ silvina_editorial_v100/
 
 ## 🗺️ Roadmap
 
-### v0.100 (Q4 2026) — Active Development
+### v0.200 (Q4 2026) — Active Development
+- ✅ Whole article body analysis, article size bands and length limit
+- ✅ Document tables in the prompts
 - ✅ Classification system S6 revision — 19-case table, 0.83 threshold
 - ✅ S3 vocabulary expansion
 - ✅ Confidence calibration (0.83/0.85/0.86/0.90/0.95)
@@ -446,7 +496,7 @@ silvina_editorial_v100/
 - 🌐 nginx + HTTPS deployment
 - 🌐 Supervised availability model (institutional server)
 
-### v1.0 (Q3 2026)
+### v1.0
 - 🏢 Production deployment at Universidad de la Defensa
 - 🖥️ Hardware upgrade: 64GB RAM + GPU (RTX 4060/4070)
 - 🤖 Model upgrade: llama3.1:70b q4_K_M — deterministic S4/S5/S6 inference
@@ -474,9 +524,14 @@ silvina_editorial_v100/
 
 ## 🤝 Contributing
 
-**Contact:** Pablo Salonio (P-SAL) — plsalonio@gmail.com
-**Repository:** https://github.com/P-SAL/silvina-editorial
-**Active branch:** `silvina_editorial_v100`
+**Contact:** Pablo Salonio — plsalonio@gmail.com
+
+**Contributors:**
+- Pablo Salonio (GitHub: P-SAL)
+- Luis A. Briones (GitHub: VulturARG)
+
+**Repository:** https://github.com/P-SAL/silvina-editorial\
+**Active branch:** `silvina_editorial_v200`
 
 ---
 
@@ -491,11 +546,10 @@ MIT License
 - **Revista Visión Conjunta** — Editorial team for requirements and testing
 - **Facultad Militar Conjunta** — Universidad de la Defensa Nacional
 - **Ollama Team** — Local LLM infrastructure
-- **Claude (Anthropic)** — Development assistance
 
 ---
 
-**Last Updated:** October 2026
-**Version:** 0.100
-**Active Branch:** silvina_editorial_v100
+**Last Updated:** October 2026\
+**Version:** 0.200\
+**Active Branch:** silvina_editorial_v200\
 **Status:** Active Development 🚀
