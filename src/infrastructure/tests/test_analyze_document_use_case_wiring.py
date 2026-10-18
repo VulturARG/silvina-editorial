@@ -32,6 +32,7 @@ from src.domain.quality.quality_response_parser import QualityResponseParser
 from src.domain.quality.suitability_field_extractor import SuitabilityFieldExtractor
 from src.domain.quality.suitability_field_truncator import SuitabilityFieldTruncator
 from src.domain.quality.suitability_verdict_matcher import SuitabilityVerdictMatcher
+from src.domain.quality.trailing_score_line_locator import TrailingScoreLineLocator
 from src.domain.structure.structure_validator import StructureValidator
 from src.domain.tests.classification.fake_llm_generator_adapter import FakeLlmGeneratorAdapter
 from src.domain.tests.dtos.editorial_norms_builder_for_test import (
@@ -147,6 +148,13 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         )
         self.assertEqual(quality_response_parser._unscored_dimension.score, 7.0)
         self.assertEqual(quality_response_parser._unscored_dimension.feedback, "No disponible")
+
+    def test_wiring_builds_quality_response_parser_holding_trailing_score_line_locator(self):
+        wiring = AnalyzeDocumentUseCaseWiring()
+        quality_response_parser = wiring._get_quality_response_parser()
+        self.assertIsInstance(
+            quality_response_parser._trailing_score_line_locator, TrailingScoreLineLocator
+        )
 
     def test_wiring_builds_editorial_suitability_parser_holding_collaborators(self):
         wiring = AnalyzeDocumentUseCaseWiring()

@@ -4,6 +4,7 @@ from src.domain.quality.dimension_score_extractor import DimensionScoreExtractor
 from src.domain.quality.feedback_structure_parser import FeedbackStructureParser
 from src.domain.quality.quality_dimension_matcher import QualityDimensionMatcher
 from src.domain.quality.quality_response_parser import QualityResponseParser
+from src.domain.quality.trailing_score_line_locator import TrailingScoreLineLocator
 from src.domain.tests.quality.feedback_structure_parser_builder_for_test import (
     FeedbackStructureParserBuilderForTest,
 )
@@ -21,6 +22,7 @@ class QualityResponseParserBuilderForTest:
         dimension_matcher: QualityDimensionMatcher | None = None,
         score_extractor: DimensionScoreExtractor | None = None,
         feedback_extractor: DimensionFeedbackExtractor | None = None,
+        trailing_score_line_locator: TrailingScoreLineLocator | None = None,
     ) -> QualityResponseParser:
         structure_parser = (
             feedback_structure_parser
@@ -50,9 +52,15 @@ class QualityResponseParserBuilderForTest:
                 unscored_dimension=unscored_dimension,
             )
         )
+        resolved_trailing_score_line_locator = (
+            trailing_score_line_locator
+            if trailing_score_line_locator is not None
+            else TrailingScoreLineLocator()
+        )
         return QualityResponseParser(
             dimension_matcher=resolved_dimension_matcher,
             score_extractor=resolved_score_extractor,
             feedback_extractor=resolved_feedback_extractor,
             unscored_dimension=unscored_dimension,
+            trailing_score_line_locator=resolved_trailing_score_line_locator,
         )
