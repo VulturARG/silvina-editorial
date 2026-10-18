@@ -9,7 +9,9 @@ from src.application.release_language_model_server_use_case import (
     ReleaseLanguageModelServerUseCase,
 )
 from src.application.warm_up_language_model_use_case import WarmUpLanguageModelUseCase
+from src.domain.dtos.prompt_source_dto import PromptSourceDTO
 from src.infrastructure.cli.cli_analysis_services import CliAnalysisServices
+from src.infrastructure.cli.prompt_source_builder import PromptSourceBuilder
 from src.infrastructure.wirings.ensure_language_model_server_use_case_wiring import (
     EnsureLanguageModelServerUseCaseWiring,
 )
@@ -55,7 +57,11 @@ class CliAnalysisServicesWiring:
             model_name=analyze_document_use_case_wiring.get_active_model_name(),
             uses_local_language_model=analyze_document_use_case_wiring.uses_local_language_model(),
             warms_up_language_model=analyze_document_use_case_wiring.warms_up_language_model(),
+            prompt_source=self._prompt_source(),
         )
+
+    def _prompt_source(self) -> PromptSourceDTO:
+        return PromptSourceBuilder().build(self._prompts_root, self._prompt_file_overrides)
 
     def _analyze_document_use_case_wiring(self) -> OverridableAnalyzeDocumentUseCaseWiring:
         return OverridableAnalyzeDocumentUseCaseWiring(

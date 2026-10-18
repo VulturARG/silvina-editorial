@@ -9,6 +9,7 @@ from src.application.release_language_model_server_use_case import (
     ReleaseLanguageModelServerUseCase,
 )
 from src.application.warm_up_language_model_use_case import WarmUpLanguageModelUseCase
+from src.domain.dtos.prompt_source_dto import PromptSourceDTO
 
 
 @dataclass(frozen=True)
@@ -25,3 +26,4 @@ class CliAnalysisServices:
     model_name: str
     uses_local_language_model: bool
     warms_up_language_model: bool
+    prompt_source: PromptSourceDTO

@@ -1,4 +1,5 @@
 from collections.abc import Callable, Mapping
+from logging import getLogger
 from pathlib import Path
 
 from src.application.export_report_use_case import ExportReportUseCase
@@ -12,6 +13,8 @@ from src.infrastructure.cli.document_name_prompter import DocumentNamePrompter
 from src.infrastructure.cli.report_file_paths import ReportFilePaths
 from src.infrastructure.cli.report_file_paths_builder import ReportFilePathsBuilder
 from src.infrastructure.cli.source_document_locator import SourceDocumentLocator
+
+logger = getLogger(__name__)
 
 
 class DocumentAnalysisCommand:
@@ -77,6 +80,7 @@ class DocumentAnalysisCommand:
         except Exception as error:
             self._console_step_announcer.announce_error(self._describe_error(error))
             return self.FAILURE_STATUS
+        logger.info("Prompt source: %s", services.prompt_source.describe())
         try:
             try:
                 return self._analyze_and_export(services, document_path, arguments.output_directory)

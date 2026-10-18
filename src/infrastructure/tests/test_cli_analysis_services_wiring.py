@@ -1,5 +1,7 @@
 from os import environ
 from pathlib import Path
+from shutil import copytree, ignore_patterns
+from tempfile import TemporaryDirectory
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
@@ -12,6 +14,7 @@ from src.application.release_language_model_server_use_case import (
     ReleaseLanguageModelServerUseCase,
 )
 from src.application.warm_up_language_model_use_case import WarmUpLanguageModelUseCase
+from src.domain.dtos.prompt_source_dto import PromptSourceDTO
 from src.infrastructure.adapters.llm_generator.ollama_language_model_warmup_adapter import (
     OllamaLanguageModelWarmupAdapter,
 )
@@ -19,6 +22,7 @@ from src.infrastructure.adapters.llm_generator.ollama_server_adapter import (
     OllamaServerAdapter,
 )
 from src.infrastructure.cli.cli_analysis_services import CliAnalysisServices
+from src.infrastructure.resources.prompts import PROMPTS_ROOT
 from src.infrastructure.tests.test_doubles.complete_test_environment import (
     CompleteTestEnvironment,
 )
@@ -205,6 +209,67 @@ class TestCliAnalysisServicesWiring(TestCase):
 
         self.assertFalse(services.uses_local_language_model)
         self.assertFalse(services.warms_up_language_model)
+
+    def test_prompt_source_is_default_without_custom_prompts(self):
+        with patch.dict(environ, self._complete_environment(), clear=True):
+            services = CliAnalysisServicesWiring({}).create_services()
+
+        self.assertEqual(
+            services.prompt_source,
+            PromptSourceDTO(base_label="default", replaced_prompt_names=()),
+        )
+
+    def test_prompt_source_names_root_folder_when_prompts_root_is_given(self):
+        with TemporaryDirectory() as temporary_directory:
+            prompts_root = self._copy_packaged_prompts_root(Path(temporary_directory) / "v2")
+            with patch.dict(environ, self._complete_environment(), clear=True):
+                services = CliAnalysisServicesWiring(
+                    {}, prompts_root=prompts_root
+                ).create_services()
+
+        self.assertEqual(services.prompt_source.describe(), "v2")
+
+    def test_prompt_source_lists_replaced_prompts_in_fixed_order(self):
+        prompt_file_overrides = {
+            "research_lines": PROMPTS_ROOT / "quality" / "research_lines.txt",
+            "alignment_prompt": PROMPTS_ROOT / "quality" / "alignment_prompt.txt",
+        }
+        with patch.dict(environ, self._complete_environment(), clear=True):
+            services = CliAnalysisServicesWiring(
+                {}, prompt_file_overrides=prompt_file_overrides
+            ).create_services()
+
+        self.assertEqual(
+            services.prompt_source,
+            PromptSourceDTO(
+                base_label="default",
+                replaced_prompt_names=("alignment_prompt", "research_lines"),
+            ),
+        )
+
+    def test_prompt_source_combines_root_folder_and_replaced_prompts(self):
+        with TemporaryDirectory() as temporary_directory:
+            prompts_root = self._copy_packaged_prompts_root(Path(temporary_directory) / "v2")
+            prompt_file_overrides = {
+                "research_lines": prompts_root / "quality" / "research_lines.txt",
+                "alignment_prompt": prompts_root / "quality" / "alignment_prompt.txt",
+            }
+            with patch.dict(environ, self._complete_environment(), clear=True):
+                services = CliAnalysisServicesWiring(
+                    {},
+                    prompt_file_overrides=prompt_file_overrides,
+                    prompts_root=prompts_root,
+                ).create_services()
+
+        self.assertEqual(
+            services.prompt_source.describe(),
+            "v2 + alignment_prompt, research_lines",
+        )
+
+    @staticmethod
+    def _copy_packaged_prompts_root(destination: Path) -> Path:
+        copytree(PROMPTS_ROOT, destination, ignore=ignore_patterns("v2", "__pycache__"))
+        return destination
 
     def test_services_warms_up_language_model_is_false_when_startup_warmup_disabled(self):
         overrides = {"OLLAMA_WARMUP_ON_STARTUP": "false"}

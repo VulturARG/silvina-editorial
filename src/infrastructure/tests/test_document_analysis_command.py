@@ -12,6 +12,7 @@ from src.application.release_language_model_server_use_case import (
     ReleaseLanguageModelServerUseCase,
 )
 from src.application.warm_up_language_model_use_case import WarmUpLanguageModelUseCase
+from src.domain.dtos.prompt_source_dto import PromptSourceDTO
 from src.domain.exceptions.language_model_errors import (
     LanguageModelError,
     LanguageModelLoadFailed,
@@ -32,6 +33,9 @@ from src.infrastructure.cli.windows_file_name_sanitizer import WindowsFileNameSa
 class TestDocumentAnalysisCommand(TestCase):
     MODEL_NAME = "gemma-test"
     DOCUMENT_NAME = "tesis.docx"
+    DEFAULT_PROMPT_SOURCE = PromptSourceDTO(
+        base_label=PromptSourceDTO.DEFAULT_BASE_LABEL, replaced_prompt_names=()
+    )
 
     def setUp(self):
         temporary_directory = TemporaryDirectory()
@@ -99,6 +103,40 @@ class TestDocumentAnalysisCommand(TestCase):
         self._run(self._arguments())
 
         self.assertTrue(self._expected_directory().is_dir())
+
+    def test_logs_prompt_source_description_once_per_run(self):
+        prompt_source = PromptSourceDTO(
+            base_label="v2", replaced_prompt_names=("alignment_prompt",)
+        )
+        self._services_factory.return_value = self._build_services(
+            self.MODEL_NAME, prompt_source=prompt_source
+        )
+
+        with self.assertLogs(level="INFO") as captured_logs:
+            self._run(self._arguments())
+
+        prompt_source_lines = [line for line in captured_logs.output if "Prompt source" in line]
+        self.assertEqual(
+            prompt_source_lines,
+            [
+                "INFO:src.infrastructure.cli.document_analysis_command:"
+                "Prompt source: v2 + alignment_prompt"
+            ],
+        )
+
+    def test_logs_default_prompt_source_when_no_custom_prompts_are_used(self):
+        with self.assertLogs(level="INFO") as captured_logs:
+            self._run(self._arguments())
+
+        self.assertIn(
+            "INFO:src.infrastructure.cli.document_analysis_command:Prompt source: default",
+            captured_logs.output,
+        )
+
+    def test_prompt_source_is_not_printed_to_console(self):
+        self._run(self._arguments())
+
+        self.assertNotIn("Prompt source", "".join(self._printed_lines))
 
     def test_exports_word_json_and_html_reports_into_output_directory(self):
         self._run(self._arguments())
@@ -459,6 +497,7 @@ class TestDocumentAnalysisCommand(TestCase):
         model_name: str,
         uses_local_language_model: bool = True,
         warms_up_language_model: bool = True,
+        prompt_source: PromptSourceDTO = DEFAULT_PROMPT_SOURCE,
     ) -> CliAnalysisServices:
         return CliAnalysisServices(
             analyze_document_use_case=self._analyze_document_use_case,
@@ -471,6 +510,7 @@ class TestDocumentAnalysisCommand(TestCase):
             model_name=model_name,
             uses_local_language_model=uses_local_language_model,
             warms_up_language_model=warms_up_language_model,
+            prompt_source=prompt_source,
         )
 
     def test_releases_server_after_successful_run(self):

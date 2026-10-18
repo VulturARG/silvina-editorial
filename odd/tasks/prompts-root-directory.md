@@ -36,7 +36,7 @@ Let `main.py` receive one optional argument that replaces the whole default prom
 
 - [x] **TASK-01** Rename the `v2` prompt files (drop `_v2`) and add a `PROMPTS_ROOT` constant for the packaged root. `AnalyzeDocumentUseCaseWiring` accepts `prompts_root` (default packaged) and derives `classification/` and `quality/` from it; `OverridableAnalyzeDocumentUseCaseWiring` forwards it. RED first.
 - [x] **TASK-02** `CommandLineArguments.prompts_directory` and the `--prompts-dir` option with strict validation of the six files in the parser; plumb the value `DocumentAnalysisCommand` -> services factory -> `DocumentAnalysisCommandWiring` -> `CliAnalysisServicesWiring` -> `OverridableAnalyzeDocumentUseCaseWiring`. RED first.
-- [ ] **TASK-03** Prompt source description: a value object built from `CommandLineArguments` (`default` or root folder name, plus replaced prompt names in fixed order) with its text rendering; log it from the CLI run. RED first.
+- [x] **TASK-03** Prompt source description: a value object built from `CommandLineArguments` (`default` or root folder name, plus replaced prompt names in fixed order) with its text rendering; log it from the CLI run. RED first.
 - [ ] **TASK-04** Show the prompt source in the reports: optional parameter in `ExportReportWiring`, `JsonReportWiring` and `HtmlReportWiring`, rendered by the Word, JSON and HTML adapters only when present; `CliAnalysisServicesWiring` passes it, FastAPI does not. RED first.
 - [ ] **TASK-05** README usage for `--prompts-dir` and the reported prompt source; full unit-suite run.
 
@@ -56,4 +56,11 @@ Let `main.py` receive one optional argument that replaces the whole default prom
 - RED: 10 errors and 3 failures, e.g. `test_usage_error_names_first_missing_file_in_prompt_order` (`unrecognized arguments: --prompts-dir`), `test_passes_prompts_directory_to_services_factory` (`TypeError`), `test_services_factory_forwards_prompts_root`, `test_prompt_root_relative_paths_lists_six_files_grouped_by_folder` (`AttributeError`). Caveat: the rejection tests passed in RED because argparse already rejected the unknown option; their real signal comes with the positive and message tests.
 - GREEN: 107 focused tests passing (re-run by the parent); full unit suite `Ran 2215 tests, OK` and ruff clean (reported by the writer).
 - The six expected files live only in `CommandLineArguments.prompt_root_relative_paths()`; the missing-file message uses the POSIX form (`classification/s4_s5_s6_signal_prompt.txt`).
+- Commit: `2a2f883` `feat(cli): add --prompts-dir to replace the whole prompts root`.
 - The services factory now takes a third argument `prompts_root`; `CliAnalysisServicesWiring` already holds both `prompt_file_overrides` and `prompts_root`, which is all TASK-03 needs to describe the prompt source.
+
+### TASK-03
+- RED: `ModuleNotFoundError` for the DTO and the builder; 42 `TypeError` (`unexpected keyword argument 'prompt_source'`) and 4 `AttributeError` for the new `CliAnalysisServices` field; `test_logs_prompt_source_description_once_per_run` and `test_logs_default_prompt_source_when_no_custom_prompts_are_used` failed with `no logs of level INFO or higher triggered on root`. `test_prompt_source_is_not_printed_to_console` is a guard that passed from the start.
+- GREEN: 81 focused tests passing (re-run by the parent); full unit suite `Ran 2239 tests, OK` and ruff clean (reported by the writer).
+- `PromptSourceDTO.describe()` yields `default`, `v2`, `default + a, b`, `v2 + a`. `PromptSourceBuilder` is instantiated only in `CliAnalysisServicesWiring`; the base label is `prompts_root.resolve().name`.
+- Log: `logger.info("Prompt source: %s", ...)` after the services are created. `LOG_LEVEL` is required by `EnvConfig` and `.env`/`.env.example` set it to INFO. The only root handler is the rotating file, so the line is NOT printed on the console (spec open item in section 5).
