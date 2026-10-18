@@ -42,7 +42,12 @@ Checked on the real parser before this change (in memory, no files touched):
 
 - [x] **TASK-01** New collaborator that detects the "score last" layout and returns the score and the block without that line; `QualityResponseParser` uses it; builder and wiring updated. RED first.
 
-## 6. Evidence
+## 6. Open items
+
+- Native review of the whole slice (2 commits, 9 files, 339 lines, base `2784a59`) was approved and acknowledged (lineage `review-4a1651ac061c8f28`, medium risk, lens `review-reliability`, authority burned). One advisory finding, non-blocking, location only (the provider returns no text): R3-001 WARNING `trailing_score_line_locator.py:32-35`. Separate later work.
+- The v2 quality prompts still use the score-in-header format. Asking for the score last is a prompt change in a later PR, once this one is merged.
+
+## 7. Evidence
 
 ### TASK-01
 - RED: 16 new tests failing (13 of the locator, 2 of the parser end to end, 1 of the wiring), observed with a stub locator that returned `None` and was not yet used by the parser. Eight tests that protect the current behavior (the locator returning `None` outside the layout, the header score winning over a stray last line) already passed, as expected.
