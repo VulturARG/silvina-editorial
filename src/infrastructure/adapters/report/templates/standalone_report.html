@@ -17,6 +17,9 @@
         </header>
 
         <main>
+            {% if prompt_source_text %}
+            <p><strong>Prompts utilizados:</strong> {{ prompt_source_text }}</p>
+            {% endif %}
             {% include "partials/_results.html" %}
         </main>
     </div>

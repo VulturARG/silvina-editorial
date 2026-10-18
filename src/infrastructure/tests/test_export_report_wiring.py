@@ -11,6 +11,7 @@ from docx.opc.constants import RELATIONSHIP_TYPE
 from docx.shared import RGBColor
 
 from src.application.export_report_use_case import ExportReportUseCase
+from src.domain.dtos.prompt_source_dto import PromptSourceDTO
 from src.infrastructure.tests.adapters.report.fixtures import ReportFixtures
 from src.infrastructure.wirings.export_report_wiring import ExportReportWiring
 
@@ -133,3 +134,34 @@ class TestExportReportWiring(TestCase):
             if paragraph_style.name == "Heading 1":
                 section_headings.append(paragraph.text)
         self.assertEqual(section_headings, SECTION_HEADINGS_IN_REPORT_ORDER)
+
+    def test_execute_shows_prompt_source_in_document_info_when_given(self):
+        prompt_source = PromptSourceDTO(
+            base_label="v2", replaced_prompt_names=("alignment_prompt",)
+        )
+        use_case = ExportReportWiring(prompt_source=prompt_source).create_use_case()
+
+        use_case.execute(
+            report_input=ReportFixtures.make_report_input_dto(),
+            output_path=self._output_path,
+        )
+
+        self.assertIn(
+            "Prompts utilizados: v2 + alignment_prompt",
+            self._paragraph_texts(Document(self._output_path)),
+        )
+
+    def test_execute_omits_prompt_source_paragraph_without_prompt_source(self):
+        use_case = ExportReportWiring().create_use_case()
+
+        use_case.execute(
+            report_input=ReportFixtures.make_report_input_dto(),
+            output_path=self._output_path,
+        )
+
+        self.assertFalse(
+            any(
+                text.startswith("Prompts utilizados")
+                for text in self._paragraph_texts(Document(self._output_path))
+            )
+        )

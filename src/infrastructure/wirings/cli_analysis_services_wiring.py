@@ -46,18 +46,19 @@ class CliAnalysisServicesWiring:
     def create_services(self) -> CliAnalysisServices:
         """Return the analysis and export use cases sharing one overridden configuration."""
         analyze_document_use_case_wiring = self._analyze_document_use_case_wiring()
+        prompt_source = self._prompt_source()
         return CliAnalysisServices(
             analyze_document_use_case=analyze_document_use_case_wiring.create_use_case(),
-            word_report_use_case=self._word_report_use_case(),
-            json_report_use_case=self._json_report_use_case(),
-            html_report_use_case=self._html_report_use_case(),
+            word_report_use_case=self._word_report_use_case(prompt_source),
+            json_report_use_case=self._json_report_use_case(prompt_source),
+            html_report_use_case=self._html_report_use_case(prompt_source),
             ensure_language_model_server_use_case=self._ensure_language_model_server_use_case(),
             release_language_model_server_use_case=self._release_language_model_server_use_case(),
             warm_up_language_model_use_case=self._warm_up_language_model_use_case(),
             model_name=analyze_document_use_case_wiring.get_active_model_name(),
             uses_local_language_model=analyze_document_use_case_wiring.uses_local_language_model(),
             warms_up_language_model=analyze_document_use_case_wiring.warms_up_language_model(),
-            prompt_source=self._prompt_source(),
+            prompt_source=prompt_source,
         )
 
     def _prompt_source(self) -> PromptSourceDTO:
@@ -85,11 +86,11 @@ class CliAnalysisServicesWiring:
             self._environment_overrides
         ).get_warm_up_language_model_use_case()
 
-    def _word_report_use_case(self) -> ExportReportUseCase:
-        return ExportReportWiring().create_use_case()
+    def _word_report_use_case(self, prompt_source: PromptSourceDTO) -> ExportReportUseCase:
+        return ExportReportWiring(prompt_source=prompt_source).create_use_case()
 
-    def _json_report_use_case(self) -> ExportReportUseCase:
-        return JsonReportWiring().create_use_case()
+    def _json_report_use_case(self, prompt_source: PromptSourceDTO) -> ExportReportUseCase:
+        return JsonReportWiring(prompt_source=prompt_source).create_use_case()
 
-    def _html_report_use_case(self) -> ExportReportUseCase:
-        return HtmlReportWiring().create_use_case()
+    def _html_report_use_case(self, prompt_source: PromptSourceDTO) -> ExportReportUseCase:
+        return HtmlReportWiring(prompt_source=prompt_source).create_use_case()

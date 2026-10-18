@@ -1,9 +1,13 @@
+from json import load
 from os import environ
+from os.path import join
 from pathlib import Path
 from shutil import copytree, ignore_patterns
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
+
+from docx import Document
 
 from src.application.analyze_document_use_case import AnalyzeDocumentUseCase
 from src.application.ensure_language_model_server_use_case import (
@@ -23,6 +27,9 @@ from src.infrastructure.adapters.llm_generator.ollama_server_adapter import (
 )
 from src.infrastructure.cli.cli_analysis_services import CliAnalysisServices
 from src.infrastructure.resources.prompts import PROMPTS_ROOT
+from src.infrastructure.tests.adapters.report.characterization_report_input import (
+    CharacterizationReportInput,
+)
 from src.infrastructure.tests.test_doubles.complete_test_environment import (
     CompleteTestEnvironment,
 )
@@ -36,6 +43,7 @@ from src.infrastructure.wirings.overridable_warm_up_language_model_use_case_wiri
 
 class TestCliAnalysisServicesWiring(TestCase):
     ENVIRONMENT_MODEL_NAME = "gemma4-26b-adapted"
+    REPLACED_PROMPTS_DESCRIPTION = "default + alignment_prompt, research_lines"
 
     @staticmethod
     def _complete_environment() -> dict[str, str]:
@@ -265,6 +273,51 @@ class TestCliAnalysisServicesWiring(TestCase):
             services.prompt_source.describe(),
             "v2 + alignment_prompt, research_lines",
         )
+
+    def test_word_report_use_case_shows_the_run_prompt_source(self):
+        services = self._services_with_replaced_prompts()
+        with TemporaryDirectory() as temporary_directory:
+            output_path = join(temporary_directory, "report.docx")
+            services.word_report_use_case.execute(
+                report_input=CharacterizationReportInput.build(), output_path=output_path
+            )
+            paragraph_texts = [paragraph.text for paragraph in Document(output_path).paragraphs]
+
+        self.assertIn(f"Prompts utilizados: {self.REPLACED_PROMPTS_DESCRIPTION}", paragraph_texts)
+
+    def test_json_report_use_case_writes_the_run_prompt_source(self):
+        services = self._services_with_replaced_prompts()
+        with TemporaryDirectory() as temporary_directory:
+            output_path = join(temporary_directory, "report.json")
+            services.json_report_use_case.execute(
+                report_input=CharacterizationReportInput.build(), output_path=output_path
+            )
+            with open(output_path, encoding="utf-8") as file:
+                written_data = load(file)
+
+        self.assertEqual(written_data["prompt_source"], self.REPLACED_PROMPTS_DESCRIPTION)
+
+    def test_html_report_use_case_shows_the_run_prompt_source(self):
+        services = self._services_with_replaced_prompts()
+        with TemporaryDirectory() as temporary_directory:
+            output_path = join(temporary_directory, "report.html")
+            services.html_report_use_case.execute(
+                report_input=CharacterizationReportInput.build(), output_path=output_path
+            )
+            with open(output_path, encoding="utf-8") as file:
+                html = file.read()
+
+        self.assertIn(self.REPLACED_PROMPTS_DESCRIPTION, html)
+
+    def _services_with_replaced_prompts(self) -> CliAnalysisServices:
+        prompt_file_overrides = {
+            "research_lines": PROMPTS_ROOT / "quality" / "research_lines.txt",
+            "alignment_prompt": PROMPTS_ROOT / "quality" / "alignment_prompt.txt",
+        }
+        with patch.dict(environ, self._complete_environment(), clear=True):
+            return CliAnalysisServicesWiring(
+                {}, prompt_file_overrides=prompt_file_overrides
+            ).create_services()
 
     @staticmethod
     def _copy_packaged_prompts_root(destination: Path) -> Path:
