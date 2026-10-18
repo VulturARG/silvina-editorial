@@ -17,7 +17,7 @@ A CLI run that uses a non-default prompt source must not overwrite the reports o
 
 - The base name stays `<document>_analisis_<model>`. When the run has a non-default prompt source, a suffix is appended: `_` followed by the parts joined with `+`.
 - Parts, in this order: (1) the name of the `--prompts-dir` folder, without its path, when the flag is used; (2) the names of the prompts replaced with per-prompt flags, in the fixed order of `CommandLineArguments.PROMPT_NAMES`.
-- The word `default` NEVER appears in the file name. With no custom root and no replaced prompts, the name is exactly as today.
+- The word `default` never appears in the file name for the default source (a custom root folder that happens to be named `default` is shown as `_default`, see TASK-02). With no custom root and no replaced prompts, the name is exactly as today.
 - Examples with model `claude-haiku-5-5`: `doc_analisis_claude-haiku-5-5` (all default); `..._v2`; `..._v2+alignment_prompt`; `..._clarity_coherence_prompt+research_lines` (default root, two replaced prompts).
 - `+` is valid in file names on Windows, Linux and macOS, and `WindowsFileNameSanitizer` does not touch it; each part still goes through the sanitizer.
 - The same suffix applies to the three reports (`.docx`, `.json`, `.html`). The web flow is not affected.
@@ -31,6 +31,8 @@ A CLI run that uses a non-default prompt source must not overwrite the reports o
 ## 4. Tasks
 
 - [x] **TASK-01** `ReportFilePathsBuilder.build` accepts an optional prompt source and appends the suffix; `DocumentAnalysisCommand` passes `services.prompt_source`; README documents the new names. RED first.
+
+- [x] **TASK-02** The suffix depends on whether `--prompts-dir` was used, not on the folder name: `PromptSourceDTO` gets an explicit `uses_custom_prompts_root: bool = False` set by `PromptSourceBuilder` when a root is given; `ReportFilePathsBuilder` uses it instead of comparing the label with `default`. A root folder literally named `default` now gets the suffix `_default` and no longer overwrites the default reports. RED first.
 
 ## 5. Open items
 
@@ -46,3 +48,9 @@ A CLI run that uses a non-default prompt source must not overwrite the reports o
 - GREEN: 63 focused tests passing (re-run by the parent); full unit suite `Ran 2267 tests, OK`; ruff clean (reported by the writer).
 - The parent also computed the real names: `doc_analisis_claude-haiku-5-5` (no source and default source), `..._v2`, `..._v2+alignment_prompt` and `..._clarity_coherence_prompt+research_lines`, all as specified.
 - README documents the suffix with three examples.
+
+### TASK-02
+- RED: 17 errors of 89 tests (`TypeError`/`AttributeError`, the field did not exist). The `default` folder bug itself was masked by the missing constructor argument, so it was never seen failing by assertion; `test_default_source_without_custom_root_flag_adds_no_suffix` is a characterization test.
+- GREEN: 114 focused tests passing (re-run by the parent); full unit suite `Ran 2276 tests, OK`; ruff clean (reported by the writer). Eight existing tests were adapted to pass `uses_custom_prompts_root=True` (seven in `test_report_file_paths_builder.py`, one in `test_document_analysis_command.py`); their expected names did not change.
+- The parent also computed the real names: no root `doc_analisis_claude-haiku-5-5`; root `v2` `..._v2`; root named `default` `..._default`; root named `default` plus `alignment_prompt` `..._default+alignment_prompt`; no root plus two prompts `..._clarity_coherence_prompt+research_lines`.
+- `describe()` is unchanged, so the log and the reports still print `default` for a custom root named `default`; only the file names tell the two apart.

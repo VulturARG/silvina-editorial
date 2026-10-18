@@ -12,6 +12,7 @@ class PromptSourceDTO(BaseDTO):
 
     base_label: str
     replaced_prompt_names: tuple[str, ...]
+    uses_custom_prompts_root: bool = False
 
     def describe(self) -> str:
         """Return the base label, followed by the replaced prompt names when there are any."""

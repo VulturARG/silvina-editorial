@@ -42,3 +42,26 @@ class TestPromptSourceDTO(TestCase):
 
         with self.assertRaises(FrozenInstanceError):
             prompt_source.base_label = "v2"
+
+    def test_uses_custom_prompts_root_defaults_to_false(self):
+        prompt_source = PromptSourceDTO(base_label="default", replaced_prompt_names=())
+
+        self.assertFalse(prompt_source.uses_custom_prompts_root)
+
+    def test_describe_ignores_uses_custom_prompts_root_without_replaced_prompts(self):
+        prompt_source = PromptSourceDTO(
+            base_label="default",
+            replaced_prompt_names=(),
+            uses_custom_prompts_root=True,
+        )
+
+        self.assertEqual(prompt_source.describe(), "default")
+
+    def test_describe_ignores_uses_custom_prompts_root_with_replaced_prompts(self):
+        prompt_source = PromptSourceDTO(
+            base_label="default",
+            replaced_prompt_names=("research_lines",),
+            uses_custom_prompts_root=True,
+        )
+
+        self.assertEqual(prompt_source.describe(), "default + research_lines")

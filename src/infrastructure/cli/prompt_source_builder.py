@@ -17,6 +17,7 @@ class PromptSourceBuilder:
         return PromptSourceDTO(
             base_label=self._base_label(prompts_root),
             replaced_prompt_names=self._replaced_prompt_names(prompt_file_overrides),
+            uses_custom_prompts_root=prompts_root is not None,
         )
 
     def _base_label(self, prompts_root: Path | None) -> str:

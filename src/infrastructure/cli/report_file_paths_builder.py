@@ -61,7 +61,7 @@ class ReportFilePathsBuilder:
         if prompt_source is None:
             return []
         raw_parts = list(prompt_source.replaced_prompt_names)
-        if prompt_source.base_label != PromptSourceDTO.DEFAULT_BASE_LABEL:
+        if prompt_source.uses_custom_prompts_root:
             raw_parts.insert(0, prompt_source.base_label)
         sanitized_parts = [self._file_name_sanitizer.sanitize(part) for part in raw_parts]
         return [part for part in sanitized_parts if part]

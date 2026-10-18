@@ -157,7 +157,9 @@ class TestDocumentAnalysisCommand(TestCase):
 
     def test_exports_reports_with_prompt_source_suffix_in_their_names(self):
         prompt_source = PromptSourceDTO(
-            base_label="v2", replaced_prompt_names=("alignment_prompt",)
+            base_label="v2",
+            replaced_prompt_names=("alignment_prompt",),
+            uses_custom_prompts_root=True,
         )
         self._services_factory.return_value = self._build_services(
             self.MODEL_NAME, prompt_source=prompt_source

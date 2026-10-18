@@ -101,3 +101,21 @@ class TestPromptSourceBuilder(TestCase):
         prompt_source = self.builder.build(Path("resources") / "v2" / "", None)
 
         self.assertEqual(prompt_source.base_label, "v2")
+
+    def test_root_sets_uses_custom_prompts_root(self):
+        prompt_source = self.builder.build(self.ROOT_PATH, None)
+
+        self.assertTrue(prompt_source.uses_custom_prompts_root)
+
+    def test_root_folder_named_default_sets_uses_custom_prompts_root(self):
+        prompt_source = self.builder.build(Path("resources") / "default", None)
+
+        self.assertEqual(prompt_source.base_label, "default")
+        self.assertTrue(prompt_source.uses_custom_prompts_root)
+
+    def test_without_root_does_not_set_uses_custom_prompts_root(self):
+        prompt_source = self.builder.build(
+            None, {"research_lines": Path("r") / "research_lines.txt"}
+        )
+
+        self.assertFalse(prompt_source.uses_custom_prompts_root)
