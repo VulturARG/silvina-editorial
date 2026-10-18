@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from dotenv import load_dotenv
 
 from src.application.analyze_document_use_case import AnalyzeDocumentUseCase
@@ -93,10 +95,7 @@ from src.infrastructure.adapters.metrics.sqlite_analysis_metrics_adapter import 
 from src.infrastructure.editorial_norms_loader import EditorialNormsLoader
 from src.infrastructure.env_config import EnvConfig
 from src.infrastructure.resources.project import EDITORIAL_NORMS_FILE_PATH
-from src.infrastructure.resources.prompts.classification import (
-    PROMPTS_DIR as CLASSIFICATION_PROMPTS_DIR,
-)
-from src.infrastructure.resources.prompts.quality import PROMPTS_DIR as QUALITY_PROMPTS_DIR
+from src.infrastructure.resources.prompts import PROMPTS_ROOT
 from src.infrastructure.resources.text_resource_loader import read_text_resource
 from src.infrastructure.wirings.external_llm_generator_loader import (
     ExternalLlmGeneratorLoader,
@@ -115,7 +114,11 @@ _UNSCORED_DIMENSION_FEEDBACK = "No disponible"
 class AnalyzeDocumentUseCaseWiring:
     """Composition root for the full document analysis pipeline."""
 
-    def __init__(self) -> None:
+    def __init__(self, prompts_root: Path | None = None) -> None:
+        """Compose the pipeline; classification and quality prompts are read from prompts_root."""
+        resolved_prompts_root = PROMPTS_ROOT if prompts_root is None else prompts_root
+        self._classification_prompts_directory = str(resolved_prompts_root / "classification")
+        self._quality_prompts_directory = str(resolved_prompts_root / "quality")
         self._ollama_generator_instance: LlmGeneratorPort | None = None
         self._llm_backend_generator_instance: LlmGeneratorPort | None = None
         self._env_config_instance: EnvConfig | None = None
@@ -254,7 +257,8 @@ class AnalyzeDocumentUseCaseWiring:
             article_size_classifier=self._get_article_size_classifier(),
             response_parser=ArticleClassificationResponseParser(),
             signal_prompt_template=self._read_prompt_text(
-                directory=CLASSIFICATION_PROMPTS_DIR, filename="s4_s5_s6_signal_prompt.txt"
+                directory=self._classification_prompts_directory,
+                filename="s4_s5_s6_signal_prompt.txt",
             ),
             temperature=env_config.article_classifier_temperature,
             num_predict=env_config.article_classifier_num_predict,
@@ -283,10 +287,12 @@ class AnalyzeDocumentUseCaseWiring:
             llm_generator=self._get_llm_generator(purpose=AiPurpose.QUALITY_ANALYSIS),
             response_parser=self._get_quality_response_parser(),
             clarity_coherence_prompt_template=self._read_prompt_text(
-                directory=QUALITY_PROMPTS_DIR, filename="clarity_coherence_prompt.txt"
+                directory=self._quality_prompts_directory,
+                filename="clarity_coherence_prompt.txt",
             ),
             argumentation_conclusions_prompt_template=self._read_prompt_text(
-                directory=QUALITY_PROMPTS_DIR, filename="argumentation_conclusions_prompt.txt"
+                directory=self._quality_prompts_directory,
+                filename="argumentation_conclusions_prompt.txt",
             ),
             editorial_suitability_analyzer=self._get_editorial_suitability_analyzer(),
             quality_level_thresholds=self._get_env_config().get_quality_level_thresholds(),
@@ -376,13 +382,16 @@ class AnalyzeDocumentUseCaseWiring:
             llm_generator=self._get_llm_generator(purpose=AiPurpose.EDITORIAL_SUITABILITY),
             parser=self._get_editorial_suitability_parser(),
             contribution_prompt_template=self._read_prompt_text(
-                directory=QUALITY_PROMPTS_DIR, filename="contribution_prompt.txt"
+                directory=self._quality_prompts_directory,
+                filename="contribution_prompt.txt",
             ),
             alignment_prompt_template=self._read_prompt_text(
-                directory=QUALITY_PROMPTS_DIR, filename="alignment_prompt.txt"
+                directory=self._quality_prompts_directory,
+                filename="alignment_prompt.txt",
             ),
             research_lines=self._read_prompt_text(
-                directory=QUALITY_PROMPTS_DIR, filename="research_lines.txt"
+                directory=self._quality_prompts_directory,
+                filename="research_lines.txt",
             ),
             temperature=env_config.article_classifier_temperature,
             num_predict=env_config.article_classifier_num_predict,

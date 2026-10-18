@@ -54,6 +54,7 @@ from src.infrastructure.adapters.metrics.fail_safe_analysis_metrics_adapter impo
 from src.infrastructure.adapters.metrics.sqlite_analysis_metrics_adapter import (
     SqliteAnalysisMetricsAdapter,
 )
+from src.infrastructure.resources.prompts import PROMPTS_ROOT
 from src.infrastructure.resources.prompts.classification import (
     PROMPTS_DIR as CLASSIFICATION_PROMPTS_DIR,
 )
@@ -602,3 +603,78 @@ class TestAnalyzeDocumentUseCaseWiring(TestCase):
         )
         self.assertIsInstance(text, str)
         self.assertGreater(len(text), 0)
+
+
+class TestAnalyzeDocumentUseCaseWiringPromptsRoot(TestCase):
+    PROMPT_RELATIVE_PATHS = (
+        "classification/s4_s5_s6_signal_prompt.txt",
+        "quality/alignment_prompt.txt",
+        "quality/argumentation_conclusions_prompt.txt",
+        "quality/clarity_coherence_prompt.txt",
+        "quality/contribution_prompt.txt",
+        "quality/research_lines.txt",
+    )
+
+    def test_create_use_case_reads_prompt_templates_from_custom_prompts_root(self):
+        prompts_root = self._write_prompts_root(content_prefix="custom")
+        with patch.dict(environ, self._complete_environment(), clear=True):
+            use_case = AnalyzeDocumentUseCaseWiring(prompts_root=prompts_root).create_use_case()
+
+        self.assertEqual(
+            use_case._article_classifier._signal_prompt_template,
+            "custom s4_s5_s6_signal_prompt",
+        )
+        self.assertEqual(
+            use_case._quality_analyzer._clarity_coherence_prompt_template,
+            "custom clarity_coherence_prompt",
+        )
+        self.assertEqual(
+            use_case._quality_analyzer._argumentation_conclusions_prompt_template,
+            "custom argumentation_conclusions_prompt",
+        )
+        suitability_analyzer = use_case._quality_analyzer._editorial_suitability_analyzer
+        self.assertEqual(
+            suitability_analyzer._contribution_prompt_template,
+            "custom contribution_prompt",
+        )
+        self.assertEqual(
+            suitability_analyzer._alignment_prompt_template,
+            "custom alignment_prompt",
+        )
+        self.assertEqual(suitability_analyzer._research_lines, "custom research_lines")
+
+    def test_create_use_case_loads_renamed_v2_prompt_set_from_its_root(self):
+        v2_prompts_root = PROMPTS_ROOT / "v2"
+        with patch.dict(environ, self._complete_environment(), clear=True):
+            use_case = AnalyzeDocumentUseCaseWiring(prompts_root=v2_prompts_root).create_use_case()
+
+        self.assertEqual(
+            use_case._article_classifier._signal_prompt_template,
+            (v2_prompts_root / "classification" / "s4_s5_s6_signal_prompt.txt").read_text(
+                encoding="utf-8"
+            ),
+        )
+        self.assertEqual(
+            use_case._quality_analyzer._clarity_coherence_prompt_template,
+            (v2_prompts_root / "quality" / "clarity_coherence_prompt.txt").read_text(
+                encoding="utf-8"
+            ),
+        )
+
+    @staticmethod
+    def _complete_environment() -> dict[str, str]:
+        return {
+            **CompleteTestEnvironment.application_variables(),
+            "METRICS_DATABASE_PATH": "/custom/path/metrics.db",
+            "LOG_FILE_PATH": "/custom/path/silvina.log",
+        }
+
+    def _write_prompts_root(self, content_prefix: str) -> Path:
+        temporary_directory = TemporaryDirectory()
+        self.addCleanup(temporary_directory.cleanup)
+        prompts_root = Path(temporary_directory.name)
+        for relative_path in self.PROMPT_RELATIVE_PATHS:
+            prompt_path = prompts_root / relative_path
+            prompt_path.parent.mkdir(parents=True, exist_ok=True)
+            prompt_path.write_text(f"{content_prefix} {prompt_path.stem}", encoding="utf-8")
+        return prompts_root
