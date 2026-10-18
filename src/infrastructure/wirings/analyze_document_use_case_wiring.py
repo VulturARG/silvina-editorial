@@ -61,6 +61,7 @@ from src.domain.quality.quality_response_parser import QualityResponseParser
 from src.domain.quality.suitability_field_extractor import SuitabilityFieldExtractor
 from src.domain.quality.suitability_field_truncator import SuitabilityFieldTruncator
 from src.domain.quality.suitability_verdict_matcher import SuitabilityVerdictMatcher
+from src.domain.quality.trailing_score_line_locator import TrailingScoreLineLocator
 from src.domain.recommendation.recommendation_builder import RecommendationBuilder
 from src.domain.structure.structure_validator import StructureValidator
 from src.infrastructure.adapters.document.docx_citation_adapter import DocxCitationAdapter
@@ -304,7 +305,11 @@ class AnalyzeDocumentUseCaseWiring:
             score_extractor=self._get_dimension_score_extractor(),
             feedback_extractor=self._get_dimension_feedback_extractor(),
             unscored_dimension=self._get_unscored_dimension(),
+            trailing_score_line_locator=self._get_trailing_score_line_locator(),
         )
+
+    def _get_trailing_score_line_locator(self) -> TrailingScoreLineLocator:
+        return TrailingScoreLineLocator()
 
     def _get_quality_dimension_matcher(self) -> QualityDimensionMatcher:
         return QualityDimensionMatcher()

@@ -40,8 +40,12 @@ Checked on the real parser before this change (in memory, no files touched):
 
 ## 5. Tasks
 
-- [ ] **TASK-01** New collaborator that detects the "score last" layout and returns the score and the block without that line; `QualityResponseParser` uses it; builder and wiring updated. RED first.
+- [x] **TASK-01** New collaborator that detects the "score last" layout and returns the score and the block without that line; `QualityResponseParser` uses it; builder and wiring updated. RED first.
 
 ## 6. Evidence
 
-(Filled in as the tasks close.)
+### TASK-01
+- RED: 16 new tests failing (13 of the locator, 2 of the parser end to end, 1 of the wiring), observed with a stub locator that returned `None` and was not yet used by the parser. Eight tests that protect the current behavior (the locator returning `None` outside the layout, the header score winning over a stray last line) already passed, as expected.
+- GREEN: baseline 2318 passed, final 2342 passed (187 subtests), re-run by the parent; `ruff check` and `ruff format --check` clean. No line of any pre-existing test was removed; the two modified test files only gained lines.
+- The parent re-ran the in-memory experiment on the real parser: the original bold layout gives the same scores and feedback as before, including with `5/10` mentioned in the prose; the `###` layout with the score on the last line gives the right scores, no score line in the feedback, and ignores numbers written in the prose (`5/10`, `4/10`).
+- `DimensionScoreExtractor`, `DimensionFeedbackExtractor` and the block splitter are untouched. A bold header without a score is still not supported.
