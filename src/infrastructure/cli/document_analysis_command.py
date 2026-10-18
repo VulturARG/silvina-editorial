@@ -3,6 +3,7 @@ from logging import getLogger
 from pathlib import Path
 
 from src.application.export_report_use_case import ExportReportUseCase
+from src.domain.dtos.prompt_source_dto import PromptSourceDTO
 from src.domain.dtos.report_input_dto import ReportInputDTO
 from src.domain.exceptions.base_src_error import BaseSrcError
 from src.domain.exceptions.document_errors import DocumentInvalidType, DocumentNotFound
@@ -112,7 +113,7 @@ class DocumentAnalysisCommand:
         output_directory: Path | None,
     ) -> int:
         report_file_paths = self._build_report_file_paths(
-            document_path, output_directory, services.model_name
+            document_path, output_directory, services.model_name, services.prompt_source
         )
         if services.uses_local_language_model:
             with self._console_step_announcer.step(
@@ -158,10 +159,11 @@ class DocumentAnalysisCommand:
         document_path: Path,
         output_directory: Path | None,
         model_name: str,
+        prompt_source: PromptSourceDTO,
     ) -> ReportFilePaths:
         with self._console_step_announcer.step("Calculando las rutas de los informes"):
             report_file_paths = self._report_file_paths_builder.build(
-                document_path, output_directory, model_name
+                document_path, output_directory, model_name, prompt_source
             )
         return report_file_paths
 

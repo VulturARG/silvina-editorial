@@ -155,6 +155,42 @@ class TestDocumentAnalysisCommand(TestCase):
             output_path=str(base_directory / "tesis_analisis_gemma-test.html"),
         )
 
+    def test_exports_reports_with_prompt_source_suffix_in_their_names(self):
+        prompt_source = PromptSourceDTO(
+            base_label="v2", replaced_prompt_names=("alignment_prompt",)
+        )
+        self._services_factory.return_value = self._build_services(
+            self.MODEL_NAME, prompt_source=prompt_source
+        )
+
+        self._run(self._arguments())
+
+        base_directory = self._expected_directory()
+        self._word_report_use_case.execute.assert_called_once_with(
+            report_input=self._report,
+            output_path=str(base_directory / "tesis_analisis_gemma-test_v2+alignment_prompt.docx"),
+        )
+        self._json_report_use_case.execute.assert_called_once_with(
+            report_input=self._report,
+            output_path=str(base_directory / "tesis_analisis_gemma-test_v2+alignment_prompt.json"),
+        )
+        self._html_report_use_case.execute.assert_called_once_with(
+            report_input=self._report,
+            output_path=str(base_directory / "tesis_analisis_gemma-test_v2+alignment_prompt.html"),
+        )
+
+    def test_default_prompt_source_keeps_report_names_without_suffix(self):
+        self._services_factory.return_value = self._build_services(
+            self.MODEL_NAME, prompt_source=self.DEFAULT_PROMPT_SOURCE
+        )
+
+        self._run(self._arguments())
+
+        self._word_report_use_case.execute.assert_called_once_with(
+            report_input=self._report,
+            output_path=str(self._expected_directory() / "tesis_analisis_gemma-test.docx"),
+        )
+
     def test_honors_explicit_output_directory_and_creates_it_with_parents(self):
         output_directory = self._input_directory / "salida" / "nueva"
 
