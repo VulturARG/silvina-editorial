@@ -47,8 +47,9 @@ A developer-only script, `batch-main.py`, at the repository root. It reads a bat
 - [x] **TASK-05: Batch runner**
   - **Scope**: loop runs then documents, reuse one command, stop at the first non-zero status, announce which run and document failed; tests with a fake command.
   - **Outcome**: `BatchRunner(analysis_command, console_step_announcer).run(plan)` loops runs then documents, announces start/finish, stops at the first non-zero status returning it unchanged and lets exceptions and `KeyboardInterrupt` propagate (RED import error, GREEN 12 tests; `src` 2377 and `tests` 34 OK; ruff clean). Commit `2d3f0d4`.
-- [ ] **TASK-06: Wiring, `batch-main.py` and docs**
+- [x] **TASK-06: Wiring, `batch-main.py` and docs**
   - **Scope**: `BatchCommandLineArgumentParser` (one positional batch file path), `BatchCommand` (reads the plan, reports file errors with status 1, maps `KeyboardInterrupt` to `INTERRUPTED_STATUS`, runs the runner), `BatchCommandWiring`, root `batch-main.py` as thin as `main.py`, two sample batch files in `sandbox/pack_2/` (documents 01 and 02, and all documents), README section, tests.
+  - **Outcome**: `BatchCommandLineArgumentParser`, `BatchCommand`, `BatchCommandWiring`, root `batch-main.py`, `sandbox/pack_2/batch_two_documents.toml` and `batch_all_documents.toml`, README "Batch runs" section (RED 9 errors, GREEN 62 tests; `src` 2393 and `tests` 34 OK; ruff clean; smoke: no argument exits 2, missing file exits 1). Commit `6ae4023`.
 - [ ] **TASK-07: Verification**
   - **Scope**: full `src` and `tests` suites, ruff, and a dry run of the sample batch (delegated to `gentle-ai-verify`).
 
