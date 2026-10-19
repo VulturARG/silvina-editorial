@@ -41,8 +41,9 @@ A developer-only script, `batch-main.py`, at the repository root. It reads a bat
 - [x] **TASK-03: A failing server release is reported, not swallowed**
   - **Scope**: same command and its tests; the release error is logged and announced, turns an otherwise successful run into `FAILURE_STATUS` and never hides an earlier error.
   - **Outcome**: the release error is logged and announced; an otherwise successful run returns `FAILURE_STATUS`, other statuses are kept (RED 3 failures, GREEN; `src` 2331 and `tests` 34 OK; ruff clean). Commit `d09f877`.
-- [ ] **TASK-04: Batch file model and reader**
+- [x] **TASK-04: Batch file model and reader**
   - **Scope**: new frozen dataclasses for the plan and its runs, a TOML reader that builds `CommandLineArguments`, a document selector (all or named), with `unittest` tests.
+  - **Outcome**: `BatchRun`, `BatchPlan`, `BatchDocumentSelector` and `BatchFileReader` in `src/infrastructure/cli/`; field names of the TOML are the `CommandLineArguments` field names; `use_external_llm` defaults to false, an external run without `app_mode = "DEBUG"` is rejected, `~$` lock files are skipped, an empty or `all`-without-matches document selection raises (RED import errors, GREEN 34 tests; `src` 2365 and `tests` 34 OK; ruff and LSP clean). Commit `0fa7f51`.
 - [ ] **TASK-05: Batch runner**
   - **Scope**: loop runs then documents, reuse one command, stop at the first non-zero status, announce which run and document failed; tests with a fake command.
 - [ ] **TASK-06: Wiring, `batch-main.py` and docs**
