@@ -35,8 +35,9 @@ A developer-only script, `batch-main.py`, at the repository root. It reads a bat
 - [x] **TASK-01: Ctrl+C is a failure, not a success**
   - **Scope**: `document_analysis_command.py`, `test_document_analysis_command.py`, `tests/e2e/test_cli_e2e.py` if affected. New `INTERRUPTED_STATUS`; `main.py` already exits on any non-zero status.
   - **Outcome**: `run` returns `INTERRUPTED_STATUS = 130` on `KeyboardInterrupt` (RED: missing constant; GREEN; `src` 2324 and `tests` 34 OK; ruff clean). Commit `fc9e150`.
-- [ ] **TASK-02: JSON and HTML export failures fail the run**
+- [x] **TASK-02: JSON and HTML export failures fail the run**
   - **Scope**: same command and its tests; announce an error per report and return `FAILURE_STATUS`.
+  - **Outcome**: JSON and HTML export results are checked like the Word one; a failed export announces its own message and returns `FAILURE_STATUS` (RED 4 failures, GREEN; `src` 2330 and `tests` 34 OK; ruff clean). Commit `88c0613`.
 - [ ] **TASK-03: A failing server release is reported, not swallowed**
   - **Scope**: same command and its tests; the release error is logged and announced, turns an otherwise successful run into `FAILURE_STATUS` and never hides an earlier error.
 - [ ] **TASK-04: Batch file model and reader**
