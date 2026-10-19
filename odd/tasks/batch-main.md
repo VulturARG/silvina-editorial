@@ -38,8 +38,9 @@ A developer-only script, `batch-main.py`, at the repository root. It reads a bat
 - [x] **TASK-02: JSON and HTML export failures fail the run**
   - **Scope**: same command and its tests; announce an error per report and return `FAILURE_STATUS`.
   - **Outcome**: JSON and HTML export results are checked like the Word one; a failed export announces its own message and returns `FAILURE_STATUS` (RED 4 failures, GREEN; `src` 2330 and `tests` 34 OK; ruff clean). Commit `88c0613`.
-- [ ] **TASK-03: A failing server release is reported, not swallowed**
+- [x] **TASK-03: A failing server release is reported, not swallowed**
   - **Scope**: same command and its tests; the release error is logged and announced, turns an otherwise successful run into `FAILURE_STATUS` and never hides an earlier error.
+  - **Outcome**: the release error is logged and announced; an otherwise successful run returns `FAILURE_STATUS`, other statuses are kept (RED 3 failures, GREEN; `src` 2331 and `tests` 34 OK; ruff clean). Commit `d09f877`.
 - [ ] **TASK-04: Batch file model and reader**
   - **Scope**: new frozen dataclasses for the plan and its runs, a TOML reader that builds `CommandLineArguments`, a document selector (all or named), with `unittest` tests.
 - [ ] **TASK-05: Batch runner**
