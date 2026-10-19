@@ -353,6 +353,40 @@ python main.py documento.docx --prompts-dir src\infrastructure\resources\prompts
 
 Each CLI run records which prompts it used, in the log (`Prompt source: ...`) and in the Word, JSON and HTML reports (`Prompts utilizados`, the `prompt_source` key and a line at the top of the HTML page). The value is `default` or the name of the `--prompts-dir` folder, followed by the replaced prompts when per-prompt flags are used, for example `v2 + alignment_prompt`. The web reports do not show it.
 
+### Batch runs
+
+```bash
+python batch-main.py sandbox\pack_2\batch_two_documents.toml
+```
+
+The batch file path is a normal shell argument, relative to the current directory. A batch file lists one or more `[[run]]` tables. The runs execute in file order, and each run analyzes all of its documents before the next run starts. The optional `[batch]` table sets defaults that every run inherits, and a run overrides them with its own fields:
+
+```toml
+[batch]
+input_directory = "sandbox/pack_2/inputs"
+output_directory = "sandbox/pack_2/outputs"
+documents = ["01_IMRyD_Cano_Martinez.docx", "02_IMRyD_Martinez_Garcia.docx"]
+
+[[run]]
+name = "gemma"
+ollama_model_name = "gemma4-26b-adapted"
+
+[[run]]
+name = "haiku"
+use_external_llm = true
+llm_provider = "claude"
+external_llm_model_name = "claude-haiku-5-5"
+```
+
+- `name` is required and identifies the run in the console.
+- `documents` is a list of document names, or `"all"` to analyze every `.docx` in `input_directory`. Omitting it means `"all"`. Word lock files (`~$*.docx`) are skipped.
+- Every other key is a command line field: `input_directory`, `output_directory`, `prompts_directory`, `ollama_model_name`, `use_external_llm`, `llm_provider`, `external_llm_model_name`, `app_mode` and the per-prompt directories (`alignment_prompt`, `research_lines`, ...). `document_name` is not accepted.
+- Relative paths resolve against the project root, wherever the batch file is and wherever the script is launched from. Absolute paths are used as they are.
+- `use_external_llm` defaults to `false`. `app_mode` defaults to `"DEBUG"` in a batch, so a run that uses the external LLM needs no `app_mode` line. A run that sets another `app_mode` together with `use_external_llm = true` is rejected before anything runs.
+- The batch stops at the first failing document and returns its status. Ctrl+C exits with status 130.
+
+Reports keep the usual file names, so two runs that differ only in a field outside the file name (for example `app_mode`) overwrite each other unless they set different `output_directory` values.
+
 ---
 
 ## 📁 Project Structure
@@ -545,7 +579,7 @@ silvina-editorial/
 - Pablo Salonio (GitHub: P-SAL)
 - Luis Briones (GitHub: VulturARG)
 
-**Repository:** https://github.com/P-SAL/silvina-editorial\
+**Repository:** https://github.com/P-SAL/silvina-editorial \
 **Active branch:** `silvina_editorial_v200`
 
 ---

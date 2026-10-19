@@ -1,0 +1,18 @@
+# Batch of two documents, each analyzed by two runs in file order.
+# Relative paths resolve against the project root.
+
+[batch]
+input_directory = "sandbox/pack_2/inputs"
+output_directory = "sandbox/pack_2/outputs"
+prompts_directory = "src/infrastructure/resources/prompts/v2"
+documents = ["01_IMRyD_Cano_Martinez.docx", "02_IMRyD_Martinez_Garcia.docx"]
+
+[[run]]
+name = "gemma"
+ollama_model_name = "gemma4-26b-adapted"
+
+[[run]]
+name = "haiku"
+use_external_llm = true
+llm_provider = "claude"
+external_llm_model_name = "claude-haiku-5-5"

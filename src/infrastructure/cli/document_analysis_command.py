@@ -24,9 +24,13 @@ class DocumentAnalysisCommand:
     SUCCESS_STATUS = 0
     FAILURE_STATUS = 1
     INVALID_DOCUMENT_STATUS = 2
+    INTERRUPTED_STATUS = 130
     WORD_SAVE_FAILED_MESSAGE = "No se pudo guardar el informe Word (DOCX)"
+    JSON_SAVE_FAILED_MESSAGE = "No se pudo guardar el informe JSON"
+    HTML_SAVE_FAILED_MESSAGE = "No se pudo guardar el informe HTML"
     MISSING_DOCUMENT_NAME_MESSAGE = "No se indicó el nombre del documento"
     INTERRUPTED_MESSAGE = "Análisis interrumpido por el usuario"
+    RELEASE_FAILED_MESSAGE = "No se pudo liberar el servidor del modelo de lenguaje"
 
     def __init__(
         self,
@@ -52,7 +56,7 @@ class DocumentAnalysisCommand:
             return self._run_steps(arguments)
         except KeyboardInterrupt:
             self._console_step_announcer.announce_error(self.INTERRUPTED_MESSAGE)
-            return self.SUCCESS_STATUS
+            return self.INTERRUPTED_STATUS
 
     def _run_steps(self, arguments: CommandLineArguments) -> int:
         document_name = self._resolve_document_name(arguments)
@@ -84,15 +88,20 @@ class DocumentAnalysisCommand:
         logger.info("Prompt source: %s", services.prompt_source.describe())
         try:
             try:
-                return self._analyze_and_export(services, document_path, arguments.output_directory)
+                status = self._analyze_and_export(
+                    services, document_path, arguments.output_directory
+                )
             except BaseSrcError as error:
                 self._console_step_announcer.announce_error(error.dict()["error"])
-                return self.FAILURE_STATUS
+                status = self.FAILURE_STATUS
             except Exception as error:
                 self._console_step_announcer.announce_error(f"Error inesperado: {error}")
-                return self.FAILURE_STATUS
+                status = self.FAILURE_STATUS
         finally:
-            self._release_language_model_server(services)
+            release_succeeded = self._release_language_model_server(services)
+        if status == self.SUCCESS_STATUS and not release_succeeded:
+            return self.FAILURE_STATUS
+        return status
 
     def _resolve_document_name(self, arguments: CommandLineArguments) -> str:
         if arguments.document_name is not None:
@@ -137,18 +146,22 @@ class DocumentAnalysisCommand:
         ):
             self._console_step_announcer.announce_error(self.WORD_SAVE_FAILED_MESSAGE)
             return self.FAILURE_STATUS
-        self._export_report(
+        if not self._export_report(
             "Guardando el informe JSON",
             services.json_report_use_case,
             report,
             report_file_paths.json_path,
-        )
-        self._export_report(
+        ):
+            self._console_step_announcer.announce_error(self.JSON_SAVE_FAILED_MESSAGE)
+            return self.FAILURE_STATUS
+        if not self._export_report(
             "Guardando el informe HTML",
             services.html_report_use_case,
             report,
             report_file_paths.html_path,
-        )
+        ):
+            self._console_step_announcer.announce_error(self.HTML_SAVE_FAILED_MESSAGE)
+            return self.FAILURE_STATUS
         self._console_step_announcer.announce_completion(
             [report_file_paths.word_path, report_file_paths.json_path, report_file_paths.html_path]
         )
@@ -184,12 +197,17 @@ class DocumentAnalysisCommand:
             self._console_step_announcer.announce_finish(step_description)
         return was_exported
 
-    @staticmethod
-    def _release_language_model_server(services: CliAnalysisServices) -> None:
+    def _release_language_model_server(self, services: CliAnalysisServices) -> bool:
+        """Release the language model server and return whether the release succeeded."""
         try:
             services.release_language_model_server_use_case.execute()
-        except Exception:
-            pass
+        except Exception as error:
+            logger.exception("Language model server release failed")
+            self._console_step_announcer.announce_error(
+                f"{self.RELEASE_FAILED_MESSAGE}: {self._describe_error(error)}"
+            )
+            return False
+        return True
 
     @staticmethod
     def _describe_error(error: Exception) -> str:
