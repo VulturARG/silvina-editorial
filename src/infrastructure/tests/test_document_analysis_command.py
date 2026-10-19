@@ -443,6 +443,53 @@ class TestDocumentAnalysisCommand(TestCase):
         self.assertIn("⏳ Guardando el informe Word...", self._printed_lines)
         self.assertNotIn("✅ Guardando el informe Word: terminado", self._printed_lines)
 
+    def test_json_export_returning_false_returns_one_and_skips_html_export(self):
+        self._json_report_use_case.execute.return_value = False
+
+        status = self._run(self._arguments())
+
+        self.assertEqual(status, 1)
+        self.assertEqual(self._printed_lines[-1], "❌ No se pudo guardar el informe JSON")
+        self._html_report_use_case.execute.assert_not_called()
+
+    def test_failed_json_export_does_not_announce_its_step_as_finished(self):
+        self._json_report_use_case.execute.return_value = False
+
+        self._run(self._arguments())
+
+        self.assertIn("⏳ Guardando el informe JSON...", self._printed_lines)
+        self.assertNotIn("✅ Guardando el informe JSON: terminado", self._printed_lines)
+
+    def test_failed_json_export_does_not_announce_completion(self):
+        self._json_report_use_case.execute.return_value = False
+
+        self._run(self._arguments())
+
+        self.assertNotIn("🎉 Ejecución terminada", self._printed_lines)
+
+    def test_html_export_returning_false_returns_one_with_html_message(self):
+        self._html_report_use_case.execute.return_value = False
+
+        status = self._run(self._arguments())
+
+        self.assertEqual(status, 1)
+        self.assertEqual(self._printed_lines[-1], "❌ No se pudo guardar el informe HTML")
+
+    def test_failed_html_export_does_not_announce_its_step_as_finished(self):
+        self._html_report_use_case.execute.return_value = False
+
+        self._run(self._arguments())
+
+        self.assertIn("⏳ Guardando el informe HTML...", self._printed_lines)
+        self.assertNotIn("✅ Guardando el informe HTML: terminado", self._printed_lines)
+
+    def test_failed_html_export_does_not_announce_completion(self):
+        self._html_report_use_case.execute.return_value = False
+
+        self._run(self._arguments())
+
+        self.assertNotIn("🎉 Ejecución terminada", self._printed_lines)
+
     def test_blank_document_name_answer_returns_two_with_explicit_message(self):
         self._answer_function.return_value = "   "
         arguments = CommandLineArguments(input_directory=self._input_directory)

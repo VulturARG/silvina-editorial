@@ -26,6 +26,8 @@ class DocumentAnalysisCommand:
     INVALID_DOCUMENT_STATUS = 2
     INTERRUPTED_STATUS = 130
     WORD_SAVE_FAILED_MESSAGE = "No se pudo guardar el informe Word (DOCX)"
+    JSON_SAVE_FAILED_MESSAGE = "No se pudo guardar el informe JSON"
+    HTML_SAVE_FAILED_MESSAGE = "No se pudo guardar el informe HTML"
     MISSING_DOCUMENT_NAME_MESSAGE = "No se indicó el nombre del documento"
     INTERRUPTED_MESSAGE = "Análisis interrumpido por el usuario"
 
@@ -138,18 +140,22 @@ class DocumentAnalysisCommand:
         ):
             self._console_step_announcer.announce_error(self.WORD_SAVE_FAILED_MESSAGE)
             return self.FAILURE_STATUS
-        self._export_report(
+        if not self._export_report(
             "Guardando el informe JSON",
             services.json_report_use_case,
             report,
             report_file_paths.json_path,
-        )
-        self._export_report(
+        ):
+            self._console_step_announcer.announce_error(self.JSON_SAVE_FAILED_MESSAGE)
+            return self.FAILURE_STATUS
+        if not self._export_report(
             "Guardando el informe HTML",
             services.html_report_use_case,
             report,
             report_file_paths.html_path,
-        )
+        ):
+            self._console_step_announcer.announce_error(self.HTML_SAVE_FAILED_MESSAGE)
+            return self.FAILURE_STATUS
         self._console_step_announcer.announce_completion(
             [report_file_paths.word_path, report_file_paths.json_path, report_file_paths.html_path]
         )
