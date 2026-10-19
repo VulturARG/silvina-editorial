@@ -40,6 +40,11 @@ class BatchFileReader:
         if not isinstance(run_tables, list) or not run_tables:
             raise ValueError(f"{batch_file_path} needs at least one [[run]] table")
         batch_table = batch_settings.get(self.BATCH_TABLE_KEY, {})
+        if self.NAME_KEY in batch_table:
+            raise ValueError(
+                f"[{self.BATCH_TABLE_KEY}] must not set {self.NAME_KEY!r}; "
+                f"{self.NAME_KEY!r} belongs to each [[{self.RUN_TABLE_ARRAY_KEY}]] table"
+            )
         batch_directory = batch_file_path.parent
         runs = tuple(
             self._build_run(run_index, run_table, batch_table, batch_directory)
@@ -65,11 +70,25 @@ class BatchFileReader:
         )
         return BatchRun(
             name=name,
-            document_arguments=tuple(
+            document_arguments=self._document_arguments(name, fields, document_names),
+        )
+
+    def _document_arguments(
+        self,
+        name: str,
+        fields: dict[str, Any],
+        document_names: tuple[str, ...],
+    ) -> tuple[CommandLineArguments, ...]:
+        """Return the command line arguments of each document, naming the run on an unknown field."""
+        try:
+            return tuple(
                 CommandLineArguments(document_name=document_name, **fields)
                 for document_name in document_names
-            ),
-        )
+            )
+        except TypeError as error:
+            raise ValueError(
+                f"run {name!r} has a setting that is not a command line argument: {error}"
+            ) from error
 
     def _effective_fields(
         self,
@@ -95,7 +114,13 @@ class BatchFileReader:
             )
         if self.INPUT_DIRECTORY_KEY not in fields:
             raise ValueError(f"run {name!r} has no {self.INPUT_DIRECTORY_KEY}")
-        if fields[self.USE_EXTERNAL_LLM_KEY] and not self._is_debug_app_mode(fields):
+        use_external_llm = fields[self.USE_EXTERNAL_LLM_KEY]
+        if not isinstance(use_external_llm, bool):
+            raise ValueError(
+                f"run {name!r} sets {self.USE_EXTERNAL_LLM_KEY!r} to {use_external_llm!r}; "
+                "it must be true or false"
+            )
+        if use_external_llm and not self._is_debug_app_mode(fields):
             raise ValueError(
                 f"run {name!r} uses the external LLM, which needs "
                 f'{self.APP_MODE_KEY} = "{self.DEBUG_APP_MODE}"; '
@@ -108,7 +133,7 @@ class BatchFileReader:
 
     def _is_debug_app_mode(self, fields: dict[str, Any]) -> bool:
         app_mode = fields.get(self.APP_MODE_KEY)
-        return isinstance(app_mode, str) and app_mode.upper() == self.DEBUG_APP_MODE
+        return isinstance(app_mode, str) and app_mode.strip().upper() == self.DEBUG_APP_MODE
 
     @staticmethod
     def _resolve_path(path_text: str, batch_directory: Path) -> Path:

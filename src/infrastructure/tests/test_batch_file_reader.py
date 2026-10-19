@@ -140,10 +140,10 @@ class TestBatchFileReader(TestCase):
 
         self.assertIs(plan.runs[0].document_arguments[0].use_external_llm, False)
 
-    def test_external_llm_is_accepted_in_debug_app_mode_in_any_letter_case(self):
+    def test_external_llm_is_accepted_in_debug_app_mode_ignoring_case_and_surrounding_spaces(self):
         self._create_documents("01_x.docx")
 
-        for app_mode in ("DEBUG", "debug"):
+        for app_mode in ("DEBUG", "debug", " debug "):
             with self.subTest(app_mode=app_mode):
                 plan = self._read(
                     f"""
@@ -180,6 +180,27 @@ class TestBatchFileReader(TestCase):
                 self.assertIn("claude", str(context.exception))
                 self.assertIn("DEBUG", str(context.exception))
 
+    def test_external_llm_that_is_not_a_boolean_raises_naming_the_run_and_value(self):
+        self._create_documents("01_x.docx")
+
+        for external_llm_literal, external_llm_value in (('"false"', "false"), ("1", 1)):
+            with self.subTest(external_llm_literal=external_llm_literal):
+                with self.assertRaises(ValueError) as context:
+                    self._read(
+                        f"""
+                        [batch]
+                        input_directory = "inputs"
+
+                        [[run]]
+                        name = "claude"
+                        use_external_llm = {external_llm_literal}
+                        app_mode = "DEBUG"
+                        """
+                    )
+
+                self.assertIn("claude", str(context.exception))
+                self.assertIn(repr(external_llm_value), str(context.exception))
+
     def test_run_without_name_raises_naming_its_index(self):
         self._create_documents("01_x.docx")
 
@@ -198,6 +219,23 @@ class TestBatchFileReader(TestCase):
             )
 
         self.assertIn("2", str(context.exception))
+
+    def test_name_in_batch_table_raises_pointing_to_the_run_tables(self):
+        self._create_documents("01_x.docx")
+
+        with self.assertRaises(ValueError) as context:
+            self._read(
+                """
+                [batch]
+                input_directory = "inputs"
+                name = "gemma"
+
+                [[run]]
+                name = "qwen"
+                """
+            )
+
+        self.assertIn("[[run]]", str(context.exception))
 
     def test_file_without_runs_raises(self):
         with self.assertRaises(ValueError):
@@ -221,10 +259,10 @@ class TestBatchFileReader(TestCase):
 
         self.assertIn("gemma", str(context.exception))
 
-    def test_unknown_run_key_raises_type_error(self):
+    def test_unknown_run_key_raises_value_error_naming_the_run(self):
         self._create_documents("01_x.docx")
 
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError) as context:
             self._read(
                 """
                 [batch]
@@ -235,6 +273,8 @@ class TestBatchFileReader(TestCase):
                 unknown_setting = 1
                 """
             )
+
+        self.assertIn("gemma", str(context.exception))
 
     def test_document_name_is_rejected_in_batch_or_run(self):
         self._create_documents("01_x.docx")
