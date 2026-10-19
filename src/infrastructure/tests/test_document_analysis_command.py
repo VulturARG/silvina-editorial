@@ -629,15 +629,20 @@ class TestDocumentAnalysisCommand(TestCase):
         self.assertEqual(status, DocumentAnalysisCommand.INTERRUPTED_STATUS)
         self._release_language_model_server_use_case.execute.assert_called_once()
 
-    def test_failing_release_does_not_alter_exit_status_on_success(self):
+    def test_failing_release_turns_successful_run_into_failure_status(self):
         self._release_language_model_server_use_case.execute.side_effect = RuntimeError(
             "Release failed"
         )
 
-        status = self._run(self._arguments())
+        with self.assertLogs(level="ERROR"):
+            status = self._run(self._arguments())
 
-        self.assertEqual(status, 0)
+        self.assertEqual(status, 1)
         self._release_language_model_server_use_case.execute.assert_called_once()
+        self.assertEqual(
+            self._printed_lines[-1],
+            "❌ No se pudo liberar el servidor del modelo de lenguaje: Release failed",
+        )
 
     def test_failing_release_does_not_hide_original_error(self):
         self._analyze_document_use_case.execute.side_effect = LanguageModelUnavailable()
@@ -645,11 +650,33 @@ class TestDocumentAnalysisCommand(TestCase):
             "Release failed"
         )
 
-        status = self._run(self._arguments())
+        with self.assertLogs(level="ERROR"):
+            status = self._run(self._arguments())
 
         self.assertEqual(status, 1)
         self._release_language_model_server_use_case.execute.assert_called_once()
-        self.assertIn("The language model backend is unavailable", self._printed_lines[-1])
+        self.assertEqual(self._printed_lines[-2], f"❌ {LanguageModelUnavailable.MESSAGE}")
+        self.assertEqual(
+            self._printed_lines[-1],
+            "❌ No se pudo liberar el servidor del modelo de lenguaje: Release failed",
+        )
+
+    def test_failing_release_after_keyboard_interrupt_keeps_interrupted_status(self):
+        self._analyze_document_use_case.execute.side_effect = KeyboardInterrupt()
+        self._release_language_model_server_use_case.execute.side_effect = RuntimeError(
+            "Release failed"
+        )
+
+        with self.assertLogs(level="ERROR"):
+            status = self._run(self._arguments())
+
+        self.assertEqual(status, DocumentAnalysisCommand.INTERRUPTED_STATUS)
+        self._release_language_model_server_use_case.execute.assert_called_once()
+        self.assertIn(
+            "❌ No se pudo liberar el servidor del modelo de lenguaje: Release failed",
+            self._printed_lines,
+        )
+        self.assertEqual(self._printed_lines[-1], "❌ Análisis interrumpido por el usuario")
 
     def test_release_is_not_called_when_services_factory_fails(self):
         self._services_factory.side_effect = RuntimeError("Services wiring failed")

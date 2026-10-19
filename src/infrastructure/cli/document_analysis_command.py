@@ -30,6 +30,7 @@ class DocumentAnalysisCommand:
     HTML_SAVE_FAILED_MESSAGE = "No se pudo guardar el informe HTML"
     MISSING_DOCUMENT_NAME_MESSAGE = "No se indicó el nombre del documento"
     INTERRUPTED_MESSAGE = "Análisis interrumpido por el usuario"
+    RELEASE_FAILED_MESSAGE = "No se pudo liberar el servidor del modelo de lenguaje"
 
     def __init__(
         self,
@@ -87,15 +88,20 @@ class DocumentAnalysisCommand:
         logger.info("Prompt source: %s", services.prompt_source.describe())
         try:
             try:
-                return self._analyze_and_export(services, document_path, arguments.output_directory)
+                status = self._analyze_and_export(
+                    services, document_path, arguments.output_directory
+                )
             except BaseSrcError as error:
                 self._console_step_announcer.announce_error(error.dict()["error"])
-                return self.FAILURE_STATUS
+                status = self.FAILURE_STATUS
             except Exception as error:
                 self._console_step_announcer.announce_error(f"Error inesperado: {error}")
-                return self.FAILURE_STATUS
+                status = self.FAILURE_STATUS
         finally:
-            self._release_language_model_server(services)
+            release_succeeded = self._release_language_model_server(services)
+        if status == self.SUCCESS_STATUS and not release_succeeded:
+            return self.FAILURE_STATUS
+        return status
 
     def _resolve_document_name(self, arguments: CommandLineArguments) -> str:
         if arguments.document_name is not None:
@@ -191,12 +197,17 @@ class DocumentAnalysisCommand:
             self._console_step_announcer.announce_finish(step_description)
         return was_exported
 
-    @staticmethod
-    def _release_language_model_server(services: CliAnalysisServices) -> None:
+    def _release_language_model_server(self, services: CliAnalysisServices) -> bool:
+        """Release the language model server and return whether the release succeeded."""
         try:
             services.release_language_model_server_use_case.execute()
-        except Exception:
-            pass
+        except Exception as error:
+            logger.exception("Language model server release failed")
+            self._console_step_announcer.announce_error(
+                f"{self.RELEASE_FAILED_MESSAGE}: {self._describe_error(error)}"
+            )
+            return False
+        return True
 
     @staticmethod
     def _describe_error(error: Exception) -> str:
