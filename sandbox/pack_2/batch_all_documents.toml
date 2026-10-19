@@ -1,0 +1,18 @@
+# Batch of every Word document in inputs, each analyzed by two runs in file order.
+# Relative paths resolve against the folder of this file.
+
+[batch]
+input_directory = "inputs"
+output_directory = "outputs"
+documents = "all"
+
+[[run]]
+name = "gemma"
+ollama_model_name = "gemma4-26b-adapted"
+
+[[run]]
+name = "haiku"
+use_external_llm = true
+app_mode = "DEBUG"
+llm_provider = "claude"
+external_llm_model_name = "claude-haiku-5-5"
