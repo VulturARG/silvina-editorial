@@ -462,12 +462,12 @@ class TestDocumentAnalysisCommand(TestCase):
         self.assertEqual(status, 1)
         self.assertEqual(self._printed_lines[-1], "❌ Error inesperado: fallo inesperado")
 
-    def test_keyboard_interrupt_returns_zero_with_interruption_message(self):
+    def test_keyboard_interrupt_returns_interrupted_status_with_interruption_message(self):
         self._analyze_document_use_case.execute.side_effect = KeyboardInterrupt()
 
         status = self._run(self._arguments())
 
-        self.assertEqual(status, 0)
+        self.assertEqual(status, DocumentAnalysisCommand.INTERRUPTED_STATUS)
         self.assertEqual(self._printed_lines[-1], "❌ Análisis interrumpido por el usuario")
 
     def _assert_warm_up_error_is_reported_cleanly(
@@ -579,7 +579,7 @@ class TestDocumentAnalysisCommand(TestCase):
 
         status = self._run(self._arguments())
 
-        self.assertEqual(status, 0)
+        self.assertEqual(status, DocumentAnalysisCommand.INTERRUPTED_STATUS)
         self._release_language_model_server_use_case.execute.assert_called_once()
 
     def test_failing_release_does_not_alter_exit_status_on_success(self):

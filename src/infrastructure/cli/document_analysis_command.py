@@ -24,6 +24,7 @@ class DocumentAnalysisCommand:
     SUCCESS_STATUS = 0
     FAILURE_STATUS = 1
     INVALID_DOCUMENT_STATUS = 2
+    INTERRUPTED_STATUS = 130
     WORD_SAVE_FAILED_MESSAGE = "No se pudo guardar el informe Word (DOCX)"
     MISSING_DOCUMENT_NAME_MESSAGE = "No se indicó el nombre del documento"
     INTERRUPTED_MESSAGE = "Análisis interrumpido por el usuario"
@@ -52,7 +53,7 @@ class DocumentAnalysisCommand:
             return self._run_steps(arguments)
         except KeyboardInterrupt:
             self._console_step_announcer.announce_error(self.INTERRUPTED_MESSAGE)
-            return self.SUCCESS_STATUS
+            return self.INTERRUPTED_STATUS
 
     def _run_steps(self, arguments: CommandLineArguments) -> int:
         document_name = self._resolve_document_name(arguments)
