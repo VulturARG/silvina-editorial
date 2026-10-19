@@ -19,8 +19,17 @@ class TestBatchSampleFiles(TestCase):
         self.assertEqual([run.name for run in plan.runs], ["gemma", "haiku"])
         self.assertEqual([len(run.document_arguments) for run in plan.runs], [2, 2])
 
-    def test_all_documents_batch_plans_the_fifteen_input_documents_in_each_run(self):
+    def test_all_documents_batch_plans_every_input_document_in_each_run(self):
         plan = self.reader.read(self.ALL_DOCUMENTS_BATCH_FILE_PATH)
+        expected_document_names = sorted(
+            entry.name
+            for entry in (self.PACK_DIRECTORY / "inputs").iterdir()
+            if entry.suffix.lower() == ".docx" and not entry.name.startswith("~$")
+        )
 
         self.assertEqual([run.name for run in plan.runs], ["gemma", "haiku"])
-        self.assertEqual([len(run.document_arguments) for run in plan.runs], [15, 15])
+        for run in plan.runs:
+            self.assertEqual(
+                [argument.document_name for argument in run.document_arguments],
+                expected_document_names,
+            )
