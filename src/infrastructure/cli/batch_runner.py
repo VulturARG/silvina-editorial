@@ -34,7 +34,13 @@ class BatchRunner:
 
     def _analyze_document(self, analysis_label: str, arguments: CommandLineArguments) -> int:
         self._console_step_announcer.announce_start(f"Análisis de {analysis_label}")
-        status = self._analysis_command.run(arguments)
+        try:
+            status = self._analysis_command.run(arguments)
+        except Exception as error:
+            self._console_step_announcer.announce_error(
+                f"Se detiene el lote: error en el análisis de {analysis_label}: {error}"
+            )
+            raise
         if status == DocumentAnalysisCommand.SUCCESS_STATUS:
             self._console_step_announcer.announce_finish(f"Análisis de {analysis_label}")
         return status

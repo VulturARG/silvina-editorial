@@ -104,22 +104,37 @@ class TestBatchRunner(TestCase):
         )
 
     def test_exceptions_from_command_propagate_and_stop_the_batch(self):
-        for error_type in (RuntimeError, KeyboardInterrupt):
-            with self.subTest(error_type=error_type.__name__):
+        for error, expected_error_lines in (
+            (
+                RuntimeError("boom"),
+                [
+                    "❌ Se detiene el lote: error en el análisis de b.docx con la configuración "
+                    "gemma (1/2): boom"
+                ],
+            ),
+            (KeyboardInterrupt(), []),
+        ):
+            with self.subTest(error_type=type(error).__name__):
                 self._analysis_command.reset_mock()
+                self._printed_lines.clear()
                 self._analysis_command.run.side_effect = [
                     DocumentAnalysisCommand.SUCCESS_STATUS,
-                    error_type(),
+                    error,
                 ]
                 plan = self._plan(
                     ("gemma", ("a.docx", "b.docx", "c.docx")),
                     ("qwen", ("a.docx",)),
                 )
 
-                with self.assertRaises(error_type):
+                with self.assertRaises(type(error)) as raised:
                     self._runner.run(plan)
 
+                self.assertIs(raised.exception, error)
                 self.assertEqual(self._analysis_command.run.call_count, 2)
+                self.assertEqual(
+                    [line for line in self._printed_lines if line.startswith("❌")],
+                    expected_error_lines,
+                )
 
     def _plan(self, *runs: tuple[str, tuple[str, ...]]) -> BatchPlan:
         return BatchPlan(
