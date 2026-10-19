@@ -140,11 +140,31 @@ class TestBatchFileReader(TestCase):
 
         self.assertIs(plan.runs[0].document_arguments[0].use_external_llm, False)
 
+        for app_mode_line, expected_app_mode in (("", "DEBUG"), ('app_mode = "PROD"', "PROD")):
+            with self.subTest(app_mode_line=app_mode_line):
+                plan = self._read(
+                    f"""
+                    [batch]
+                    input_directory = "inputs"
+
+                    [[run]]
+                    name = "gemma"
+                    {app_mode_line}
+                    """
+                )
+
+                self.assertEqual(plan.runs[0].document_arguments[0].app_mode, expected_app_mode)
+
     def test_external_llm_is_accepted_in_debug_app_mode_ignoring_case_and_surrounding_spaces(self):
         self._create_documents("01_x.docx")
 
-        for app_mode in ("DEBUG", "debug", " debug "):
-            with self.subTest(app_mode=app_mode):
+        for app_mode_line, expected_app_mode in (
+            ("", "DEBUG"),
+            ('app_mode = "DEBUG"', "DEBUG"),
+            ('app_mode = "debug"', "debug"),
+            ('app_mode = " debug "', " debug "),
+        ):
+            with self.subTest(app_mode_line=app_mode_line):
                 plan = self._read(
                     f"""
                     [batch]
@@ -153,32 +173,32 @@ class TestBatchFileReader(TestCase):
                     [[run]]
                     name = "claude"
                     use_external_llm = true
-                    app_mode = "{app_mode}"
+                    {app_mode_line}
                     """
                 )
 
-                self.assertIs(plan.runs[0].document_arguments[0].use_external_llm, True)
+                argument = plan.runs[0].document_arguments[0]
+                self.assertIs(argument.use_external_llm, True)
+                self.assertEqual(argument.app_mode, expected_app_mode)
 
     def test_external_llm_outside_debug_app_mode_raises_naming_the_run(self):
         self._create_documents("01_x.docx")
 
-        for app_mode_line in ("", 'app_mode = "PROD"'):
-            with self.subTest(app_mode_line=app_mode_line):
-                with self.assertRaises(ValueError) as context:
-                    self._read(
-                        f"""
-                        [batch]
-                        input_directory = "inputs"
+        with self.assertRaises(ValueError) as context:
+            self._read(
+                """
+                [batch]
+                input_directory = "inputs"
 
-                        [[run]]
-                        name = "claude"
-                        use_external_llm = true
-                        {app_mode_line}
-                        """
-                    )
+                [[run]]
+                name = "claude"
+                use_external_llm = true
+                app_mode = "PROD"
+                """
+            )
 
-                self.assertIn("claude", str(context.exception))
-                self.assertIn("DEBUG", str(context.exception))
+        self.assertIn("claude", str(context.exception))
+        self.assertIn("DEBUG", str(context.exception))
 
     def test_external_llm_that_is_not_a_boolean_raises_naming_the_run_and_value(self):
         self._create_documents("01_x.docx")

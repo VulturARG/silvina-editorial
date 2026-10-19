@@ -20,7 +20,7 @@ class BatchFileReader:
     USE_EXTERNAL_LLM_KEY = "use_external_llm"
     APP_MODE_KEY = "app_mode"
     DEBUG_APP_MODE = "DEBUG"
-    DEFAULT_FIELDS: dict[str, Any] = {"use_external_llm": False}
+    DEFAULT_FIELDS: dict[str, Any] = {USE_EXTERNAL_LLM_KEY: False, APP_MODE_KEY: DEBUG_APP_MODE}
     PATH_FIELD_NAMES = (
         "input_directory",
         "output_directory",
@@ -123,7 +123,8 @@ class BatchFileReader:
         if use_external_llm and not self._is_debug_app_mode(fields):
             raise ValueError(
                 f"run {name!r} uses the external LLM, which needs "
-                f'{self.APP_MODE_KEY} = "{self.DEBUG_APP_MODE}"; '
+                f'{self.APP_MODE_KEY} = "{self.DEBUG_APP_MODE}", but the run sets '
+                f"{self.APP_MODE_KEY} = {fields[self.APP_MODE_KEY]!r}; "
                 "otherwise the environment silently falls back to Ollama"
             )
         for field_name in self.PATH_FIELD_NAMES:
