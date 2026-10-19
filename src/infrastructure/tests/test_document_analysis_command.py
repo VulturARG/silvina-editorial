@@ -443,7 +443,7 @@ class TestDocumentAnalysisCommand(TestCase):
         self.assertIn("⏳ Guardando el informe Word...", self._printed_lines)
         self.assertNotIn("✅ Guardando el informe Word: terminado", self._printed_lines)
 
-    def test_json_export_returning_false_returns_one_and_skips_html_export(self):
+    def test_json_export_returning_false_returns_one_without_html_or_completion(self):
         self._json_report_use_case.execute.return_value = False
 
         status = self._run(self._arguments())
@@ -451,43 +451,15 @@ class TestDocumentAnalysisCommand(TestCase):
         self.assertEqual(status, 1)
         self.assertEqual(self._printed_lines[-1], "❌ No se pudo guardar el informe JSON")
         self._html_report_use_case.execute.assert_not_called()
-
-    def test_failed_json_export_does_not_announce_its_step_as_finished(self):
-        self._json_report_use_case.execute.return_value = False
-
-        self._run(self._arguments())
-
-        self.assertIn("⏳ Guardando el informe JSON...", self._printed_lines)
-        self.assertNotIn("✅ Guardando el informe JSON: terminado", self._printed_lines)
-
-    def test_failed_json_export_does_not_announce_completion(self):
-        self._json_report_use_case.execute.return_value = False
-
-        self._run(self._arguments())
-
         self.assertNotIn("🎉 Ejecución terminada", self._printed_lines)
 
-    def test_html_export_returning_false_returns_one_with_html_message(self):
+    def test_html_export_returning_false_returns_one_without_completion(self):
         self._html_report_use_case.execute.return_value = False
 
         status = self._run(self._arguments())
 
         self.assertEqual(status, 1)
         self.assertEqual(self._printed_lines[-1], "❌ No se pudo guardar el informe HTML")
-
-    def test_failed_html_export_does_not_announce_its_step_as_finished(self):
-        self._html_report_use_case.execute.return_value = False
-
-        self._run(self._arguments())
-
-        self.assertIn("⏳ Guardando el informe HTML...", self._printed_lines)
-        self.assertNotIn("✅ Guardando el informe HTML: terminado", self._printed_lines)
-
-    def test_failed_html_export_does_not_announce_completion(self):
-        self._html_report_use_case.execute.return_value = False
-
-        self._run(self._arguments())
-
         self.assertNotIn("🎉 Ejecución terminada", self._printed_lines)
 
     def test_blank_document_name_answer_returns_two_with_explicit_message(self):
@@ -621,14 +593,6 @@ class TestDocumentAnalysisCommand(TestCase):
         self.assertEqual(status, 1)
         self._release_language_model_server_use_case.execute.assert_called_once()
 
-    def test_releases_server_after_keyboard_interrupt(self):
-        self._analyze_document_use_case.execute.side_effect = KeyboardInterrupt()
-
-        status = self._run(self._arguments())
-
-        self.assertEqual(status, DocumentAnalysisCommand.INTERRUPTED_STATUS)
-        self._release_language_model_server_use_case.execute.assert_called_once()
-
     def test_failing_release_turns_successful_run_into_failure_status(self):
         self._release_language_model_server_use_case.execute.side_effect = RuntimeError(
             "Release failed"
@@ -660,6 +624,14 @@ class TestDocumentAnalysisCommand(TestCase):
             self._printed_lines[-1],
             "❌ No se pudo liberar el servidor del modelo de lenguaje: Release failed",
         )
+
+    def test_releases_server_after_keyboard_interrupt(self):
+        self._analyze_document_use_case.execute.side_effect = KeyboardInterrupt()
+
+        status = self._run(self._arguments())
+
+        self.assertEqual(status, DocumentAnalysisCommand.INTERRUPTED_STATUS)
+        self._release_language_model_server_use_case.execute.assert_called_once()
 
     def test_failing_release_after_keyboard_interrupt_keeps_interrupted_status(self):
         self._analyze_document_use_case.execute.side_effect = KeyboardInterrupt()

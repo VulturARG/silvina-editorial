@@ -1,5 +1,6 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Any
 from unittest import TestCase
 
 from src.infrastructure.cli.batch_document_selector import BatchDocumentSelector
@@ -21,21 +22,15 @@ class TestBatchDocumentSelector(TestCase):
         for relative_path in relative_paths:
             self._create_file(self.input_directory / relative_path)
 
-    def test_none_selects_every_docx_sorted_by_name(self):
+    def test_none_and_all_select_every_docx_sorted_by_name(self):
         self._create_files("02_b.docx", "01_a.docx", "10_c.docx")
 
-        self.assertEqual(
-            self.selector.select(self.input_directory, None),
-            ("01_a.docx", "02_b.docx", "10_c.docx"),
-        )
-
-    def test_text_all_selects_every_docx_sorted_by_name(self):
-        self._create_files("02_b.docx", "01_a.docx")
-
-        self.assertEqual(
-            self.selector.select(self.input_directory, "all"),
-            ("01_a.docx", "02_b.docx"),
-        )
+        for documents in (None, "all"):
+            with self.subTest(documents=documents):
+                self.assertEqual(
+                    self.selector.select(self.input_directory, documents),
+                    ("01_a.docx", "02_b.docx", "10_c.docx"),
+                )
 
     def test_all_skips_word_lock_files(self):
         self._create_files("~$01_a.docx", "01_a.docx")
@@ -52,30 +47,20 @@ class TestBatchDocumentSelector(TestCase):
 
         self.assertEqual(self.selector.select(self.input_directory, None), ("A.DOCX", "b.Docx"))
 
-    def test_all_does_not_look_into_subdirectories(self):
+    def test_all_ignores_subdirectories_and_directories_named_like_documents(self):
         self._create_files("top.docx", "sub/nested.docx")
+        (self.input_directory / "folder.docx").mkdir()
 
         self.assertEqual(self.selector.select(self.input_directory, None), ("top.docx",))
 
-    def test_all_ignores_directories_named_like_documents(self):
-        self._create_files("report.docx")
-        (self.input_directory / "folder.docx").mkdir()
-
-        self.assertEqual(self.selector.select(self.input_directory, None), ("report.docx",))
-
-    def test_none_raises_when_no_document_is_found(self):
+    def test_all_selection_raises_when_directory_has_no_document_or_is_missing(self):
         self._create_files("notes.txt")
 
-        with self.assertRaises(ValueError):
-            self.selector.select(self.input_directory, None)
+        for documents in (None, "all"):
+            with self.subTest(documents=documents):
+                with self.assertRaises(ValueError):
+                    self.selector.select(self.input_directory, documents)
 
-    def test_text_all_raises_when_no_document_is_found(self):
-        self._create_files("notes.txt")
-
-        with self.assertRaises(ValueError):
-            self.selector.select(self.input_directory, "all")
-
-    def test_all_raises_when_input_directory_does_not_exist(self):
         with self.assertRaises(ValueError):
             self.selector.select(self.input_directory / "missing", None)
 
@@ -85,18 +70,15 @@ class TestBatchDocumentSelector(TestCase):
             ("02_b.docx", "01_a.docx"),
         )
 
-    def test_unknown_text_raises_value_error(self):
-        with self.assertRaises(ValueError):
-            self.selector.select(self.input_directory, "report.docx")
+    def test_invalid_documents_value_raises_value_error(self):
+        invalid_documents_values: tuple[Any, ...] = (
+            "report.docx",
+            3,
+            ["01_a.docx", 2],
+            [],
+        )
 
-    def test_non_text_non_list_value_raises_value_error(self):
-        with self.assertRaises(ValueError):
-            self.selector.select(self.input_directory, 3)
-
-    def test_list_with_non_text_item_raises_value_error(self):
-        with self.assertRaises(ValueError):
-            self.selector.select(self.input_directory, ["01_a.docx", 2])
-
-    def test_empty_list_raises_value_error(self):
-        with self.assertRaises(ValueError):
-            self.selector.select(self.input_directory, [])
+        for documents in invalid_documents_values:
+            with self.subTest(documents=documents):
+                with self.assertRaises(ValueError):
+                    self.selector.select(self.input_directory, documents)

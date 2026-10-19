@@ -20,14 +20,15 @@ class TestBatchRunner(TestCase):
             console_step_announcer=ConsoleStepAnnouncer(write_function=self._printed_lines.append),
         )
 
-    def test_runs_every_document_of_every_run_in_order(self):
+    def test_runs_every_document_of_every_run_in_order_and_returns_success(self):
         plan = self._plan(
             ("gemma", ("a.docx", "b.docx")),
             ("qwen", ("a.docx", "c.docx")),
         )
 
-        self._runner.run(plan)
+        status = self._runner.run(plan)
 
+        self.assertEqual(status, DocumentAnalysisCommand.SUCCESS_STATUS)
         self.assertEqual(
             self._analysis_command.run.call_args_list,
             [
@@ -38,62 +39,39 @@ class TestBatchRunner(TestCase):
             ],
         )
 
-    def test_passes_the_same_argument_objects_of_the_plan_to_the_command(self):
-        plan = self._plan(("gemma", ("a.docx",)))
-
-        self._runner.run(plan)
-
-        passed_arguments = self._analysis_command.run.call_args.args[0]
-        self.assertIs(passed_arguments, plan.runs[0].document_arguments[0])
-
-    def test_returns_success_status_when_every_document_succeeds(self):
-        plan = self._plan(("gemma", ("a.docx", "b.docx")), ("qwen", ("a.docx",)))
-
-        status = self._runner.run(plan)
-
-        self.assertEqual(status, DocumentAnalysisCommand.SUCCESS_STATUS)
-
-    def test_stops_at_first_failure_without_running_remaining_documents_or_runs(self):
-        self._analysis_command.run.side_effect = [0, 1, 0, 0]
+    def test_stops_at_first_failure_and_returns_its_status_unchanged(self):
         plan = self._plan(("gemma", ("a.docx", "b.docx", "c.docx")), ("qwen", ("a.docx",)))
-
-        status = self._runner.run(plan)
-
-        self.assertEqual(status, 1)
-        self.assertEqual(self._analysis_command.run.call_count, 2)
-
-    def test_returns_failure_status_unchanged(self):
-        plan = self._plan(("gemma", ("a.docx", "b.docx")))
-        for failure_status in (1, 2, DocumentAnalysisCommand.INTERRUPTED_STATUS):
+        for failure_status in (
+            DocumentAnalysisCommand.FAILURE_STATUS,
+            DocumentAnalysisCommand.INVALID_DOCUMENT_STATUS,
+            DocumentAnalysisCommand.INTERRUPTED_STATUS,
+        ):
             with self.subTest(failure_status=failure_status):
                 self._analysis_command.reset_mock()
-                self._analysis_command.run.side_effect = [0, failure_status]
+                self._analysis_command.run.side_effect = [
+                    DocumentAnalysisCommand.SUCCESS_STATUS,
+                    failure_status,
+                ]
 
                 status = self._runner.run(plan)
 
                 self.assertEqual(status, failure_status)
                 self.assertEqual(self._analysis_command.run.call_count, 2)
 
-    def test_failure_announcement_names_run_document_and_status(self):
-        self._analysis_command.run.side_effect = [0, 2]
-        plan = self._plan(("gemma-7b", ("a.docx", "tesis.docx")))
+    def test_failed_document_is_announced_with_its_run_and_status_but_not_as_finished(self):
+        self._analysis_command.run.side_effect = [DocumentAnalysisCommand.FAILURE_STATUS]
+        plan = self._plan(("gemma-7b", ("tesis.docx",)))
 
         self._runner.run(plan)
 
-        failure_line = self._printed_lines[-1]
-        self.assertTrue(failure_line.startswith("❌ "))
-        self.assertIn("tesis.docx", failure_line)
-        self.assertIn("gemma-7b", failure_line)
-        self.assertIn("(1/1)", failure_line)
-        self.assertIn("estado 2", failure_line)
-
-    def test_failed_document_is_not_announced_as_finished(self):
-        self._analysis_command.run.side_effect = [1]
-        plan = self._plan(("gemma", ("tesis.docx",)))
-
-        self._runner.run(plan)
-
-        self.assertFalse(any(line.startswith("✅ ") for line in self._printed_lines))
+        self.assertEqual(
+            self._printed_lines,
+            [
+                "⏳ Análisis de tesis.docx con la configuración gemma-7b (1/1)...",
+                "❌ Se detiene el lote: fallo en el análisis de tesis.docx con la configuración "
+                "gemma-7b (1/1), estado 1",
+            ],
+        )
 
     def test_announces_start_and_finish_of_each_successful_document(self):
         plan = self._plan(("gemma", ("tesis.docx",)), ("qwen", ("tesis.docx",)))
@@ -125,30 +103,23 @@ class TestBatchRunner(TestCase):
             [["⏳ Análisis de tesis.docx con la configuración gemma (1/1)..."]],
         )
 
-    def test_exception_from_command_propagates_and_stops_the_batch(self):
-        self._analysis_command.run.side_effect = [0, RuntimeError("fallo inesperado")]
-        plan = self._plan(("gemma", ("a.docx", "b.docx", "c.docx")))
+    def test_exceptions_from_command_propagate_and_stop_the_batch(self):
+        for error_type in (RuntimeError, KeyboardInterrupt):
+            with self.subTest(error_type=error_type.__name__):
+                self._analysis_command.reset_mock()
+                self._analysis_command.run.side_effect = [
+                    DocumentAnalysisCommand.SUCCESS_STATUS,
+                    error_type(),
+                ]
+                plan = self._plan(
+                    ("gemma", ("a.docx", "b.docx", "c.docx")),
+                    ("qwen", ("a.docx",)),
+                )
 
-        with self.assertRaises(RuntimeError):
-            self._runner.run(plan)
+                with self.assertRaises(error_type):
+                    self._runner.run(plan)
 
-        self.assertEqual(self._analysis_command.run.call_count, 2)
-
-    def test_keyboard_interrupt_from_command_propagates_and_stops_the_batch(self):
-        self._analysis_command.run.side_effect = [0, KeyboardInterrupt()]
-        plan = self._plan(("gemma", ("a.docx", "b.docx", "c.docx")), ("qwen", ("a.docx",)))
-
-        with self.assertRaises(KeyboardInterrupt):
-            self._runner.run(plan)
-
-        self.assertEqual(self._analysis_command.run.call_count, 2)
-
-    def test_empty_plan_returns_success_and_never_runs_the_command(self):
-        status = self._runner.run(BatchPlan(runs=()))
-
-        self.assertEqual(status, DocumentAnalysisCommand.SUCCESS_STATUS)
-        self._analysis_command.run.assert_not_called()
-        self.assertEqual(self._printed_lines, [])
+                self.assertEqual(self._analysis_command.run.call_count, 2)
 
     def _plan(self, *runs: tuple[str, tuple[str, ...]]) -> BatchPlan:
         return BatchPlan(

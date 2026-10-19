@@ -25,8 +25,8 @@ class TestBatchFileReader(TestCase):
         batch_file_path.write_text(dedent(content), encoding="utf-8")
         return self.reader.read(batch_file_path)
 
-    def test_runs_keep_the_order_of_the_file(self):
-        self._create_documents("01_x.docx")
+    def test_runs_keep_the_file_order_and_omitted_documents_select_every_document(self):
+        self._create_documents("02_y.docx", "01_x.docx")
 
         plan = self._read(
             """
@@ -42,46 +42,10 @@ class TestBatchFileReader(TestCase):
         )
 
         self.assertEqual([run.name for run in plan.runs], ["gemma", "qwen"])
-
-    def test_omitted_documents_select_every_document_of_the_input_directory(self):
-        self._create_documents("02_y.docx", "01_x.docx")
-
-        plan = self._read(
-            """
-            [batch]
-            input_directory = "inputs"
-
-            [[run]]
-            name = "gemma"
-            """
-        )
-
-        self.assertEqual(
-            [argument.document_name for argument in plan.runs[0].document_arguments],
-            ["01_x.docx", "02_y.docx"],
-        )
-
-    def test_batch_documents_apply_to_every_run(self):
-        self._create_documents("01_x.docx", "02_y.docx")
-
-        plan = self._read(
-            """
-            [batch]
-            input_directory = "inputs"
-            documents = ["02_y.docx"]
-
-            [[run]]
-            name = "gemma"
-
-            [[run]]
-            name = "qwen"
-            """
-        )
-
         for run in plan.runs:
             self.assertEqual(
                 [argument.document_name for argument in run.document_arguments],
-                ["02_y.docx"],
+                ["01_x.docx", "02_y.docx"],
             )
 
     def test_run_documents_override_batch_documents(self):
@@ -111,17 +75,21 @@ class TestBatchFileReader(TestCase):
             ["02_y.docx"],
         )
 
-    def test_every_document_argument_carries_the_run_fields(self):
+    def test_run_fields_override_batch_defaults_for_every_document_argument(self):
         self._create_documents("01_x.docx", "02_y.docx")
 
         plan = self._read(
             """
             [batch]
             input_directory = "inputs"
+            ollama_model_name = "batch-model"
 
             [[run]]
             name = "gemma"
             ollama_model_name = "gemma4-26b-adapted"
+
+            [[run]]
+            name = "qwen"
             """
         )
 
@@ -129,15 +97,20 @@ class TestBatchFileReader(TestCase):
             [argument.ollama_model_name for argument in plan.runs[0].document_arguments],
             ["gemma4-26b-adapted", "gemma4-26b-adapted"],
         )
+        self.assertEqual(
+            [argument.ollama_model_name for argument in plan.runs[1].document_arguments],
+            ["batch-model", "batch-model"],
+        )
 
-    def test_relative_paths_resolve_against_the_batch_file_directory(self):
+    def test_relative_paths_resolve_against_batch_directory_and_absolute_paths_stay(self):
         self._create_documents("01_x.docx")
+        absolute_output_directory = self.batch_directory / "elsewhere"
 
         plan = self._read(
-            """
+            f"""
             [batch]
             input_directory = "inputs"
-            output_directory = "outputs"
+            output_directory = "{absolute_output_directory.as_posix()}"
             prompts_directory = "prompts"
 
             [[run]]
@@ -148,28 +121,9 @@ class TestBatchFileReader(TestCase):
 
         argument = plan.runs[0].document_arguments[0]
         self.assertEqual(argument.input_directory, self.input_directory)
-        self.assertEqual(argument.output_directory, self.batch_directory / "outputs")
+        self.assertEqual(argument.output_directory, absolute_output_directory)
         self.assertEqual(argument.prompts_directory, self.batch_directory / "prompts")
         self.assertEqual(argument.alignment_prompt, self.batch_directory / "custom" / "alignment")
-
-    def test_absolute_paths_stay_as_they_are(self):
-        self._create_documents("01_x.docx")
-        absolute_output_directory = self.batch_directory / "elsewhere"
-
-        plan = self._read(
-            f"""
-            [batch]
-            input_directory = "{self.input_directory.as_posix()}"
-            output_directory = "{absolute_output_directory.as_posix()}"
-
-            [[run]]
-            name = "gemma"
-            """
-        )
-
-        argument = plan.runs[0].document_arguments[0]
-        self.assertEqual(argument.input_directory, self.input_directory)
-        self.assertEqual(argument.output_directory, absolute_output_directory)
 
     def test_use_external_llm_defaults_to_false(self):
         self._create_documents("01_x.docx")
@@ -186,73 +140,45 @@ class TestBatchFileReader(TestCase):
 
         self.assertIs(plan.runs[0].document_arguments[0].use_external_llm, False)
 
-    def test_run_can_enable_external_llm_in_debug_app_mode(self):
+    def test_external_llm_is_accepted_in_debug_app_mode_in_any_letter_case(self):
         self._create_documents("01_x.docx")
 
-        plan = self._read(
-            """
-            [batch]
-            input_directory = "inputs"
+        for app_mode in ("DEBUG", "debug"):
+            with self.subTest(app_mode=app_mode):
+                plan = self._read(
+                    f"""
+                    [batch]
+                    input_directory = "inputs"
 
-            [[run]]
-            name = "claude"
-            use_external_llm = true
-            app_mode = "DEBUG"
-            """
-        )
+                    [[run]]
+                    name = "claude"
+                    use_external_llm = true
+                    app_mode = "{app_mode}"
+                    """
+                )
 
-        self.assertIs(plan.runs[0].document_arguments[0].use_external_llm, True)
+                self.assertIs(plan.runs[0].document_arguments[0].use_external_llm, True)
 
-    def test_external_llm_accepts_lowercase_debug_app_mode(self):
+    def test_external_llm_outside_debug_app_mode_raises_naming_the_run(self):
         self._create_documents("01_x.docx")
 
-        plan = self._read(
-            """
-            [batch]
-            input_directory = "inputs"
+        for app_mode_line in ("", 'app_mode = "PROD"'):
+            with self.subTest(app_mode_line=app_mode_line):
+                with self.assertRaises(ValueError) as context:
+                    self._read(
+                        f"""
+                        [batch]
+                        input_directory = "inputs"
 
-            [[run]]
-            name = "claude"
-            use_external_llm = true
-            app_mode = "debug"
-            """
-        )
+                        [[run]]
+                        name = "claude"
+                        use_external_llm = true
+                        {app_mode_line}
+                        """
+                    )
 
-        self.assertIs(plan.runs[0].document_arguments[0].use_external_llm, True)
-
-    def test_external_llm_with_non_debug_app_mode_raises_naming_the_run(self):
-        self._create_documents("01_x.docx")
-
-        with self.assertRaises(ValueError) as context:
-            self._read(
-                """
-                [batch]
-                input_directory = "inputs"
-
-                [[run]]
-                name = "claude"
-                use_external_llm = true
-                app_mode = "PROD"
-                """
-            )
-
-        self.assertIn("claude", str(context.exception))
-        self.assertIn("DEBUG", str(context.exception))
-
-    def test_external_llm_without_app_mode_raises(self):
-        self._create_documents("01_x.docx")
-
-        with self.assertRaises(ValueError):
-            self._read(
-                """
-                [batch]
-                input_directory = "inputs"
-
-                [[run]]
-                name = "claude"
-                use_external_llm = true
-                """
-            )
+                self.assertIn("claude", str(context.exception))
+                self.assertIn("DEBUG", str(context.exception))
 
     def test_run_without_name_raises_naming_its_index(self):
         self._create_documents("01_x.docx")
@@ -295,18 +221,6 @@ class TestBatchFileReader(TestCase):
 
         self.assertIn("gemma", str(context.exception))
 
-    def test_run_with_no_document_in_input_directory_raises(self):
-        with self.assertRaises(ValueError):
-            self._read(
-                """
-                [batch]
-                input_directory = "inputs"
-
-                [[run]]
-                name = "gemma"
-                """
-            )
-
     def test_unknown_run_key_raises_type_error(self):
         self._create_documents("01_x.docx")
 
@@ -322,32 +236,23 @@ class TestBatchFileReader(TestCase):
                 """
             )
 
-    def test_document_name_in_run_raises(self):
+    def test_document_name_is_rejected_in_batch_or_run(self):
         self._create_documents("01_x.docx")
 
-        with self.assertRaises(ValueError):
-            self._read(
-                """
-                [batch]
-                input_directory = "inputs"
+        for batch_line, run_line in (
+            ('document_name = "01_x.docx"', ""),
+            ("", 'document_name = "01_x.docx"'),
+        ):
+            with self.subTest(batch_line=batch_line, run_line=run_line):
+                with self.assertRaises(ValueError):
+                    self._read(
+                        f"""
+                        [batch]
+                        input_directory = "inputs"
+                        {batch_line}
 
-                [[run]]
-                name = "gemma"
-                document_name = "01_x.docx"
-                """
-            )
-
-    def test_document_name_in_batch_raises(self):
-        self._create_documents("01_x.docx")
-
-        with self.assertRaises(ValueError):
-            self._read(
-                """
-                [batch]
-                input_directory = "inputs"
-                document_name = "01_x.docx"
-
-                [[run]]
-                name = "gemma"
-                """
-            )
+                        [[run]]
+                        name = "gemma"
+                        {run_line}
+                        """
+                    )

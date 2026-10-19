@@ -48,7 +48,7 @@ class TestBatchCommand(TestCase):
 
                 self.assertEqual(status, runner_status)
 
-    def test_read_errors_return_failure_status_without_running_any_run(self):
+    def test_read_errors_return_failure_status_without_running_and_name_file_and_error(self):
         for read_error in (
             OSError("file not found"),
             ValueError("invalid TOML"),
@@ -61,14 +61,8 @@ class TestBatchCommand(TestCase):
 
                 self.assertEqual(status, DocumentAnalysisCommand.FAILURE_STATUS)
                 self._batch_runner.run.assert_not_called()
-
-    def test_read_error_announcement_names_the_batch_file_and_the_error(self):
-        self._batch_file_reader.read.side_effect = ValueError("line 3 is invalid")
-
-        self._command.run(self.BATCH_FILE_PATH)
-
-        self.assertIn(str(self.BATCH_FILE_PATH), self._printed_text())
-        self.assertIn("line 3 is invalid", self._printed_text())
+                self.assertIn(str(self.BATCH_FILE_PATH), self._printed_text())
+                self.assertIn(str(read_error), self._printed_text())
 
     def test_keyboard_interrupt_while_reading_returns_interrupted_status(self):
         self._batch_file_reader.read.side_effect = KeyboardInterrupt
