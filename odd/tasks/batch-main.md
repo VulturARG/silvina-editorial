@@ -44,10 +44,11 @@ A developer-only script, `batch-main.py`, at the repository root. It reads a bat
 - [x] **TASK-04: Batch file model and reader**
   - **Scope**: new frozen dataclasses for the plan and its runs, a TOML reader that builds `CommandLineArguments`, a document selector (all or named), with `unittest` tests.
   - **Outcome**: `BatchRun`, `BatchPlan`, `BatchDocumentSelector` and `BatchFileReader` in `src/infrastructure/cli/`; field names of the TOML are the `CommandLineArguments` field names; `use_external_llm` defaults to false, an external run without `app_mode = "DEBUG"` is rejected, `~$` lock files are skipped, an empty or `all`-without-matches document selection raises (RED import errors, GREEN 34 tests; `src` 2365 and `tests` 34 OK; ruff and LSP clean). Commit `0fa7f51`.
-- [ ] **TASK-05: Batch runner**
+- [x] **TASK-05: Batch runner**
   - **Scope**: loop runs then documents, reuse one command, stop at the first non-zero status, announce which run and document failed; tests with a fake command.
+  - **Outcome**: `BatchRunner(analysis_command, console_step_announcer).run(plan)` loops runs then documents, announces start/finish, stops at the first non-zero status returning it unchanged and lets exceptions and `KeyboardInterrupt` propagate (RED import error, GREEN 12 tests; `src` 2377 and `tests` 34 OK; ruff clean). Commit `2d3f0d4`.
 - [ ] **TASK-06: Wiring, `batch-main.py` and docs**
-  - **Scope**: batch command wiring, root script, a sample batch file, README section, wiring test.
+  - **Scope**: `BatchCommandLineArgumentParser` (one positional batch file path), `BatchCommand` (reads the plan, reports file errors with status 1, maps `KeyboardInterrupt` to `INTERRUPTED_STATUS`, runs the runner), `BatchCommandWiring`, root `batch-main.py` as thin as `main.py`, two sample batch files in `sandbox/pack_2/` (documents 01 and 02, and all documents), README section, tests.
 - [ ] **TASK-07: Verification**
   - **Scope**: full `src` and `tests` suites, ruff, and a dry run of the sample batch (delegated to `gentle-ai-verify`).
 
