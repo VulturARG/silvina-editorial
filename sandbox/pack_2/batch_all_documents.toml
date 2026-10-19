@@ -1,10 +1,10 @@
 # Batch of every Word document in inputs, each analyzed by two runs in file order.
-# Relative paths resolve against the folder of this file.
+# Relative paths resolve against the project root.
 
 [batch]
-input_directory = "inputs"
-output_directory = "outputs"
-prompts_directory = "../../src/infrastructure/resources/prompts/v2"
+input_directory = "sandbox/pack_2/inputs"
+output_directory = "sandbox/pack_2/outputs"
+prompts_directory = "src/infrastructure/resources/prompts/v2"
 documents = "all"
 
 [[run]]

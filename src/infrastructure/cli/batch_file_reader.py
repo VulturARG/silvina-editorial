@@ -28,9 +28,14 @@ class BatchFileReader:
         *CommandLineArguments.PROMPT_NAMES,
     )
 
-    def __init__(self, document_selector: BatchDocumentSelector) -> None:
-        """Store the selector that chooses the documents of each run."""
+    def __init__(
+        self,
+        document_selector: BatchDocumentSelector,
+        project_root_directory: Path,
+    ) -> None:
+        """Store the document selector and the directory that relative paths resolve against."""
         self._document_selector = document_selector
+        self._project_root_directory = project_root_directory
 
     def read(self, batch_file_path: Path) -> BatchPlan:
         """Return the batch plan, failing when the file has no run or a run is misconfigured."""
@@ -45,9 +50,8 @@ class BatchFileReader:
                 f"[{self.BATCH_TABLE_KEY}] must not set {self.NAME_KEY!r}; "
                 f"{self.NAME_KEY!r} belongs to each [[{self.RUN_TABLE_ARRAY_KEY}]] table"
             )
-        batch_directory = batch_file_path.parent
         runs = tuple(
-            self._build_run(run_index, run_table, batch_table, batch_directory)
+            self._build_run(run_index, run_table, batch_table)
             for run_index, run_table in enumerate(run_tables, start=1)
         )
         return BatchPlan(runs=runs)
@@ -57,13 +61,12 @@ class BatchFileReader:
         run_index: int,
         run_table: dict[str, Any],
         batch_table: dict[str, Any],
-        batch_directory: Path,
     ) -> BatchRun:
         """Return the run with the arguments of each document its documents select."""
         if self.NAME_KEY not in run_table:
             raise ValueError(f"run number {run_index} has no {self.NAME_KEY}")
         name = run_table[self.NAME_KEY]
-        fields = self._effective_fields(name, run_table, batch_table, batch_directory)
+        fields = self._effective_fields(name, run_table, batch_table)
         document_names = self._document_selector.select(
             fields[self.INPUT_DIRECTORY_KEY],
             run_table.get(self.DOCUMENTS_KEY, batch_table.get(self.DOCUMENTS_KEY)),
@@ -95,7 +98,6 @@ class BatchFileReader:
         name: str,
         run_table: dict[str, Any],
         batch_table: dict[str, Any],
-        batch_directory: Path,
     ) -> dict[str, Any]:
         """Return the command line fields of a run: defaults, then batch, then run overrides."""
         batch_fields = {
@@ -129,14 +131,13 @@ class BatchFileReader:
             )
         for field_name in self.PATH_FIELD_NAMES:
             if field_name in fields:
-                fields[field_name] = self._resolve_path(fields[field_name], batch_directory)
+                fields[field_name] = self._resolve_path(fields[field_name])
         return fields
 
     def _is_debug_app_mode(self, fields: dict[str, Any]) -> bool:
         app_mode = fields.get(self.APP_MODE_KEY)
         return isinstance(app_mode, str) and app_mode.strip().upper() == self.DEBUG_APP_MODE
 
-    @staticmethod
-    def _resolve_path(path_text: str, batch_directory: Path) -> Path:
+    def _resolve_path(self, path_text: str) -> Path:
         path = Path(path_text)
-        return path if path.is_absolute() else batch_directory / path
+        return path if path.is_absolute() else self._project_root_directory / path

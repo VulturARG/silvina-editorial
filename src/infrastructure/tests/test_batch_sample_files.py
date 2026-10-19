@@ -11,7 +11,7 @@ class TestBatchSampleFiles(TestCase):
     ALL_DOCUMENTS_BATCH_FILE_PATH = PACK_DIRECTORY / "batch_all_documents.toml"
 
     def setUp(self):
-        self.reader = BatchFileReader(BatchDocumentSelector())
+        self.reader = BatchFileReader(BatchDocumentSelector(), PROJECT_ROOT_DIR)
 
     def test_two_documents_batch_plans_gemma_then_haiku_with_two_documents_each(self):
         plan = self.reader.read(self.TWO_DOCUMENTS_BATCH_FILE_PATH)

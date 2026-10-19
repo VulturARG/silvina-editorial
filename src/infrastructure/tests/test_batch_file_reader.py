@@ -9,12 +9,12 @@ from src.infrastructure.cli.batch_file_reader import BatchFileReader
 
 class TestBatchFileReader(TestCase):
     def setUp(self):
-        self.reader = BatchFileReader(BatchDocumentSelector())
         temporary_directory = TemporaryDirectory()
         self.addCleanup(temporary_directory.cleanup)
         self.batch_directory = Path(temporary_directory.name)
         self.input_directory = self.batch_directory / "inputs"
         self.input_directory.mkdir()
+        self.reader = BatchFileReader(BatchDocumentSelector(), self.batch_directory)
 
     def _create_documents(self, *document_names: str) -> None:
         for document_name in document_names:
@@ -102,8 +102,13 @@ class TestBatchFileReader(TestCase):
             ["batch-model", "batch-model"],
         )
 
-    def test_relative_paths_resolve_against_batch_directory_and_absolute_paths_stay(self):
-        self._create_documents("01_x.docx")
+    def test_relative_paths_resolve_against_project_root_and_absolute_paths_stay(self):
+        project_root_temporary_directory = TemporaryDirectory()
+        self.addCleanup(project_root_temporary_directory.cleanup)
+        project_root_directory = Path(project_root_temporary_directory.name)
+        (project_root_directory / "inputs").mkdir()
+        (project_root_directory / "inputs" / "01_x.docx").write_bytes(b"")
+        self.reader = BatchFileReader(BatchDocumentSelector(), project_root_directory)
         absolute_output_directory = self.batch_directory / "elsewhere"
 
         plan = self._read(
@@ -120,10 +125,10 @@ class TestBatchFileReader(TestCase):
         )
 
         argument = plan.runs[0].document_arguments[0]
-        self.assertEqual(argument.input_directory, self.input_directory)
+        self.assertEqual(argument.input_directory, project_root_directory / "inputs")
         self.assertEqual(argument.output_directory, absolute_output_directory)
-        self.assertEqual(argument.prompts_directory, self.batch_directory / "prompts")
-        self.assertEqual(argument.alignment_prompt, self.batch_directory / "custom" / "alignment")
+        self.assertEqual(argument.prompts_directory, project_root_directory / "prompts")
+        self.assertEqual(argument.alignment_prompt, project_root_directory / "custom" / "alignment")
 
     def test_use_external_llm_defaults_to_false(self):
         self._create_documents("01_x.docx")
